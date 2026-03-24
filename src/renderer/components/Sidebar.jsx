@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  Home,
   Users,
   CreditCard,
   Calendar,
@@ -13,6 +12,8 @@ import {
 } from "lucide-react";
 
 const Sidebar = () => {
+  const [activeItem, setActiveItem] = useState("Utilisateur");
+
   const menu = [
     { name: "Statistiques", icon: <BarChart2 /> },
     { name: "Adhérents", icon: <Users /> },
@@ -21,13 +22,12 @@ const Sidebar = () => {
     { name: "Planning", icon: <Calendar /> },
     { name: "Recette", icon: <DollarSign /> },
     { name: "Magasin", icon: <Package /> },
-    { name: "Utilisateur", icon: <User />, active: true },
+    { name: "Utilisateur", icon: <User /> },
     { name: "Paramètres", icon: <Settings /> }
   ];
 
   return (
     <div className="sidebar">
-      {/* Logo */}
       <div className="logo">
         <div className="logo-icon">💪</div>
         <div>
@@ -36,12 +36,12 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Menu */}
       <ul className="menu">
         {menu.map((item, index) => (
           <li
             key={index}
-            className={item.active ? "active" : ""}
+            className={activeItem === item.name ? "active" : ""}
+            onClick={() => setActiveItem(item.name)}
           >
             {item.icon}
             <span>{item.name}</span>
@@ -49,7 +49,6 @@ const Sidebar = () => {
         ))}
       </ul>
 
-      {/* Footer */}
       <div className="logout">
         <LogOut />
         <span>Déconnexion</span>
