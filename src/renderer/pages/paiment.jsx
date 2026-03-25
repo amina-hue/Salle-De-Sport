@@ -4,10 +4,6 @@ import Sidebar from '..//components/Sidebar';
 import StatCard from "../components/StatCard";
 import Button from "../components/Button";
 
-
-
-
-
 const Paiement = () => {
   const [search, setSearch] = useState("");
 
