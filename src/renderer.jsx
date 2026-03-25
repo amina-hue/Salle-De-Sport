@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client'; // ⚠ attention : /client pour React 18
 import "./styles/sidebar.css";
-import Paiement from './renderer/pages/paiment';
+import Planning from './renderer/pages/planning';
 import "./index.css";
 
 function App() {
@@ -9,7 +9,7 @@ function App() {
     <div className="w-screen h-screen">
      
     
-        <Paiement />
+        <Planning />
       
     </div>
   );
