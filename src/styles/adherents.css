@@ -1,0 +1,110 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #1e1e1e;
+  color: white;
+}
+
+/* PAGE */
+.page {
+  padding: 30px;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* SEARCH */
+.search-bar {
+  margin: 20px 0;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #2a2a2a;
+  color: white;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* CARD */
+.card {
+  background: #2a2a2a;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* BADGE */
+.badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.badge.active {
+  background: #2ecc71;
+}
+
+.badge.expired {
+  background: #e74c3c;
+}
+
+/* AVATAR */
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+/* TEXT */
+.role {
+  color: #bbb;
+  font-size: 14px;
+}
+
+.info {
+  font-size: 12px;
+  margin: 10px 0;
+}
+
+/* BUTTONS */
+.edit-btn {
+  background: #cb412d;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
+  width: 100%;
+  cursor: pointer;
+}
+
+.add-btn {
+  background: #cb412d;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+}

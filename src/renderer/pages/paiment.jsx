@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Search, Filter, Download, Plus } from "lucide-react";
 import Sidebar from '..//components/Sidebar';
 import StatCard from "../components/StatCard";
-import Button from "../components/Button";
+import AddButton from "../components/AddButton";
 
 const Paiement = () => {
   const [search, setSearch] = useState("");

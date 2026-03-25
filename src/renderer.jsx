@@ -4,13 +4,14 @@ import "./styles/sidebar.css";
 import Paiement from './renderer/pages/paiment';
 import "./index.css";
 import Login from './renderer/pages/connexion';
+import AdherentsPage from './renderer/pages/Adherent';
 
 function App() {
   return (
     <div className="w-screen h-screen">
      
     
-        <Login />
+        <AdherentsPage/>
       
     </div>
   );
