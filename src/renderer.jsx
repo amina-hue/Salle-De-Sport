@@ -3,13 +3,14 @@ import ReactDOM from 'react-dom/client'; // ⚠ attention : /client pour React 1
 import "./styles/sidebar.css";
 import Planning from './renderer/pages/planning';
 import "./index.css";
+import Paiement from './renderer/pages/paiment';
 
 function App() {
   return (
     <div className="w-screen h-screen">
      
     
-        <Planning />
+        <Paiement />
       
     </div>
   );
