@@ -5,13 +5,17 @@ import Paiement from './renderer/pages/paiment';
 import "./index.css";
 import Login from './renderer/pages/connexion';
 import AdherentsPage from './renderer/pages/Adherent';
+import Magasin from './renderer/pages/Magasin';
+import Utilisateur from './renderer/pages/Utilisateurs';
 
 function App() {
   return (
     <div className="w-screen h-screen">
      
-    
-        <AdherentsPage/>
+    {/* <Magasin/> */}
+        {/* <AdherentsPage/> */}
+        <Utilisateur/>
+
       
     </div>
   );
