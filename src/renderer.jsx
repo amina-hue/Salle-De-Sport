@@ -14,10 +14,10 @@ function App() {
     <div className="w-screen h-screen">
      
     
-       <StatistiquesAbonnement /> 
+      {/* <StatistiquesAbonnement /> */}
       {/* <StatistiquesAdherent /> */}
-      {/* <StatistiquesRevenue /> */}
-       {/* <Parametres /> */}
+      {/* <StatistiquesRevenue />   */}
+      <Parametres />
       
     </div>
   );
