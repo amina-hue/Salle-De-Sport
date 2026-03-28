@@ -7,6 +7,7 @@ import Login from './renderer/pages/connexion';
 import AdherentsPage from './renderer/pages/Adherent';
 import Magasin from './renderer/pages/Magasin';
 import Utilisateur from './renderer/pages/Utilisateurs';
+import Recette from './renderer/pages/Recette';
 
 function App() {
   return (
@@ -14,7 +15,8 @@ function App() {
      
     {/* <Magasin/> */}
         {/* <AdherentsPage/> */}
-        <Utilisateur/>
+        {/* <Utilisateur/> */}
+        {/* <Recette/> */}
 
       
     </div>
