@@ -312,7 +312,7 @@ const Paiement = () => {
         return (
           <tr key={i} style={{
             borderTop: "1px solid rgba(255,255,255,0.05)",
-            background: isHovered ? "rgba(166,124,82,0.05)" : "transparent", // hover léger marron
+            background: "#1e1819" , // hover léger marron
             transition: "background .15s"
           }} onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}>
             <td style={{ padding: "15px 22px" }}>
