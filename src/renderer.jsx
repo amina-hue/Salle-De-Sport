@@ -11,6 +11,10 @@ import StatistiquesAbonnement from "./renderer/pages/StatistiquesAbonnement";
 import StatistiquesAdherent from "./renderer/pages/StatistiquesAdherent";
 import StatistiquesRevenue from "./renderer/pages/StatistiquesRevenue";
 import Parametres from "./renderer/pages/Parametres";
+import Magasin from './renderer/pages/Magasin';
+import Utilisateur from './renderer/pages/Utilisateurs';
+import Recette from './renderer/pages/Recette';
+
 function App() {
   return (
     <div className="w-screen h-screen">
@@ -20,6 +24,11 @@ function App() {
       {/* <StatistiquesAdherent /> */}
       {/* <StatistiquesRevenue />   */}
       <Parametres />
+    {/* <Magasin/> */}
+        {/* <AdherentsPage/> */}
+        {/* <Utilisateur/> */}
+        {/* <Recette/> */}
+
       
     </div>
   );
