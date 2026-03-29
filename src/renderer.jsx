@@ -23,9 +23,9 @@ function App() {
       {/* <StatistiquesAbonnement /> */}
       {/* <StatistiquesAdherent /> */}
       {/* <StatistiquesRevenue />   */}
-      <Parametres />
+     {/*} <Parametres />*/}
     {/* <Magasin/> */}
-        {/* <AdherentsPage/> */}
+         <AdherentsPage/> 
         {/* <Utilisateur/> */}
         {/* <Recette/> */}
 
