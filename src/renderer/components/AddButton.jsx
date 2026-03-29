@@ -1,35 +1,45 @@
 import React from "react";
+import { Plus } from "lucide-react";
 
-const Button = ({
+const AddButton = ({
   children,
   onClick,
-  variant = "primary",
-  icon: Icon,
-  className = "",
+  icon: Icon = Plus,
 }) => {
-  const baseStyle =
-    "flex items-center gap-2 px-4 py-2 rounded-lg transition";
-
-  const variants = {
-    primary: "bg-red-500 hover:bg-red-600 text-white",
-    secondary: "bg-[#1a1a22] hover:bg-[#2a2a33] text-white",
-    success: "bg-green-500 hover:bg-green-600 text-white",
-    warning: "bg-yellow-500 hover:bg-yellow-600 text-black",
-    filter:
-      "border border-red-500 text-red-500 bg-transparent hover:bg-red-500 hover:text-white",
-    export:
-      "bg-[#e9e9f2] text-blue-600 hover:bg-[#dcdceb]",
-  };
-
   return (
     <button
       onClick={onClick}
-      className={`${baseStyle} ${variants[variant]} ${className}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        background: "#e53935",
+        color: "#fff",
+        border: "none",
+        borderRadius: 10,
+        padding: "12px 22px",
+        fontFamily: "'Barlow', sans-serif",
+        fontSize: "0.9rem",
+        fontWeight: 700,
+        cursor: "pointer",
+        boxShadow: "0 6px 20px rgba(229,57,53,0.4)",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 10px 28px rgba(229,57,53,0.5)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "none";
+        e.currentTarget.style.boxShadow =
+          "0 6px 20px rgba(229,57,53,0.4)";
+      }}
     >
-      {Icon && <Icon size={16} />}
+      <Icon size={17} />
       {children}
     </button>
   );
 };
 
-export default Button;
+export default AddButton;
