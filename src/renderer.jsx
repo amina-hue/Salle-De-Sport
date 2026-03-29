@@ -7,13 +7,19 @@ import AbonnementsPage from './renderer/pages/abonnement';
 import "./index.css";
 import Login from './renderer/pages/connexion';
 import AdherentsPage from './renderer/pages/Adherent';
-
+import StatistiquesAbonnement from "./renderer/pages/StatistiquesAbonnement";
+import StatistiquesAdherent from "./renderer/pages/StatistiquesAdherent";
+import StatistiquesRevenue from "./renderer/pages/StatistiquesRevenue";
+import Parametres from "./renderer/pages/Parametres";
 function App() {
   return (
     <div className="w-screen h-screen">
      
     
-        <AdherentsPage/>
+      {/* <StatistiquesAbonnement /> */}
+      {/* <StatistiquesAdherent /> */}
+      {/* <StatistiquesRevenue />   */}
+      <Parametres />
       
     </div>
   );
