@@ -1,110 +1,96 @@
-body {
-  margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: #1e1e1e;
-  color: white;
-}
-
-/* PAGE */
-.page {
-  padding: 30px;
-}
-
-/* HEADER */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* SEARCH */
-.search-bar {
-  margin: 20px 0;
-}
-
-.search-bar input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  background: #2a2a2a;
-  color: white;
-}
-
 /* GRID */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 25px;
 }
 
-/* CARD */
-.card {
-  background: #2a2a2a;
-  border-radius: 15px;
-  padding: 20px;
-  text-align: center;
-  position: relative;
-  transition: 0.3s;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-}
-
-/* BADGE */
-.badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 5px 10px;
+/* CARD MODERNE */
+.member-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
   border-radius: 20px;
-  font-size: 12px;
+  padding: 25px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s ease;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.badge.active {
-  background: #2ecc71;
+/* Glow effect ✨ */
+.member-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.15), transparent 60%);
+  opacity: 0;
+  transition: 0.4s;
 }
 
-.badge.expired {
-  background: #e74c3c;
+.member-card:hover::before {
+  opacity: 1;
+}
+
+/* Hover animation 🚀 */
+.member-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
 }
 
 /* AVATAR */
-.avatar {
-  width: 80px;
-  height: 80px;
+.member-card img {
+  width: 75px;
+  height: 75px;
   border-radius: 50%;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  border: 3px solid rgba(255,255,255,0.4);
 }
 
-/* TEXT */
-.role {
-  color: #bbb;
-  font-size: 14px;
+/* NAME */
+.member-card h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
 }
 
-.info {
-  font-size: 12px;
-  margin: 10px 0;
+/* ROLE */
+.member-card .role {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 12px;
 }
 
-/* BUTTONS */
-.edit-btn {
-  background: #cb412d;
-  border: none;
-  padding: 10px;
-  border-radius: 10px;
-  color: white;
-  width: 100%;
-  cursor: pointer;
+/* INFOS */
+.member-card .info {
+  font-size: 13px;
+  margin: 5px 0;
+  opacity: 0.85;
 }
 
-.add-btn {
-  background: #cb412d;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 10px;
-  color: white;
-  cursor: pointer;
+/* STATUS BADGE */
+.status {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+/* ACTIVE */
+.status.actif {
+  background: rgba(0, 255, 170, 0.2);
+  color: #00ffae;
+  box-shadow: 0 0 10px rgba(0,255,170,0.4);
+}
+
+/* EXPIRED */
+.status.expire {
+  background: rgba(255, 80, 80, 0.2);
+  color: #ff4d4d;
+  box-shadow: 0 0 10px rgba(255,80,80,0.4);
 }

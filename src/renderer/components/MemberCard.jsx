@@ -2,30 +2,23 @@ import React from "react";
 
 export default function MemberCard({ member }) {
   return (
-    <div className="card">
+    <div className="member-card">
+      
       {/* STATUS */}
-      <span
-        className={`badge ${
-          member.status === "Actif" ? "active" : "expired"
-        }`}
-      >
+      <div className={`status ${member.status.toLowerCase()}`}>
         {member.status}
-      </span>
+      </div>
 
       {/* IMAGE */}
-      <img src={member.image} alt="avatar" className="avatar" />
+      <img src={member.image} alt={member.name} />
 
       {/* INFOS */}
       <h3>{member.name}</h3>
       <p className="role">{member.role}</p>
 
-      <div className="info">
-        <p>{member.email}</p>
-        <p>{member.phone}</p>
-      </div>
+      <p className="info">📧 {member.email}</p>
+      <p className="info">📞 {member.phone}</p>
 
-      {/* BUTTON */}
-      <button className="edit-btn">Modifier</button>
     </div>
   );
 }
