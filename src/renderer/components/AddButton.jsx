@@ -15,6 +15,10 @@ const Button = ({
     secondary: "bg-[#1a1a22] hover:bg-[#2a2a33] text-white",
     success: "bg-green-500 hover:bg-green-600 text-white",
     warning: "bg-yellow-500 hover:bg-yellow-600 text-black",
+    filter:
+      "border border-red-500 text-red-500 bg-transparent hover:bg-red-500 hover:text-white",
+    export:
+      "bg-[#e9e9f2] text-blue-600 hover:bg-[#dcdceb]",
   };
 
   return (
