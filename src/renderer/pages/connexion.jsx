@@ -4,17 +4,38 @@ import gym from "../../images/gym.png";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
 
-  const handleLogin = () => {
-    if (!username.trim() || !password.trim()) {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
       setError("Veuillez remplir tous les champs.");
       return;
     }
+
+    setLoading(true);
     setError("");
-    navigate("/adherents");
+
+    try {
+      const result = await window.electron.invoke("login", {
+        email:      email.trim(),
+        motDePasse: password.trim(),
+      });
+
+      if (result.success) {
+        // Stocker l'utilisateur connecté
+        localStorage.setItem("user", JSON.stringify(result.user));
+        navigate("/adherents");
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError("Erreur de connexion à la base de données.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,30 +65,67 @@ export default function Login() {
           </p>
 
           {error && (
-            <div style={{ background: 'rgba(229,57,53,0.18)', border: '1px solid rgba(229,57,53,0.4)', borderRadius: 7, padding: '8px 12px', marginBottom: 14, fontSize: '0.78rem', color: '#f87171' }}>
+            <div style={{
+              background: 'rgba(229,57,53,0.18)',
+              border: '1px solid rgba(229,57,53,0.4)',
+              borderRadius: 7, padding: '8px 12px',
+              marginBottom: 14, fontSize: '0.78rem', color: '#f87171'
+            }}>
               {error}
             </div>
           )}
 
-          {[
-            { label: "Nom d'utilisateur", type: 'text', ph: 'votre@email.com', icon: '✉', val: username, set: setUsername },
-            { label: 'Mot de passe',      type: 'password', ph: '••••••••',    icon: '🔒', val: password, set: setPassword },
-          ].map(({ label, type, ph, icon, val, set }) => (
-            <div key={label} style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>{label}</label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>{icon}</span>
-                <input
-                  type={type} placeholder={ph} value={val}
-                  onChange={e => set(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                  style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 12px 10px 32px', color: '#fff', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
-                  onFocus={e => e.target.style.borderColor = 'rgba(229,57,53,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
-                />
-              </div>
+          {/* Email */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>
+              Adresse email
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>✉</span>
+              <input
+                type="email"
+                placeholder="votre@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 8, padding: '10px 12px 10px 32px',
+                  color: '#fff', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit'
+                }}
+                onFocus={e => e.target.style.borderColor = 'rgba(229,57,53,0.6)'}
+                onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+              />
             </div>
-          ))}
+          </div>
+
+          {/* Mot de passe */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>
+              Mot de passe
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>🔒</span>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 8, padding: '10px 12px 10px 32px',
+                  color: '#fff', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit'
+                }}
+                onFocus={e => e.target.style.borderColor = 'rgba(229,57,53,0.6)'}
+                onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+              />
+            </div>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, fontSize: '0.74rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
@@ -76,12 +134,23 @@ export default function Login() {
             <span style={{ color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>Mot de passe oublié ?</span>
           </div>
 
-          <button onClick={handleLogin}
-            style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#c0392b', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(192,57,43,0.5)', marginBottom: 16 }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#a93226'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#c0392b'; }}
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 8, border: 'none',
+              background: loading ? '#7f1d1d' : '#c0392b',
+              color: '#fff', fontSize: '0.9rem', fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: '0 4px 16px rgba(192,57,43,0.5)',
+              marginBottom: 16,
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#a93226'; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#c0392b'; }}
           >
-            Se Connecter
+            {loading ? 'Connexion...' : 'Se Connecter'}
           </button>
 
           <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center', margin: 0 }}>
@@ -102,10 +171,14 @@ export default function Login() {
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
-                { value: '500+', label: 'Adhérents actifs',    icon: '💪' },
+                { value: '500+', label: 'Adhérents actifs',     icon: '💪' },
                 { value: '95%',  label: 'Taux de satisfaction', icon: '📊' },
               ].map(({ value, label, icon }) => (
-                <div key={label} style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 10, padding: '12px 16px', flex: 1 }}>
+                <div key={label} style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 10, padding: '12px 16px', flex: 1
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>{value}</span>
                     <span style={{ fontSize: '1rem' }}>{icon}</span>
