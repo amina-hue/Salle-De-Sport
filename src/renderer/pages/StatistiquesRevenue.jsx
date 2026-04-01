@@ -1,6 +1,7 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import gymBg from "../../images/Gymnastique.png";
+import QuickActions from "../components/QuickActions";
 
 const revenueData = [
   { month: "Jan",  ventes: 4000,  abonnements: 3500 },
@@ -17,7 +18,7 @@ export default function StatistiquesRevenue({ onPageChange }) {
   return (
     <div style={{ flex: 1, height: "100%", overflowY: "auto", backgroundImage: `url(${gymBg})`, backgroundSize: "cover", backgroundPosition: "center" }}>
       <div style={{ minHeight: "100%", backgroundColor: "rgba(0,0,0,0.81)" }}>
-        <div style={{ padding: 24 }}>
+        <div style={{ padding: 24 }}> <QuickActions navigate={navigate} />
 
           {/* Header */}
           <div style={{ marginBottom: 24 }}>

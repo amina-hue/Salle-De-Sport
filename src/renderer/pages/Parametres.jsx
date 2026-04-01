@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import gymBg from "../../images/Gymnastique.png";
 
+
 const initialRoles = [
   { id: 1, name: "Admin",          users: 2 },
   { id: 2, name: "Manager",        users: 5 },
@@ -56,14 +57,7 @@ export default function Parametres({ onPageChange, onPermissionsChange }) {
     }}>
       <div style={{ minHeight: "100%", backgroundColor: "rgba(0,0,0,0.81)", padding: 24 }}>
 
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h1 style={{ fontSize: 36, fontWeight: 800, margin: 0 }}>Paramètres</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: 24 }}>⚡</span>
-            <div style={{ width: 40, height: 40, background: "#000", borderRadius: "50%" }} />
-          </div>
-        </div>
+      
 
         {/* Roles */}
         <div style={{ marginBottom: 32 }}>

@@ -1,6 +1,7 @@
 import React from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import gymBg from "../../images/Gymnastique.png";
+import QuickActions from "../components/QuickActions";
 
 const lineData = [
   { day: "Lun", value: 45 }, { day: "Mar", value: 52 }, { day: "Mer", value: 48 },
@@ -25,7 +26,7 @@ export default function StatistiquesAdherent({ onPageChange }) {
     <div style={{ flex: 1, height: "100%", overflowY: "auto", backgroundImage: `url(${gymBg})`, backgroundSize: "cover", backgroundPosition: "center" }}>
       <div style={{ minHeight: "100%", backgroundColor: "rgba(0,0,0,0.81)" }}>
         <div style={{ padding: 24 }}>
-
+         <QuickActions navigate={navigate} />
           {/* Header */}
           <div style={{ marginBottom: 24 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>
