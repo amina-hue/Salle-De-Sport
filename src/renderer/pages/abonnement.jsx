@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
 import Button from "../components/AddButton";
 import gym from "../../images/gym.png";
@@ -65,8 +65,19 @@ const expiryData = [
   { initials: "JM", name: "Julie Moreau",  plan: "Premium Annuel",      days: "22 jours", status: "ok",      color: "#22c55e" },
 ];
 const avatarColors = ["#e63946", "#3a7bd5", "#f59e0b", "#8b5cf6", "#22c55e"];
+const data = await window.electron.getAbonnements();
 
 const AbonnementsPage = () => {
+  const [abonnements, setAbonnements] = useState([]);
+  
+
+useEffect(() => {
+  const fetchAbonnements = async () => {
+    const data = await window.electron.getAbonnements();
+    setAbonnements(data);
+  };
+  fetchAbonnements();
+}, []);
   const [modalOpen, setModalOpen] = useState(false);
 const [selectedMember, setSelectedMember] = useState(null);
   return (
@@ -99,14 +110,14 @@ const [selectedMember, setSelectedMember] = useState(null);
   Ajouter un abonnement
 </Button>
 {modalOpen && (
-  <NouvelAbonnementModal
-    member={selectedMember}
-    onSave={(data) => {
-      console.log(data);
-      setModalOpen(false);
-    }}
-    onClose={() => setModalOpen(false)}
-  />
+ <NouvelAbonnementModal
+  member={selectedMember}
+  onSave={async () => {
+    const updated = await window.electron.getAbonnements();
+    setAbonnements(updated);
+  }}
+  onClose={() => setModalOpen(false)}
+/>
 )}      </div>
 
       {/* Alert */}
@@ -122,7 +133,21 @@ const [selectedMember, setSelectedMember] = useState(null);
       <div style={{ marginBottom: 36 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px", color: "#ccc", letterSpacing: "-.2px" }}>Plans disponibles</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {planData.map((p, i) => <PlanCard key={i} plan={p} />)}
+        {abonnements.map((a, i) => (
+  <PlanCard
+    key={i}
+    plan={{
+      name: a.typeNom,
+      duration: `${a.typeNom} (${a.dateDebut} → ${a.dateFin})`,
+      price: `${a.typePrix} DA`,
+      per: "par période",
+      features: [], // tu peux mettre ce que tu veux
+      members: 1,   // ou récupérer le nombre réel si besoin
+      full: false,
+      tier: a.typeNom.includes("Premium") ? "premium" : "standard",
+    }}
+  />
+))}
         </div>
       </div>
 

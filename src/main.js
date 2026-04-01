@@ -129,6 +129,27 @@ ipcMain.handle('deleteAdherent', async (event, id) => {
 // ══════════════════════════════════════════════
 //  ABONNEMENTS
 // ══════════════════════════════════════════════
+// Récupérer tous les types
+ipcMain.handle('getTypeAbonnements', async () => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM TypeAbonnement ORDER BY nom ASC', (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
+// Ajouter un type d'abonnement
+ipcMain.handle('addTypeAbonnement', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { nom, duree, prix } = data;
+    db.query('INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)', [nom, duree, prix], (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
 
 // Récupérer tous les abonnements avec nom adhérent
 ipcMain.handle('getAbonnements', async () => {
