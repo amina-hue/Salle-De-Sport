@@ -64,7 +64,7 @@ const Paiement = () => {
       height: "100%",
       overflowY: "auto",
       padding: "32px 36px",
-      backgroundImage: `linear-gradient(rgba(33,31,31,0.85), rgba(33,31,31,0.95)), url(${gym})`,
+      backgroundImage: `linear-gradient(rgba(11,11,18,0.6), rgba(11,11,18,0.95)), url(${gym})`,
       backgroundSize: "cover",
       backgroundPosition: "center",
       fontFamily: "'Inter','Segoe UI',sans-serif",
