@@ -159,8 +159,8 @@ ipcMain.handle('getAbonnements', async () => {
         CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom,
         t.nom AS typeNom, t.prix AS typePrix
        FROM Abonnement a
-       JOIN Adherent ad ON a.adherent_id = ad.idAdherent
-       JOIN TypeAbonnement t ON a.type_id = t.id
+      LEFT JOIN Adherent ad ON a.adherent_id = ad.idAdherent
+LEFT JOIN TypeAbonnement t ON a.type_id = t.id
        ORDER BY a.dateDebut DESC`,
       (err, result) => {
         if (err) reject(err);

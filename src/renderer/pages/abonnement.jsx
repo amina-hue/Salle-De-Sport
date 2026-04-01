@@ -73,9 +73,10 @@ const AbonnementsPage = () => {
 
 useEffect(() => {
   const fetchAbonnements = async () => {
-    const data = await window.electron.getAbonnements();
+    const data = await window.electron.getAbonnements();  console.log("DATA:", data); // 👈 debug
     setAbonnements(data);
   };
+
   fetchAbonnements();
 }, []);
   const [modalOpen, setModalOpen] = useState(false);
@@ -112,10 +113,17 @@ const [selectedMember, setSelectedMember] = useState(null);
 {modalOpen && (
  <NouvelAbonnementModal
   member={selectedMember}
-  onSave={async () => {
-    const updated = await window.electron.getAbonnements();
-    setAbonnements(updated);
-  }}
+onSave={async (formData) => {
+  await window.electron.addAbonnement({
+    adherent_id: formData.adherent_id,  
+    type_id: formData.type_id,          
+    dateDebut: formData.dateDebut,      
+    dateFin: formData.dateFin,          
+    statut: 'Actif',                    
+  });
+  const updated = await window.electron.getAbonnements();
+  setAbonnements(updated);
+}}
   onClose={() => setModalOpen(false)}
 />
 )}      </div>

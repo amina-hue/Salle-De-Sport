@@ -1,74 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // ← useEffect ajouté
 import GYM_BG from '../../images/background.png';
 
 const C = {
   accent: '#e53935', text: '#f0f0f0', muted: '#7a7f8e',
 };
 
-const PLANS = [
-  { label: 'Premium Annuel',    prix: 3500, duree: 12 },
-  { label: 'Standard Mensuel',  prix: 1200, duree: 1  },
-  { label: 'Basic Trimestriel', prix: 2000, duree: 3  },
-];
+// ❌ PLANS statique supprimé
 
 const IconX    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IconCard = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
 
 const lbl = {
-  fontSize: '0.78rem',
-  color: C.muted,
-  fontWeight: 600,
-  marginBottom: 5,
-  display: 'block',
+  fontSize: '0.78rem', color: C.muted, fontWeight: 600, marginBottom: 5, display: 'block',
 };
-
 const inp = {
-  width: '100%',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(229,57,53,0.45)',
-  borderRadius: 7,
-  padding: '11px 14px',
-  color: C.text,
-  fontFamily: "'Barlow', sans-serif",
-  fontSize: '0.875rem',
-  outline: 'none',
-  boxSizing: 'border-box',
+  width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(229,57,53,0.45)',
+  borderRadius: 7, padding: '11px 14px', color: C.text, fontFamily: "'Barlow', sans-serif",
+  fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box',
 };
-
 const inpWithIcon = { ...inp, paddingLeft: 36 };
 
 export default function NouvelAbonnementModal({ member, onSave, onClose }) {
-  const computeDateFin = (debut, planLabel) => {
-    if (!debut || !planLabel) return '';
-    const p = PLANS.find(pl => pl.label === planLabel);
-    if (!p) return '';
+  const [types, setTypes] = useState([]);      // ← types depuis la DB
+  const [loading, setLoading] = useState(true); // ← état de chargement
+
+  // ✅ Charge les types depuis la DB au montage
+  useEffect(() => {
+    window.electron.getTypeAbonnements()
+      .then(data => { setTypes(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // ✅ Calcul dateFin basé sur t.duree depuis la DB
+  const computeDateFin = (debut, typeId) => {
+    const t = types.find(t => t.id === Number(typeId));
+    if (!debut || !t) return '';
     const d = new Date(debut);
-    d.setMonth(d.getMonth() + p.duree);
+    d.setMonth(d.getMonth() + t.duree);
     return d.toISOString().split('T')[0];
   };
 
   const [form, setForm] = useState({
-    plan: '',
+    type_id: '',                                        // ← id au lieu du label
     dateDebut: new Date().toISOString().split('T')[0],
     dateFin: '',
     note: '',
   });
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const handlePlanChange = (val) => {
-    set('plan', val);
-    setForm(f => ({ ...f, plan: val, dateFin: computeDateFin(f.dateDebut, val) }));
+  const handleTypeChange = (val) => {
+    setForm(f => ({ ...f, type_id: val, dateFin: computeDateFin(f.dateDebut, val) }));
   };
 
   const handleDebutChange = (val) => {
-    setForm(f => ({ ...f, dateDebut: val, dateFin: computeDateFin(val, f.plan) }));
+    setForm(f => ({ ...f, dateDebut: val, dateFin: computeDateFin(val, f.type_id) }));
   };
 
-  const selectedPlan = PLANS.find(p => p.label === form.plan);
+  const selectedType = types.find(t => t.id === Number(form.type_id)); // ← depuis DB
 
   const handleSave = () => {
-    if (!form.plan) return alert("Veuillez sélectionner un type d'abonnement.");
-    onSave?.({ ...form, prix: selectedPlan?.prix, status: 'Actif' });
+    if (!form.type_id) return alert("Veuillez sélectionner un type d'abonnement.");
+     console.log('formData envoyé:', {   // ← ajoute ce log
+    adherent_id: member?.idAdherent ?? null,
+    type_id: Number(form.type_id),
+    dateDebut: form.dateDebut,
+    dateFin: form.dateFin,
+    statut: 'Actif',
+  });
+    onSave?.({
+      adherent_id: member?.idAdherent ?? null,
+      type_id: Number(form.type_id),
+      dateDebut: form.dateDebut,
+      dateFin: form.dateFin,
+      statut: 'Actif',
+    });
     onClose();
   };
 
@@ -79,7 +83,7 @@ export default function NouvelAbonnementModal({ member, onSave, onClose }) {
     >
       <div style={{ position: 'relative', width: '100%', maxWidth: 560, margin: '0 20px', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.8)', fontFamily: "'Barlow', sans-serif", color: C.text }}>
 
-        {/* Header with gym bg image */}
+        {/* Header */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${GYM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center 40%' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.58)' }} />
@@ -106,9 +110,20 @@ export default function NouvelAbonnementModal({ member, onSave, onClose }) {
               <label style={lbl}>Type d'abonnement <span style={{ color: C.accent }}>*</span></label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex', zIndex: 1 }}><IconCard /></span>
-                <select value={form.plan} onChange={e => handlePlanChange(e.target.value)} style={{ ...inpWithIcon, appearance: 'none', cursor: 'pointer' }}>
-                  <option value="">Sélectionner...</option>
-                  {PLANS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
+                {/* ✅ Options depuis la DB */}
+                <select
+                  value={form.type_id}
+                  onChange={e => handleTypeChange(e.target.value)}
+                  style={{ ...inpWithIcon, appearance: 'none', cursor: 'pointer' }}
+                >
+                  <option value="">
+                    {loading ? 'Chargement...' : 'Sélectionner...'}
+                  </option>
+                  {types.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.nom} — {t.prix} DA / {t.duree} mois
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -118,13 +133,17 @@ export default function NouvelAbonnementModal({ member, onSave, onClose }) {
             </div>
           </div>
 
-          {/* Prix affiché si plan sélectionné */}
-          {selectedPlan && (
+          {/* Prix affiché si type sélectionné */}
+          {selectedType && (
             <div style={{ background: 'rgba(229,57,53,0.08)', border: '1px solid rgba(229,57,53,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.82rem', color: C.muted }}>Prix</span>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: C.text }}>{selectedPlan.prix.toLocaleString()} <span style={{ color: C.accent }}>DA</span></span>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: C.text }}>
+                {selectedType.prix.toLocaleString()} <span style={{ color: C.accent }}>DA</span>
+              </span>
               {form.dateFin && (
-                <span style={{ fontSize: '0.78rem', color: C.muted }}>Fin : {new Date(form.dateFin).toLocaleDateString('fr-FR')}</span>
+                <span style={{ fontSize: '0.78rem', color: C.muted }}>
+                  Fin : {new Date(form.dateFin).toLocaleDateString('fr-FR')}
+                </span>
               )}
             </div>
           )}
@@ -134,7 +153,7 @@ export default function NouvelAbonnementModal({ member, onSave, onClose }) {
             <label style={lbl}>Note</label>
             <textarea
               value={form.note}
-              onChange={e => set('note', e.target.value)}
+              onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
               placeholder="Ajouter une note..."
               rows={3}
               style={{ ...inp, resize: 'vertical', minHeight: 70 }}
