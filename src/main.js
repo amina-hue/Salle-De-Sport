@@ -143,10 +143,41 @@ ipcMain.handle('getTypeAbonnements', async () => {
 ipcMain.handle('addTypeAbonnement', async (event, data) => {
   return new Promise((resolve, reject) => {
     const { nom, duree, prix } = data;
-    db.query('INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)', [nom, duree, prix], (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
+    db.query(
+      'INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)',
+      [nom, duree, prix],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+// Modifier un type d'abonnement
+ipcMain.handle('updateTypeAbonnement', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { id, nom, duree, prix } = data;
+    db.query(
+      'UPDATE TypeAbonnement SET nom=?, duree=?, prix=? WHERE id=?',
+      [nom, duree, prix, id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+// Supprimer un type d'abonnement
+ipcMain.handle('deleteTypeAbonnement', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'DELETE FROM TypeAbonnement WHERE id=?',
+      [id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
   });
 });
 

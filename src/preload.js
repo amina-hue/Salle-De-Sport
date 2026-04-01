@@ -4,7 +4,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
   invoke: (channel, data) => ipcRenderer.invoke(channel, data),
-    getAbonnements:     () => ipcRenderer.invoke('getAbonnements'),
-  addAbonnement:      (data) => ipcRenderer.invoke('addAbonnement', data),
-getTypeAbonnements: () => ipcRenderer.invoke('getTypeAbonnements'),
+  getTypeAbonnements:   ()     => ipcRenderer.invoke('getTypeAbonnements'),
+   addTypeAbonnement:    (data) => ipcRenderer.invoke('addTypeAbonnement', data),
+updateTypeAbonnement: (data) => ipcRenderer.invoke('updateTypeAbonnement', data),
+deleteTypeAbonnement: (id)   => ipcRenderer.invoke('deleteTypeAbonnement', id),
 });
