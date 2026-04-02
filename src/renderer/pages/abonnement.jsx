@@ -1,299 +1,277 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
-import Button from "../components/AddButton";
+import { ChevronRight, Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
 import gym from "../../images/gym.png";
-import NouvelTypeAbonnementModal from '../components/NouvelTypeAbonnementModal';
+import NouvelTypeAbonnementModal from "../components/NouvelTypeAbonnementModal";
 
-/* ─── PLAN CARD ─── */
+const C = {
+  bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
+  border: "#252833", borderHover: "#e53935",
+  accent: "#e53935", accentDim: "rgba(229,57,53,0.12)",
+  accentBorder: "rgba(229,57,53,0.3)",
+  text: "#f0f0f0", muted: "#6b7280", subtle: "#9ca3af",
+  green: "#22c55e", gold: "#f59e0b", blue: "#3a7bd5",
+};
+
+/* ── Plan Card ── */
 const PlanCard = ({ plan, onEdit, onDelete }) => {
+  const [hovered, setHovered] = useState(false);
   const isPremium = plan.tier === "premium";
-  const accent = isPremium ? "#e63946" : "#3a7bd5";
+  const accent = isPremium ? C.accent : C.blue;
   return (
     <div
-      style={{ background: "rgba(21,20,20,0.75)", borderRadius: 14, padding: "20px", border: "1px solid rgb(20,19,19)", position: "relative", overflow: "hidden", transition: "transform .2s, box-shadow .2s" }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 30px ${accent}22`; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? C.cardHover : C.card,
+        border: `1px solid ${hovered ? accent : C.border}`,
+        borderRadius: 14, overflow: "hidden", position: "relative",
+        transition: "all 0.22s ease",
+        transform: hovered ? "translateY(-4px)" : "none",
+        boxShadow: hovered ? `0 16px 40px ${accent}22` : "0 2px 8px rgba(0,0,0,0.2)",
+      }}
     >
-      {/* Badge tier */}
-      <div style={{ position: "absolute", top: 0, right: 0, background: isPremium ? "linear-gradient(135deg,#e63946,#c1121f)" : "linear-gradient(135deg,#3a7bd5,#1a56b0)", fontSize: 9, color: "#fff", padding: "3px 10px", borderBottomLeftRadius: 8, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase" }}>
+      {/* Tier badge */}
+      <div style={{ position: "absolute", top: 0, right: 0, background: isPremium ? "linear-gradient(135deg,#e53935,#c1121f)" : "linear-gradient(135deg,#3a7bd5,#1a56b0)", fontSize: "0.6rem", color: "#fff", padding: "3px 10px", borderBottomLeftRadius: 8, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Barlow', sans-serif" }}>
         {isPremium ? "Premium" : "Standard"}
       </div>
 
-      {/* Durée */}
-      <div style={{ marginBottom: 4 }}>
-        <span style={{ color: "#999", fontSize: 10, background: "#ffffff0d", padding: "2px 8px", borderRadius: 20 }}>
+      <div style={{ padding: "20px" }}>
+        {/* Duration badge */}
+        <span style={{ color: C.muted, fontSize: "0.65rem", background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", fontWeight: 600 }}>
           {plan.duration}
         </span>
-      </div>
 
-      {/* Nom */}
-      <h3 style={{ color: "#f1f1f1", fontSize: 14, fontWeight: 700, margin: "6px 0 2px" }}>{plan.name}</h3>
+        {/* Name */}
+        <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1.2rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "8px 0 4px" }}>{plan.name}</h3>
 
-      {/* Prix */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 4, margin: "10px 0 4px" }}>
-        <span style={{ color: accent, fontSize: 24, fontWeight: 800 }}>{plan.price}</span>
-      </div>
-      <p style={{ color: "#555", fontSize: 11, margin: "0 0 14px" }}>{plan.per}</p>
+        {/* Price */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, margin: "10px 0 2px" }}>
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", color: accent, fontSize: "1.8rem", fontWeight: 800, lineHeight: 1 }}>{plan.price}</span>
+        </div>
+        <p style={{ color: C.muted, fontSize: "0.72rem", margin: "0 0 14px", fontFamily: "'Barlow', sans-serif" }}>{plan.per}</p>
 
-      {/* Features */}
-      <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", minHeight: 36 }}>
-        {plan.features && plan.features.length > 0 ? (
-          plan.features.map((f, i) => (
-            <li key={i} style={{ fontSize: 12, color: "#aaa", display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-              <span style={{ color: accent, fontSize: 14 }}>✓</span>{f}
-            </li>
-          ))
-        ) : (
-          <li style={{ fontSize: 12, color: "#444", fontStyle: "italic" }}>Aucune règle définie</li>
-        )}
-      </ul>
+        {/* Features */}
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", minHeight: 36 }}>
+          {plan.features && plan.features.length > 0 ? (
+            plan.features.map((f, i) => (
+              <li key={i} style={{ fontSize: "0.78rem", color: C.subtle, display: "flex", alignItems: "center", gap: 6, marginBottom: 5, fontFamily: "'Barlow', sans-serif" }}>
+                <span style={{ color: accent, fontSize: 12, fontWeight: 700 }}>✓</span>{f}
+              </li>
+            ))
+          ) : (
+            <li style={{ fontSize: "0.72rem", color: C.muted, fontStyle: "italic", fontFamily: "'Barlow', sans-serif" }}>Aucune règle définie</li>
+          )}
+        </ul>
 
-      {/* Footer carte */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #ffffff08", paddingTop: 12 }}>
-        <span style={{ fontSize: 11, color: "#666" }}>
-          <span style={{ color: "#f1f1f1", fontWeight: 600 }}>{plan.members}</span> adhérents
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: plan.full ? "#e6394620" : "#22c55e20", color: plan.full ? "#e63946" : "#22c55e" }}>
-          {plan.full ? "COMPLET" : "ACTIF"}
-        </span>
-      </div>
+        {/* Footer */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+          <span style={{ fontSize: "0.72rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
+            <span style={{ color: C.text, fontWeight: 600 }}>{plan.members}</span> adhérents
+          </span>
+          <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "3px 8px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: plan.full ? C.accentDim : "rgba(34,197,94,0.12)", color: plan.full ? C.accent : C.green }}>
+            {plan.full ? "COMPLET" : "ACTIF"}
+          </span>
+        </div>
 
-      {/* Boutons */}
-      <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-        <button
-          onClick={onEdit}
-          style={{ flex: 1, padding: "7px 0", fontSize: 11, background: `${accent}18`, color: accent, border: `1px solid ${accent}33`, borderRadius: 7, cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
-          onMouseEnter={e => e.currentTarget.style.background = `${accent}30`}
-          onMouseLeave={e => e.currentTarget.style.background = `${accent}18`}
-        >
-          <Edit2 size={12} /> Modifier
-        </button>
-        <button
-          onClick={onDelete}
-          style={{ padding: "7px 10px", fontSize: 11, background: "#e6394615", color: "#e63946", border: "1px solid #e6394633", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center" }}
-          onMouseEnter={e => e.currentTarget.style.background = "#e6394630"}
-          onMouseLeave={e => e.currentTarget.style.background = "#e6394615"}
-        >
-          <Trash2 size={12} />
-        </button>
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+          <button onClick={onEdit} style={{ flex: 1, padding: "8px 0", fontSize: "0.78rem", background: `${accent}18`, color: accent, border: `1px solid ${accent}33`, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = `${accent}30`}
+            onMouseLeave={e => e.currentTarget.style.background = `${accent}18`}>
+            <Edit2 size={12} /> Modifier
+          </button>
+          <button onClick={onDelete} style={{ padding: "8px 12px", fontSize: "0.78rem", background: C.accentDim, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(229,57,53,0.25)"}
+            onMouseLeave={e => e.currentTarget.style.background = C.accentDim}>
+            <Trash2 size={12} />
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-/* ─── EXPIRY TABLE (statique pour l'instant) ─── */
 const expiryData = [
-  { initials: "SM", name: "Sophie Martin", plan: "Premium Mensuel",     days: "2 jours",  status: "urgent",  color: "#e63946" },
-  { initials: "LB", name: "Lucas Bernard", plan: "Standard Mensuel",    days: "4 jours",  status: "warning", color: "#f59e0b" },
-  { initials: "ED", name: "Emma Dubois",   plan: "Premium Trimestriel", days: "4 jours",  status: "warning", color: "#f59e0b" },
-  { initials: "TP", name: "Thomas Petit",  plan: "Standard Mensuel",    days: "6 jours",  status: "warning", color: "#f59e0b" },
-  { initials: "JM", name: "Julie Moreau",  plan: "Premium Annuel",      days: "22 jours", status: "ok",      color: "#22c55e" },
+  { initials: "SM", name: "Sophie Martin", plan: "Premium Mensuel",     days: "2 jours",  status: "urgent",  color: C.accent },
+  { initials: "LB", name: "Lucas Bernard", plan: "Standard Mensuel",    days: "4 jours",  status: "warning", color: C.gold   },
+  { initials: "ED", name: "Emma Dubois",   plan: "Premium Trimestriel", days: "4 jours",  status: "warning", color: C.gold   },
+  { initials: "TP", name: "Thomas Petit",  plan: "Standard Mensuel",    days: "6 jours",  status: "warning", color: C.gold   },
+  { initials: "JM", name: "Julie Moreau",  plan: "Premium Annuel",      days: "22 jours", status: "ok",      color: C.green  },
 ];
-const avatarColors = ["#e63946", "#3a7bd5", "#f59e0b", "#8b5cf6", "#22c55e"];
+const avatarColors = [C.accent, C.blue, C.gold, "#8b5cf6", C.green];
 
-/* ─── PAGE PRINCIPALE ─── */
+/* ── Page ── */
 const AbonnementsPage = () => {
   const [types, setTypes]               = useState([]);
   const [modalTypeOpen, setModalTypeOpen] = useState(false);
   const [typeAEditer, setTypeAEditer]   = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // id du type à supprimer
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  /* Charge les types depuis la DB */
   const fetchTypes = async () => {
     const data = await window.electron.getTypeAbonnements();
     setTypes(data);
   };
+  useEffect(() => { fetchTypes(); }, []);
 
-  useEffect(() => {
-    fetchTypes();
-  }, []);
-
-  /* Suppression */
-  const handleDeleteType = async (id) => {
-    setDeleteConfirm(id); // ouvre la confirmation
-  };
-
-  const confirmDelete = async () => {
-    await window.electron.deleteTypeAbonnement(deleteConfirm);
-    setDeleteConfirm(null);
-    fetchTypes();
-  };
-
-  /* Après ajout ou modification */
-  const handleSaveType = async () => {
-    await fetchTypes();
-    setModalTypeOpen(false);
-  };
+  const handleDeleteType = (id) => setDeleteConfirm(id);
+  const confirmDelete = async () => { await window.electron.deleteTypeAbonnement(deleteConfirm); setDeleteConfirm(null); fetchTypes(); };
+  const handleSaveType = async () => { await fetchTypes(); setModalTypeOpen(false); };
 
   return (
-    <div style={{
-      flex: 1,
-      height: "100%",
-      overflowY: "auto",
-      padding: "30px 32px",
-      backgroundImage: `linear-gradient(rgba(11,11,18,0.6), rgba(11,11,18,0.95)), url(${gym})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      fontFamily: "'Inter', 'Segoe UI', sans-serif",
-      color: "#f1f1f1",
-    }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
 
-      {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: "-.3px" }}>Gestion des abonnements</h1>
-          <p style={{ margin: "4px 0 0", color: "#c2bcbc", fontSize: 13 }}>Gérez vos types d'abonnements disponibles</p>
+      {/* ── Hero Header ── */}
+      <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gym})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, ${C.bg})` }} />
+
+        <div style={{ position: "relative", padding: "32px 36px 36px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
+              <ChevronRight size={12} color={C.muted} />
+              <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>Abonnements</span>
+            </div>
+            <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
+              Gestion des abonnements
+            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 12 }}>
+              {[
+                { count: types.length, label: "types disponibles", color: C.muted  },
+                { count: 8,            label: "expirent bientôt",  color: C.gold   },
+              ].map(({ count, label, color }, i) => (
+                <React.Fragment key={label}>
+                  {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                    <span style={{ fontSize: "0.82rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}><strong style={{ color }}>{count}</strong> {label}</span>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={() => { setTypeAEditer(null); setModalTypeOpen(true); }} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontFamily: "'Barlow', sans-serif", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(229,57,53,0.4)", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(229,57,53,0.5)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(229,57,53,0.4)"; }}>
+            <Plus size={17} /> Ajouter un type
+          </button>
         </div>
-        <Button
-          variant="primary"
-          icon={Plus}
-          onClick={() => {
-            setTypeAEditer(null);
-            setModalTypeOpen(true);
-          }}
-        >
-          Ajouter un type
-        </Button>
       </div>
 
-      {/* ── Modal ajout / modification ── */}
+      {/* ── Content ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px 40px" }}>
+
+        {/* Alert */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: "14px 18px", marginBottom: 28 }}>
+          <AlertCircle size={18} color={C.accent} />
+          <div style={{ fontFamily: "'Barlow', sans-serif" }}>
+            <span style={{ color: C.text, fontWeight: 600, fontSize: "0.875rem" }}>Abonnements à renouveler — </span>
+            <span style={{ color: C.muted, fontSize: "0.875rem" }}>8 abonnements expirent dans les 15 prochains jours. Pensez à contacter vos adhérents.</span>
+          </div>
+        </div>
+
+        {/* Plans */}
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.3rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, margin: 0, color: C.text }}>Plans disponibles</h2>
+            <span style={{ fontSize: "0.72rem", fontWeight: 600, color: C.muted, background: "rgba(255,255,255,0.05)", padding: "2px 10px", borderRadius: 20, fontFamily: "'Barlow', sans-serif" }}>
+              {types.length} plan{types.length > 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {types.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 20px", color: C.muted, fontSize: "0.875rem", border: `1px dashed ${C.border}`, borderRadius: 14, fontFamily: "'Barlow', sans-serif" }}>
+              Aucun type d'abonnement — cliquez sur "Ajouter un type" pour commencer
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              {types.map(t => (
+                <PlanCard
+                  key={t.id}
+                  plan={{ name: t.nom, duration: `${t.duree} mois`, price: `${Number(t.prix).toLocaleString()} DA`, per: `par ${t.duree} mois`, features: [], members: 0, full: false, tier: t.nom.toLowerCase().includes("premium") ? "premium" : "standard" }}
+                  onEdit={() => { setTypeAEditer(t); setModalTypeOpen(true); }}
+                  onDelete={() => handleDeleteType(t.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Expiry table */}
+        <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "18px 24px 14px", borderBottom: `1px solid ${C.border}` }}>
+            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: C.text }}>Abonnements arrivant à expiration</h2>
+            <p style={{ margin: "3px 0 0", color: C.muted, fontSize: "0.78rem", fontFamily: "'Barlow', sans-serif" }}>Quotas des renouvellements à venir</p>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#14161c" }}>
+                {["Adhérent", "Abonnement", "Expire dans", "Statut", "Actions"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "11px 22px", fontSize: "0.65rem", color: C.muted, letterSpacing: 1, fontWeight: 700, fontFamily: "'Barlow', sans-serif", textTransform: "uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {expiryData.map((row, i) => (
+                <tr key={i} style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <td style={{ padding: "13px 22px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1.5px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "0.75rem", fontWeight: 700, color: avatarColors[i % avatarColors.length] }}>
+                        {row.initials}
+                      </div>
+                      <span style={{ fontSize: "0.875rem", fontWeight: 500, color: C.text, fontFamily: "'Barlow', sans-serif" }}>{row.name}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.subtle, fontFamily: "'Barlow', sans-serif" }}>{row.plan}</td>
+                  <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.text, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif" }}>{row.days}</td>
+                  <td style={{ padding: "13px 22px" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "4px 10px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: row.color + "22", color: row.color }}>
+                      {row.status === "urgent" ? "Urgent" : row.status === "warning" ? "Bientôt" : "OK"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "13px 22px" }}>
+                    <button style={{ fontSize: "0.78rem", color: C.blue, background: "rgba(58,123,213,0.12)", border: "1px solid rgba(58,123,213,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(58,123,213,0.22)"; e.currentTarget.style.color = "#fff"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(58,123,213,0.12)"; e.currentTarget.style.color = C.blue; }}>
+                      Contacter
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modals */}
       {modalTypeOpen && (
-        <NouvelTypeAbonnementModal
-          type={typeAEditer}
-          onSave={handleSaveType}
-          onClose={() => setModalTypeOpen(false)}
-        />
+        <NouvelTypeAbonnementModal type={typeAEditer} onSave={handleSaveType} onClose={() => setModalTypeOpen(false)} />
       )}
 
-      {/* ── Modal confirmation suppression ── */}
       {deleteConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-          <div style={{ background: "#1a1516", borderRadius: 14, padding: "28px 32px", maxWidth: 380, width: "100%", margin: "0 20px", border: "1px solid #e6394633", boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
+          onClick={e => e.target === e.currentTarget && setDeleteConfirm(null)}>
+          <div style={{ background: "#1a1d24", border: `1px solid ${C.accentBorder}`, borderRadius: 14, padding: "28px 32px", maxWidth: 380, width: "100%", margin: "0 20px", boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-              <div style={{ background: "#e6394622", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Trash2 size={18} color="#e63946" />
+              <div style={{ background: C.accentDim, borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Trash2 size={18} color={C.accent} />
               </div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#f1f1f1" }}>Supprimer ce type ?</h3>
+              <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", color: C.text }}>Supprimer ce type ?</h3>
             </div>
-            <p style={{ margin: "0 0 24px", fontSize: 13, color: "#888", lineHeight: 1.6 }}>
+            <p style={{ margin: "0 0 24px", fontSize: "0.875rem", color: C.muted, lineHeight: 1.6, fontFamily: "'Barlow', sans-serif" }}>
               Cette action est irréversible. Les abonnements liés à ce type pourraient être affectés.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "9px 20px", color: "#888", fontFamily: "inherit", fontSize: "0.875rem", cursor: "pointer" }}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                style={{ background: "#e63946", border: "none", borderRadius: 8, padding: "9px 22px", color: "#fff", fontFamily: "inherit", fontSize: "0.875rem", fontWeight: 700, cursor: "pointer" }}
-              >
-                Supprimer
-              </button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "9px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", cursor: "pointer" }}>Annuler</button>
+              <button onClick={confirmDelete} style={{ background: C.accent, border: "none", borderRadius: 8, padding: "9px 22px", color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", fontWeight: 700, cursor: "pointer" }}>Supprimer</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ── Alert ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#1a1a26", border: "1px solid #e6394633", borderRadius: 12, padding: "14px 18px", marginBottom: 28 }}>
-        <AlertCircle size={18} color="#e63946" />
-        <div>
-          <span style={{ color: "#f1f1f1", fontWeight: 600, fontSize: 13 }}>Abonnements à renouveler — </span>
-          <span style={{ color: "#888", fontSize: 13 }}>8 abonnements expirent dans les 15 prochains jours. Pensez à contacter vos adhérents.</span>
-        </div>
-      </div>
-
-      {/* ── Plans cards depuis DB ── */}
-      <div style={{ marginBottom: 36 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px", color: "#ccc", letterSpacing: "-.2px" }}>
-          Plans disponibles
-          <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 500, color: "#555", background: "#ffffff0d", padding: "2px 10px", borderRadius: 20 }}>
-            {types.length} plan{types.length > 1 ? "s" : ""}
-          </span>
-        </h2>
-
-        {types.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 20px", color: "#444", fontSize: 13, border: "1px dashed #333", borderRadius: 14 }}>
-            Aucun type d'abonnement — cliquez sur "Ajouter un type" pour commencer
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-            {types.map((t) => (
-              <PlanCard
-                key={t.id}
-                plan={{
-                  name:     t.nom,
-                  duration: `${t.duree} mois`,
-                  price:    `${Number(t.prix).toLocaleString()} DA`,
-                  per:      `par ${t.duree} mois`,
-                  features: [],
-                  members:  0,
-                  full:     false,
-                  tier:     t.nom.toLowerCase().includes('premium') ? 'premium' : 'standard',
-                }}
-                onEdit={() => {
-                  setTypeAEditer(t);
-                  setModalTypeOpen(true);
-                }}
-                onDelete={() => handleDeleteType(t.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Expiry table ── */}
-      <div style={{ background: "#271D1F", borderRadius: 16, border: "1px solid #2a2a3a", overflow: "hidden" }}>
-        <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #1e1819" }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#eee" }}>Abonnements arrivant à expiration</h2>
-          <p style={{ margin: "3px 0 0", color: "#888", fontSize: 12 }}>Quotas des renouvellements à venir</p>
-        </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#1e1819" }}>
-              {["ADHÉRENT", "ABONNEMENT", "EXPIRE DANS", "STATUT", "ACTIONS"].map(h => (
-                <th key={h} style={{ textAlign: "left", padding: "11px 22px", fontSize: 10, color: "#aaa", letterSpacing: ".8px", fontWeight: 700 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
-            {expiryData.map((row, i) => (
-              <tr key={i}
-                style={{ borderTop: "1px solid #2a2a3a", transition: "background 0.2s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#2a2a3a"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <td style={{ padding: "13px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "33", border: `1px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: avatarColors[i % avatarColors.length] }}>
-                      {row.initials}
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: "#eee" }}>{row.name}</span>
-                  </div>
-                </td>
-                <td style={{ padding: "13px 22px", fontSize: 13, color: "#ccc" }}>{row.plan}</td>
-                <td style={{ padding: "13px 22px", fontSize: 13, color: "#bbb", fontWeight: 600 }}>{row.days}</td>
-                <td style={{ padding: "13px 22px" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, background: row.color + "33", color: row.color }}>
-                    {row.status === "urgent" ? "Urgent" : row.status === "warning" ? "Bientôt" : "OK"}
-                  </span>
-                </td>
-                <td style={{ padding: "13px 22px" }}>
-                  <button
-                    style={{ fontSize: 12, color: "#3a7bd5", background: "#3a7bd533", border: "1px solid #3a7bd544", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontWeight: 600 }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#3a7bd544"; e.currentTarget.style.color = "#fff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#3a7bd533"; e.currentTarget.style.color = "#3a7bd5"; }}
-                  >
-                    Contacter
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 };
