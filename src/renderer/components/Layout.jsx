@@ -18,7 +18,7 @@ export default function Layout() {
       fontFamily: "'Barlow', sans-serif",
     }}>
       <Sidebar />
-      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, overflow: 'hidden',height: '100vh',minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </main>
     </div>

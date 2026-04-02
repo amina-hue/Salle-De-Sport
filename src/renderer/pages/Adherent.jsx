@@ -10,7 +10,6 @@ const C = {
   text: '#f0f0f0', muted: '#6b7280', subtle: '#9ca3af',
   green: '#22c55e', gold: '#f59e0b', blue: '#3b82f6',
 };
-
 //const GYM_BG = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1800&q=80';
 
 const INITIAL_DATA = [
