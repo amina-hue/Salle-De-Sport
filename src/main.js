@@ -129,6 +129,58 @@ ipcMain.handle('deleteAdherent', async (event, id) => {
 // ══════════════════════════════════════════════
 //  ABONNEMENTS
 // ══════════════════════════════════════════════
+// Récupérer tous les types
+ipcMain.handle('getTypeAbonnements', async () => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM TypeAbonnement ORDER BY nom ASC', (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
+// Ajouter un type d'abonnement
+ipcMain.handle('addTypeAbonnement', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { nom, duree, prix } = data;
+    db.query(
+      'INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)',
+      [nom, duree, prix],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+// Modifier un type d'abonnement
+ipcMain.handle('updateTypeAbonnement', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { id, nom, duree, prix } = data;
+    db.query(
+      'UPDATE TypeAbonnement SET nom=?, duree=?, prix=? WHERE id=?',
+      [nom, duree, prix, id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+// Supprimer un type d'abonnement
+ipcMain.handle('deleteTypeAbonnement', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'DELETE FROM TypeAbonnement WHERE id=?',
+      [id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
 
 // Récupérer tous les abonnements avec nom adhérent
 ipcMain.handle('getAbonnements', async () => {
@@ -138,8 +190,8 @@ ipcMain.handle('getAbonnements', async () => {
         CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom,
         t.nom AS typeNom, t.prix AS typePrix
        FROM Abonnement a
-       JOIN Adherent ad ON a.adherent_id = ad.idAdherent
-       JOIN TypeAbonnement t ON a.type_id = t.id
+      LEFT JOIN Adherent ad ON a.adherent_id = ad.idAdherent
+LEFT JOIN TypeAbonnement t ON a.type_id = t.id
        ORDER BY a.dateDebut DESC`,
       (err, result) => {
         if (err) reject(err);
