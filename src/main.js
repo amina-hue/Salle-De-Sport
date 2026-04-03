@@ -129,58 +129,94 @@ ipcMain.handle('deleteAdherent', async (event, id) => {
 // ══════════════════════════════════════════════
 //  ABONNEMENTS
 // ══════════════════════════════════════════════
-// Récupérer tous les types
+// Récupérer tous les types avec leurs règles
 ipcMain.handle('getTypeAbonnements', async () => {
   return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM TypeAbonnement ORDER BY nom ASC', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
+    db.query('SELECT * FROM TypeAbonnement ORDER BY nom ASC', (err, types) => {
+      if (err) return reject(err);
+      if (!types.length) return resolve([]);
+      db.query('SELECT * FROM Regles', (err2, regles) => {
+        if (err2) return reject(err2);
+        const result = types.map(t => ({
+          ...t,
+          features: regles
+            .filter(r => r.type_abonnement_id === t.id)
+            .map(r => r.description),
+        }));
+        resolve(result);
+      });
     });
   });
 });
 
-// Ajouter un type d'abonnement
+// Ajouter un type d'abonnement + ses règles
 ipcMain.handle('addTypeAbonnement', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { nom, duree, prix } = data;
+    const { nom, duree, prix, features = [] } = data;
+
+    // 1️⃣ Insérer le type d'abonnement
     db.query(
       'INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)',
       [nom, duree, prix],
       (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
+        if (err) return reject(err);
+        const typeId = result.insertId;
+
+        // 2️⃣ S'il n'y a pas de règles, on renvoie directement
+        if (!features.length) return resolve(result);
+
+        // 3️⃣ Préparer l'insertion multiple des règles
+        const placeholders = features.map(() => '(?, ?)').join(', ');
+        const flatValues = features.flatMap(f => [typeId, f]);
+
+        db.query(
+          `INSERT INTO Regles (type_abonnement_id, description) VALUES ${placeholders}`,
+          flatValues,
+          (err2) => {
+            if (err2) reject(err2);
+            else resolve(result); // succès
+          }
+        );
       }
     );
   });
 });
-// Modifier un type d'abonnement
+// Modifier un type d'abonnement + ses règles
 ipcMain.handle('updateTypeAbonnement', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { id, nom, duree, prix } = data;
+    const { id, nom, duree, prix, features = [] } = data;
     db.query(
       'UPDATE TypeAbonnement SET nom=?, duree=?, prix=? WHERE id=?',
       [nom, duree, prix, id],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
+      (err) => {
+        if (err) return reject(err);
+        // Supprimer les anciennes règles (le ON DELETE CASCADE ne s'applique pas ici car le type existe encore)
+        db.query('DELETE FROM Regles WHERE type_abonnement_id=?', [id], (err2) => {
+          if (err2) return reject(err2);
+          if (!features.length) return resolve({ success: true });
+          const values = features.map(f => [id, f]);
+          db.query(
+            'INSERT INTO Regles (type_abonnement_id, description) VALUES ?',
+            [values],
+            (err3) => { if (err3) reject(err3); else resolve({ success: true }); }
+          );
+        });
       }
     );
   });
 });
-// Supprimer un type d'abonnement
 ipcMain.handle('deleteTypeAbonnement', async (event, id) => {
   return new Promise((resolve, reject) => {
-    db.query(
-      'DELETE FROM TypeAbonnement WHERE id=?',
-      [id],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
+    db.query('DELETE FROM Abonnement WHERE type_id=?', [id], (err) => {
+      if (err) return reject(err);
+
+      db.query('DELETE FROM TypeAbonnement WHERE id=?', [id], (err2, result) => {
+        if (err2) return reject(err2);
+        resolve(result);
+      });
+    });
   });
 });
-
 
 // Récupérer tous les abonnements avec nom adhérent
 ipcMain.handle('getAbonnements', async () => {
