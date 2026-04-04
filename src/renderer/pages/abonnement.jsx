@@ -102,20 +102,29 @@ const avatarColors = [C.accent, C.blue, C.gold, "#8b5cf6", C.green];
 
 /* ── Page ── */
 const AbonnementsPage = () => {
-  const [types, setTypes]               = useState([]);
+  const [types, setTypes]                 = useState([]);
   const [modalTypeOpen, setModalTypeOpen] = useState(false);
-  const [typeAEditer, setTypeAEditer]   = useState(null);
+  const [typeAEditer, setTypeAEditer]     = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const fetchTypes = async () => {
+ const fetchTypes = async () => {
+  try {
     const data = await window.electron.getTypeAbonnements();
-    setTypes(data);
-  };
+    setTypes(data); // ← chaque plan contient maintenant features[]
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const handleSaveType = async () => {
+  await fetchTypes();   // recharge les plans avec leurs règles
+  setModalTypeOpen(false);
+};
   useEffect(() => { fetchTypes(); }, []);
 
   const handleDeleteType = (id) => setDeleteConfirm(id);
-  const confirmDelete = async () => { await window.electron.deleteTypeAbonnement(deleteConfirm); setDeleteConfirm(null); fetchTypes(); };
-  const handleSaveType = async () => { await fetchTypes(); setModalTypeOpen(false); };
+  const confirmDelete    = async () => { await window.electron.deleteTypeAbonnement(deleteConfirm); setDeleteConfirm(null); fetchTypes(); };
+  
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
@@ -138,8 +147,8 @@ const AbonnementsPage = () => {
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 12 }}>
               {[
-                { count: types.length, label: "types disponibles", color: C.muted  },
-                { count: 8,            label: "expirent bientôt",  color: C.gold   },
+                { count: types.length, label: "types disponibles", color: C.muted },
+                { count: 8,            label: "expirent bientôt",  color: C.gold  },
               ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
@@ -190,7 +199,16 @@ const AbonnementsPage = () => {
               {types.map(t => (
                 <PlanCard
                   key={t.id}
-                  plan={{ name: t.nom, duration: `${t.duree} mois`, price: `${Number(t.prix).toLocaleString()} DA`, per: `par ${t.duree} mois`, features: [], members: 0, full: false, tier: t.nom.toLowerCase().includes("premium") ? "premium" : "standard" }}
+                  plan={{
+                    name:     t.nom,
+                    duration: `${t.duree} mois`,
+                    price:    `${Number(t.prix).toLocaleString()} DA`,
+                    per:      `par ${t.duree} mois`,
+                    features: t.features ?? [],   // ← règles réelles depuis la DB
+                    members:  0,
+                    full:     false,
+                    tier:     t.nom.toLowerCase().includes("premium") ? "premium" : "standard",
+                  }}
                   onEdit={() => { setTypeAEditer(t); setModalTypeOpen(true); }}
                   onDelete={() => handleDeleteType(t.id)}
                 />

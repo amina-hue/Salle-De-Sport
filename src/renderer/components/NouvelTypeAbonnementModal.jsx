@@ -46,18 +46,20 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
     prix:  type?.prix  ?? '',
   });
 
-  const [selectedRules, setSelectedRules] = useState(() => {
-    if (!type?.features) return [];
-    if (Array.isArray(type.features)) return type.features;
-    try { return JSON.parse(type.features); } catch { return []; }
-  });
+const [selectedRules, setSelectedRules] = useState(() => {
+  if (!type?.features) return [];
+  // features est maintenant toujours un tableau JS, plus de JSON string
+  return Array.isArray(type.features) ? type.features : [];
+});
 
   const [errors, setErrors] = useState({});
+  
 
   const set = (k, v) => {
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: '' }));
   };
+  const [newRule, setNewRule] = useState('');
 
   const isPremium  = form.nom.toLowerCase().includes('premium');
   const accent     = isPremium ? '#e63946' : '#3a7bd5';
@@ -65,14 +67,13 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
   const dureeLabel = DUREES.find(d => d.value === Number(form.duree))?.label || '— mois';
   const rules      = isPremium ? RULES_PREMIUM : RULES_STANDARD;
 
-  useEffect(() => {
-    setSelectedRules([]);
-  }, [isPremium]);
+ 
 
   const toggleRule = (rule) => {
-    setSelectedRules(prev =>
-      prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]
-    );
+   setSelectedRules(prev => {
+  if (prev.includes(newRule.trim())) return prev;
+  return [...prev, newRule.trim()];
+});
   };
 
   const validate = () => {
@@ -86,7 +87,7 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
 
   const handleSave = async () => {
     if (!validate()) return;
-    const payload = { nom: form.nom.trim(), duree: Number(form.duree), prix: Number(form.prix), features: selectedRules  };
+   const payload = { nom: form.nom.trim(), duree: Number(form.duree), prix: Number(form.prix), features: selectedRules };
     if (isEdit) {
       await window.electron.updateTypeAbonnement({ ...payload, id: type.id });
     } else {
@@ -94,6 +95,10 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
     }
     onSave?.();
   };
+
+
+
+
 
   return (
     <div
@@ -196,50 +201,26 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
               </div>
 
               {/* Règles */}
-              <div>
-                <label style={lbl}>
-                  Règles incluses
-                  <span style={{ marginLeft: 8, fontSize: '0.7rem', padding: '2px 8px', borderRadius: 20, background: `${accent}22`, color: accent, fontWeight: 700 }}>
-                    {tier}
-                  </span>
-                </label>
-
-                {!form.nom.trim() && (
-                  <div style={{ fontSize: '0.75rem', color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>
-                    Saisissez le nom pour voir les règles
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {rules.map((rule, i) => {
-                    const checked = selectedRules.includes(rule);
-                    return (
-                      <div
-                        key={i}
-                        onClick={() => toggleRule(rule)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: `1px solid ${checked ? accent + '55' : 'rgba(255,255,255,0.08)'}`, background: checked ? `${accent}12` : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'all .15s' }}
-                        onMouseEnter={e => { if (!checked) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-                        onMouseLeave={e => { if (!checked) e.currentTarget.style.borderColor = checked ? accent + '55' : 'rgba(255,255,255,0.08)'; }}
-                      >
-                        <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${checked ? accent : '#444'}`, background: checked ? accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
-                          {checked && (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                          )}
-                        </div>
-                        <span style={{ fontSize: '0.82rem', color: checked ? '#f1f1f1' : '#888' }}>{rule}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {selectedRules.length > 0 && (
-                  <div style={{ marginTop: 8, fontSize: '0.72rem', color: C.muted }}>
-                    {selectedRules.length} règle{selectedRules.length > 1 ? 's' : ''} sélectionnée{selectedRules.length > 1 ? 's' : ''}
-                  </div>
-                )}
-              </div>
+              {/* Ajouter nouvelle règle */}
+<div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+  <input
+    type="text"
+    value={newRule}
+    onChange={e => setNewRule(e.target.value)}
+    placeholder="Nouvelle règle..."
+    style={{ ...inp, flex: 1 }}
+  />
+  <button
+    onClick={() => {
+      if (newRule.trim() === '') return;
+      setSelectedRules(prev => [...prev, newRule.trim()]);
+      setNewRule('');
+    }}
+    style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 12px', cursor: 'pointer', fontWeight: 700 }}
+  >
+    Ajouter
+  </button>
+</div>  
             </div>
 
             {/* Colonne droite — aperçu */}
@@ -266,15 +247,22 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
                     </span>
                   </div>
                   <p style={{ color: '#555', fontSize: 11, margin: '0 0 14px' }}>par {dureeLabel}</p>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', minHeight: 40 }}>
-                    {selectedRules.length === 0 ? (
-                      <li style={{ fontSize: 12, color: '#333', fontStyle: 'italic' }}>Aucune règle sélectionnée</li>
-                    ) : selectedRules.map((r, i) => (
-                      <li key={i} style={{ fontSize: 12, color: '#aaa', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                        <span style={{ color: accent, fontSize: 14 }}>✓</span>{r}
-                      </li>
-                    ))}
-                  </ul>
+                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', minHeight: 40 }}>
+  {selectedRules.length === 0 ? (
+    <li style={{ fontSize: 12, color: '#333', fontStyle: 'italic' }}>Aucune règle sélectionnée</li>
+  ) : selectedRules.map((r, i) => (
+    <li key={i} style={{ fontSize: 12, color: '#aaa', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+      <span style={{ color: accent, fontSize: 14 }}>✓</span>
+      <span style={{ flexGrow: 1 }}>{r}</span>
+      <button
+        onClick={() => setSelectedRules(prev => prev.filter((_, idx) => idx !== i))}
+        style={{ background: 'transparent', border: 'none', color: '#e63946', cursor: 'pointer', fontWeight: 700 }}
+      >
+        ×
+      </button>
+    </li>
+  ))}
+</ul>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #ffffff08', paddingTop: 12 }}>
                     <span style={{ fontSize: 11, color: '#666' }}><span style={{ color: '#f1f1f1', fontWeight: 600 }}>0</span> adhérents</span>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#22c55e20', color: '#22c55e' }}>ACTIF</span>
