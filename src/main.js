@@ -317,16 +317,56 @@ ipcMain.handle('deleteProduit', async (event, id) => {
 
 
 // ══════════════════════════════════════════════
-//  SÉANCES
+//  ACTIVITES
 // ══════════════════════════════════════════════
 
-ipcMain.handle('getSeances', async () => {
+ipcMain.handle('getActivites', async () => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM Activite ORDER BY nom', (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
+ipcMain.handle('addActivite', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { nom, couleur } = data;
+    db.query(
+      'INSERT INTO Activite (nom, couleur) VALUES (?, ?)',
+      [nom, couleur],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve({ insertId: result.insertId });
+      }
+    );
+  });
+});
+
+ipcMain.handle('deleteActivite', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('DELETE FROM Activite WHERE idActivite=?', [id], (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
+// ══════════════════════════════════════════════
+//  SÉANCES (mise à jour)
+// ══════════════════════════════════════════════
+
+ipcMain.handle('getSeancesPlanning', async () => {
   return new Promise((resolve, reject) => {
     db.query(
-      `SELECT s.*, CONCAT(u.nom, ' ', u.prenom) AS coachNom
+      `SELECT s.*,
+        CONCAT(u.nom, ' ', u.prenom) AS coachNom,
+        a.nom AS activiteNom,
+        a.couleur AS activiteCouleur
        FROM Seance s
        LEFT JOIN Utilisateur u ON s.coach_id = u.idUtilisateur
-       ORDER BY s.date DESC`,
+       LEFT JOIN Activite a ON s.activite_id = a.idActivite
+       ORDER BY s.date, s.heureDebut`,
       (err, result) => {
         if (err) reject(err);
         else resolve(result);
@@ -337,15 +377,25 @@ ipcMain.handle('getSeances', async () => {
 
 ipcMain.handle('addSeance', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { date, heureDebut, heureFin, participantsMax, coach_id } = data;
+    const { date, heureDebut, heureFin, participantsMax, coach_id, activite_id } = data;
     db.query(
-      'INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id) VALUES (?, ?, ?, ?, ?)',
-      [date, heureDebut, heureFin, participantsMax, coach_id],
+      `INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [date, heureDebut, heureFin, participantsMax, coach_id, activite_id],
       (err, result) => {
         if (err) reject(err);
-        else resolve(result);
+        else resolve({ insertId: result.insertId });
       }
     );
+  });
+});
+
+ipcMain.handle('deleteSeance', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('DELETE FROM Seance WHERE idSeance=?', [id], (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
   });
 });
 
@@ -389,6 +439,95 @@ ipcMain.handle('getRecetteParMois', async () => {
        GROUP BY mois
        ORDER BY mois DESC
        LIMIT 12`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+// ══════════════════════════════════════════════
+//  UTILISATEURS
+// ══════════════════════════════════════════════
+
+// Récupérer tous les utilisateurs avec leur rôle
+ipcMain.handle('getUtilisateurs', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT u.*, r.nom AS roleNom
+       FROM Utilisateur u
+       LEFT JOIN Role r ON u.role_id = r.id
+       ORDER BY u.idUtilisateur DESC`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
+// Ajouter un utilisateur
+ipcMain.handle('addUtilisateur', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { nom, prenom, email, motDePasse, role_id } = data;
+    db.query(
+      'INSERT INTO Utilisateur (nom, prenom, email, motDePasse, role_id) VALUES (?, ?, ?, ?, ?)',
+      [nom, prenom, email, motDePasse, role_id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve({ insertId: result.insertId });
+      }
+    );
+  });
+});
+
+// Supprimer un utilisateur
+ipcMain.handle('deleteUtilisateur', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'DELETE FROM Utilisateur WHERE idUtilisateur=?',
+      [id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
+// Modifier un utilisateur
+ipcMain.handle('updateUtilisateur', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { idUtilisateur, nom, prenom, email, role_id } = data;
+    db.query(
+      'UPDATE Utilisateur SET nom=?, prenom=?, email=?, role_id=? WHERE idUtilisateur=?',
+      [nom, prenom, email, role_id, idUtilisateur],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
+// Récupérer tous les rôles
+ipcMain.handle('getRoles', async () => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM Role ORDER BY nom', (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
+// Récupérer les coachs uniquement
+ipcMain.handle('getCoachs', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT u.idUtilisateur, u.nom, u.prenom
+       FROM Utilisateur u
+       JOIN Role r ON u.role_id = r.id
+       WHERE r.nom = 'coach'`,
       (err, result) => {
         if (err) reject(err);
         else resolve(result);
