@@ -116,71 +116,150 @@ function MemberCard({ member, onEdit, onDelete }) {
   );
 }
 
-/* ── Edit Modal ── */
+/* ── Edit Modal avec Caméra et Nouveaux Champs ── */
 function EditMemberModal({ member, onSave, onClose }) {
-  const [tab, setTab] = useState('abonnement');
-  const [form, setForm] = useState({ ...member });
+  const [tab, setTab] = useState('adherent');
+  const [form, setForm] = useState({ 
+    ...member, 
+    prenom: member.prenom || '', 
+    mode: member.mode || 'Musculation' 
+  });
+  
+  // État pour la caméra
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = React.useRef(null);
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  
   const inp = { background: '#312829', border: '1px solid #3d3233', borderRadius: 6, padding: '7px 10px', color: C.text, fontFamily: 'inherit', fontSize: '0.83rem', outline: 'none', width: '100%' };
+
+  // --- LOGIQUE CAMÉRA ---
+  const startCamera = async () => {
+    setShowCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch (err) {
+      alert("Impossible d'accéder à la caméra");
+      setShowCamera(false);
+    }
+  };
+
+  const takePhoto = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+    const data = canvas.toDataURL('image/png');
+    
+    // Arrêter la caméra
+    videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    
+    set('photo', data);
+    setShowCamera(false);
+  };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}
       onClick={e => e.target === e.currentTarget && onClose()}>
+      
       <div style={{ background: '#1a1516', border: '1px solid #3d3233', borderRadius: 14, width: 700, maxWidth: '96vw', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(0,0,0,0.7)', fontFamily: "'Barlow', sans-serif" }}>
+        
+        {/* Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#231e1f', borderBottom: '1px solid #3d3233', padding: '0 16px' }}>
           <div style={{ display: 'flex' }}>
-            {[{ key: 'abonnement', label: 'Abonnement' }, { key: 'adherent', label: 'Adhérent' }].map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? C.accent : 'transparent', border: 'none', color: tab === t.key ? '#fff' : C.muted, padding: '11px 20px', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', borderRadius: tab === t.key ? '6px 6px 0 0' : 0 }}>{t.label}</button>
+            {[{ key: 'adherent', label: 'Adhérent' }, { key: 'abonnement', label: 'Abonnement' }].map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? C.accent : 'transparent', border: 'none', color: tab === t.key ? '#fff' : C.muted, padding: '11px 20px', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>{t.label}</button>
             ))}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, fontSize: '1.1rem', cursor: 'pointer', padding: 4 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, fontSize: '1.1rem', cursor: 'pointer' }}>✕</button>
         </div>
+
         <div style={{ padding: '20px 22px', overflowY: 'auto', flex: 1 }}>
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: C.text, marginBottom: 18 }}>
-            {tab === 'abonnement' ? "Abonnement de l'adhérent" : "Information de l'adhérent"}
-          </h2>
-          {tab === 'abonnement' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          
+          {tab === 'adherent' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              
+              {/* Section Photo Interactive */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 15, padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid #3d3233' }}>
+                <div style={{ position: 'relative', width: 90, height: 90 }}>
+                   <img src={form.photo} style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover', border: `2px solid ${C.accent}` }} />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600, marginBottom: 8 }}>Photo de l'adhérent</div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <input type="file" id="fileEdit" hidden onChange={e => {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => set('photo', ev.target.result);
+                      reader.readAsDataURL(e.target.files[0]);
+                    }} />
+                    <button onClick={() => document.getElementById('fileEdit').click()} style={{ background: '#3d3233', border: 'none', color: '#fff', padding: '8px 15px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Importer</button>
+                    <button onClick={startCamera} style={{ background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, padding: '8px 15px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Prendre maintenant</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interface Caméra (s'affiche si activée) */}
+              {showCamera && (
+                <div style={{ position: 'relative', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 15 }}>
+                  <video ref={videoRef} autoPlay style={{ width: '100%', display: 'block' }} />
+                  <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10 }}>
+                    <button onClick={takePhoto} style={{ background: C.green, color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Capturer</button>
+                    <button onClick={() => setShowCamera(false)} style={{ background: '#666', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Champs texte */}
               {[
-                { label: "Type d'abonnement :", key: 'plan', type: 'select', opts: ['Premium Annuel', 'Standard Mensuel', 'Basic Trimestriel'] },
-                { label: 'Prix :', key: 'prix', type: 'text', ph: 'ex: 3500 DA' },
-                { label: 'Date Debut :', key: 'dateDebut', type: 'date' },
-                { label: 'Date Fin :', key: 'dateFin', type: 'date' },
-                { label: 'Statut :', key: 'status', type: 'select', opts: ['Actif', 'Expiré'] },
-              ].map(({ label, key, type, ph, opts }) => (
-                <div key={key}>
-                  <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                  {type === 'select'
-                    ? <select style={inp} value={form[key] || ''} onChange={e => set(key, e.target.value)}>{opts.map(o => <option key={o}>{o}</option>)}</select>
-                    : <input style={inp} type={type} placeholder={ph || ''} value={form[key] || ''} onChange={e => set(key, e.target.value)} />
+                { label: 'Nom :', key: 'nom', type: 'text' },
+                { label: 'Prénom :', key: 'prenom', type: 'text' },
+                { label: 'Mode :', key: 'mode', type: 'text' },
+                { label: 'Date de naissance :', key: 'dateNaissance', type: 'date' },
+                { label: 'Téléphone :', key: 'phone', type: 'text' },
+                { label: 'E-Mail :', key: 'email', type: 'email' },
+              ].map(({ label, key, type, opts }) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 150, fontWeight: 600 }}>{label}</span>
+                  {type === 'select' 
+                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select>
+                    : <input style={inp} type={type} value={form[key]} onChange={e => set(key, e.target.value)} />
                   }
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+            /* --- TAB ABONNEMENT --- */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               {[
-                { label: 'Nom Complet :', key: 'nom', type: 'text' },
-                { label: 'Date de naissance :', key: 'dateNaissance', type: 'date' },
-                { label: 'Numéro de téléphone :', key: 'phone', type: 'text' },
-                { label: 'E-Mail :', key: 'email', type: 'email' },
-              ].map(({ label, key, type }) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 165, fontWeight: 600 }}>{label}</span>
-                  <input style={inp} type={type} value={form[key] || ''} onChange={e => set(key, e.target.value)} />
+                { label: "Type d'abonnement :", key: 'plan', type: 'select', opts: ['Premium Annuel', 'Standard Mensuel', 'Basic Trimestriel'] },
+                { label: 'Prix :', key: 'prix', type: 'text' },
+                { label: 'Date Debut :', key: 'dateDebut', type: 'date' },
+                { label: 'Date Fin :', key: 'dateFin', type: 'date' },
+                { label: 'Statut :', key: 'status', type: 'select', opts: ['Actif', 'Expiré'] },
+              ].map(({ label, key, type, opts }) => (
+                <div key={key}>
+                  <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                  {type === 'select'
+                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>{opts.map(o => <option key={o}>{o}</option>)}</select>
+                    : <input style={inp} type={type} value={form[key]} onChange={e => set(key, e.target.value)} />
+                  }
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 22px', borderTop: '1px solid #3d3233', background: '#231e1f' }}>
-          <button onClick={() => { if (!form.nom?.trim()) { alert('Le nom est requis.'); return; } onSave(form); }} style={{ background: C.accent, border: 'none', borderRadius: 7, padding: '9px 24px', color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}>Sauvegarder</button>
-          <button onClick={onClose} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 20px', color: C.muted, fontFamily: 'inherit', fontSize: '0.875rem', cursor: 'pointer' }}>Annuler</button>
+          <button onClick={() => onSave(form)} style={{ background: C.accent, border: 'none', borderRadius: 7, padding: '9px 24px', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Enregistrer les modifications</button>
+          <button onClick={onClose} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 20px', color: C.muted, cursor: 'pointer' }}>Annuler</button>
         </div>
       </div>
     </div>
   );
 }
-
 /* ── Toast ── */
 function Toast({ message }) {
   return message ? (
