@@ -94,7 +94,7 @@ ipcMain.handle('addAdherent', async (event, data) => {
       [nom, prenom, dateNaissance, numTelephone, email, sexe],
       (err, result) => {
         if (err) reject(err);
-        else resolve(result);
+        else resolve({ insertId: result.insertId }); // ← IMPORTANT
       }
     );
   });
@@ -115,7 +115,7 @@ ipcMain.handle('updateAdherent', async (event, data) => {
   });
 });
 
-// Supprimer un adhérent
+// // Supprimer un adhérent
 ipcMain.handle('deleteAdherent', async (event, id) => {
   return new Promise((resolve, reject) => {
     db.query('DELETE FROM Adherent WHERE idAdherent=?', [id], (err, result) => {
@@ -125,7 +125,178 @@ ipcMain.handle('deleteAdherent', async (event, id) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  ADHERENTS — handlers complémentaires
+// ══════════════════════════════════════════════
 
+// Récupérer un adhérent avec son abonnement actif
+ipcMain.handle('getAdherentDetail', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        ad.*,
+        ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
+        t.nom AS typeNom, t.prix AS typePrix, t.duree
+       FROM Adherent ad
+       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+         AND ab.statut = 'actif'
+       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+       WHERE ad.idAdherent = ?
+       ORDER BY ab.dateDebut DESC
+       LIMIT 1`,
+      [id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result[0] || null);
+      }
+    );
+  });
+});
+
+// Récupérer tous les adhérents avec leur abonnement actif (pour la vue liste enrichie)
+ipcMain.handle('getAdherentsAvecAbonnement', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        ad.*,
+        ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
+        t.nom AS typeNom, t.prix AS typePrix
+       FROM Adherent ad
+       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+         AND ab.statut = 'actif'
+       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+       ORDER BY ad.dateCreation DESC`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
+// Mettre à jour la photo d'un adhérent
+ipcMain.handle('updateAdherentPhoto', async (event, { idAdherent, photo }) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'UPDATE Adherent SET photo = ? WHERE idAdherent = ?',
+      [photo, idAdherent],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
+// Supprimer un adhérent et tout ce qui lui est lié (cascade manuelle)
+ipcMain.handle('deleteAdherentComplet', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    // 1. Supprimer les présences
+    db.query('DELETE FROM Presence WHERE adherent_id = ?', [id], (err) => {
+      if (err) return reject(err);
+
+      // 2. Récupérer les abonnements pour supprimer les paiements liés
+      db.query('SELECT idAbonnement FROM Abonnement WHERE adherent_id = ?', [id], (err2, abos) => {
+        if (err2) return reject(err2);
+
+        const aboIds = abos.map(a => a.idAbonnement);
+
+        const deletePaiements = (cb) => {
+          if (!aboIds.length) return cb();
+          db.query('DELETE FROM Paiement WHERE abonnement_id IN (?)', [aboIds], cb);
+        };
+
+        deletePaiements((err3) => {
+          if (err3) return reject(err3);
+
+          // 3. Supprimer les abonnements
+          db.query('DELETE FROM Abonnement WHERE adherent_id = ?', [id], (err4) => {
+            if (err4) return reject(err4);
+
+            // 4. Supprimer l'adhérent
+            db.query('DELETE FROM Adherent WHERE idAdherent = ?', [id], (err5, result) => {
+              if (err5) return reject(err5);
+              else resolve(result);
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+// Rechercher des adhérents (nom, prénom, email, téléphone)
+ipcMain.handle('searchAdherents', async (event, query) => {
+  return new Promise((resolve, reject) => {
+    const q = `%${query}%`;
+    db.query(
+      `SELECT ad.*, ab.statut AS abonnementStatut, t.nom AS typeNom
+       FROM Adherent ad
+       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent AND ab.statut = 'actif'
+       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+       WHERE ad.nom LIKE ? OR ad.prenom LIKE ? OR ad.email LIKE ? OR ad.numTelephone LIKE ?
+       ORDER BY ad.nom ASC`,
+      [q, q, q, q],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+
+// Statistiques adhérents (pour dashboard)
+ipcMain.handle('getStatsAdherents', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT
+        COUNT(DISTINCT ad.idAdherent) AS total,
+        SUM(CASE WHEN ab.statut = 'actif' THEN 1 ELSE 0 END) AS actifs,
+        SUM(CASE WHEN ab.statut = 'expiré' THEN 1 ELSE 0 END) AS expires,
+        SUM(CASE WHEN ab.statut = 'suspendu' THEN 1 ELSE 0 END) AS suspendus,
+        SUM(CASE WHEN ad.sexe = 'Homme' THEN 1 ELSE 0 END) AS hommes,
+        SUM(CASE WHEN ad.sexe = 'Femme' THEN 1 ELSE 0 END) AS femmes
+       FROM Adherent ad
+       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result[0]);
+      }
+    );
+  });
+});
+
+// Nouveaux adhérents par mois (graphique)
+ipcMain.handle('getAdherentsParMois', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        DATE_FORMAT(dateCreation, '%Y-%m') AS mois,
+        COUNT(*) AS total
+       FROM Adherent
+       GROUP BY mois
+       ORDER BY mois DESC
+       LIMIT 12`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+ipcMain.handle('updateAbonnement', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { idAbonnement, type_id, dateDebut, dateFin, statut } = data;
+    db.query(
+      'UPDATE Abonnement SET type_id=?, dateDebut=?, dateFin=?, statut=? WHERE idAbonnement=?',
+      [type_id, dateDebut, dateFin, statut, idAbonnement],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
 // ══════════════════════════════════════════════
 //  ABONNEMENTS
 // ══════════════════════════════════════════════
@@ -288,13 +459,16 @@ ipcMain.handle('getPaiements', async () => {
 // Ajouter un paiement
 ipcMain.handle('addPaiement', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { abonnement_id, montant, datePaiement, modePaiement, statut } = data;
+    const { abonnement_id, montant, datePaiement, modePaiement } = data;
+
     db.query(
-      'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement, statut) VALUES (?, ?, ?, ?, ?)',
-      [abonnement_id, montant, datePaiement, modePaiement, statut],
+      'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)',
+      [abonnement_id, montant, datePaiement, modePaiement],
       (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
+        if (err) {
+          console.error("❌ addPaiement error:", err); // 🔥 IMPORTANT
+          reject(err);
+        } else resolve(result);
       }
     );
   });
@@ -471,7 +645,6 @@ ipcMain.handle('getRecetteParMois', async () => {
         DATE_FORMAT(datePaiement, '%Y-%m') AS mois,
         SUM(montant) AS total
        FROM Paiement
-       WHERE statut='validé'
        GROUP BY mois
        ORDER BY mois DESC
        LIMIT 12`,

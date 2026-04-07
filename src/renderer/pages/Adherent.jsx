@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
-import { ChevronRight, Search, Plus, Filter, Mail, Phone, Edit2, Trash2, Users, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  ChevronRight, Search, Plus, Filter, Mail, Phone,
+  Edit2, Trash2, Users, Calendar, Loader2, AlertCircle, RefreshCw
+} from 'lucide-react';
 import AddMemberModal from '../components/AddMemberModal';
 import GYM_BG from '../../images/background.png';
+
+// ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
   bg: '#0e0f11', card: '#1a1d24', cardHover: '#1f2330',
   border: '#252833', borderHover: '#e53935',
@@ -10,40 +15,48 @@ const C = {
   text: '#f0f0f0', muted: '#6b7280', subtle: '#9ca3af',
   green: '#22c55e', gold: '#f59e0b', blue: '#3b82f6',
 };
-//const GYM_BG = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1800&q=80';
 
-const INITIAL_DATA = [
-  { id:1,  nom:'Hamani Salima',       email:'hamani.salima@email.com',   phone:'06 12 34 56 78', plan:'Premium Annuel',    status:'Actif',  inscrit:'21 Jan 2025', photo:'https://randomuser.me/api/portraits/women/44.jpg', sexe:'Femme', dateNaissance:'', prix:'3500 DA', dateDebut:'2025-01-21', dateFin:'2026-01-21' },
-  { id:2,  nom:'Saadi Fares',         email:'Saadi.F@email.com',         phone:'06 23 45 67 89', plan:'Standard Mensuel',  status:'Expiré', inscrit:'04 Fév 2025', photo:'https://randomuser.me/api/portraits/men/32.jpg',    sexe:'Homme', dateNaissance:'', prix:'1200 DA', dateDebut:'2025-02-04', dateFin:'2025-03-04' },
-  { id:3,  nom:'Zahra Dib',           email:'Zahra.dib@email.com',       phone:'06 34 95 78 00', plan:'Premium Annuel',    status:'Actif',  inscrit:'10 Jan 2025', photo:'https://randomuser.me/api/portraits/women/65.jpg',  sexe:'Femme', dateNaissance:'', prix:'3500 DA', dateDebut:'2025-01-10', dateFin:'2026-01-10' },
-  { id:4,  nom:'Mohand Kettou',       email:'Kettou.f@email.com',        phone:'06 87 07 80 01', plan:'Basic Trimestriel', status:'Expiré', inscrit:'10 Oct 2024', photo:'https://randomuser.me/api/portraits/men/45.jpg',    sexe:'Homme', dateNaissance:'', prix:'2000 DA', dateDebut:'2024-10-10', dateFin:'2025-01-10' },
-  { id:5,  nom:'Amina Mokrane',       email:'Amina.mokrane@email.com',   phone:'06 12 78 90 12', plan:'Premium Annuel',    status:'Actif',  inscrit:'01 Avr 2025', photo:'https://randomuser.me/api/portraits/women/31.jpg',  sexe:'Femme', dateNaissance:'', prix:'3500 DA', dateDebut:'2025-04-01', dateFin:'2026-04-01' },
-  { id:6,  nom:'Omar Rahmoune',       email:'Omar.Off@email.com',        phone:'06 87 09 01 23', plan:'Standard Mensuel',  status:'Actif',  inscrit:'20 Jan 2025', photo:'https://randomuser.me/api/portraits/men/67.jpg',    sexe:'Homme', dateNaissance:'', prix:'1200 DA', dateDebut:'2025-01-20', dateFin:'2025-02-20' },
-  { id:7,  nom:'Camilia Berkani',     email:'camilia.berkani@email.com', phone:'06 78 90 12 34', plan:'Premium Annuel',    status:'Actif',  inscrit:'01 Fév 2025', photo:'https://randomuser.me/api/portraits/women/72.jpg',  sexe:'Femme', dateNaissance:'', prix:'3500 DA', dateDebut:'2025-02-01', dateFin:'2026-02-01' },
-  { id:8,  nom:'Mohammed Ali',        email:'mohammed.ali@email.com',    phone:'06 89 21 29 45', plan:'Standard Mensuel',  status:'Expiré', inscrit:'13 Nov 2024', photo:'https://randomuser.me/api/portraits/men/22.jpg',    sexe:'Homme', dateNaissance:'', prix:'1200 DA', dateDebut:'2024-11-13', dateFin:'2024-12-13' },
-  { id:9,  nom:'Karima Zerrouki',     email:'karima.zerrouki@email.com', phone:'06 12 34 56 78', plan:'Premium Annuel',    status:'Actif',  inscrit:'21 Jun 2025', photo:'https://randomuser.me/api/portraits/women/17.jpg',  sexe:'Femme', dateNaissance:'', prix:'3500 DA', dateDebut:'2025-06-21', dateFin:'2026-06-21' },
-  { id:10, nom:'Lehiou Oudjane',      email:'Lehiou.Dj@email.com',       phone:'06 23 45 67 89', plan:'Standard Mensuel',  status:'Actif',  inscrit:'03 Avr 2025', photo:'https://randomuser.me/api/portraits/men/88.jpg',    sexe:'Homme', dateNaissance:'', prix:'1200 DA', dateDebut:'2025-04-03', dateFin:'2025-05-03' },
-  { id:11, nom:'Sonia Kernou',        email:'Sonia.kernou@email.com',    phone:'06 34 56 78 90', plan:'Premium Annuel',    status:'Actif',  inscrit:'12 Jun 2025', photo:'https://randomuser.me/api/portraits/women/55.jpg',  sexe:'Femme', dateNaissance:'', prix:'3500 DA', dateDebut:'2025-06-12', dateFin:'2026-06-12' },
-  { id:12, nom:'Abd Alhalim Meziane', email:'abmeziane@email.com',       phone:'06 45 67 80 01', plan:'Basic Trimestriel', status:'Expiré', inscrit:'10 Oct 2024', photo:'https://randomuser.me/api/portraits/men/11.jpg',    sexe:'Homme', dateNaissance:'', prix:'2000 DA', dateDebut:'2024-10-10', dateFin:'2025-01-10' },
-];
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const FILTERS = ['Tous', 'actif', 'expiré'];
+const FILTER_LABELS = ['Tous', 'Actif', 'Expiré'];
 
-const FILTERS = ['Tous', 'Actif', 'Expiré'];
+function planColor(typeNom) {
+  const n = (typeNom || '').toLowerCase();
 
-function planColor(plan) {
-  if (plan.toLowerCase().includes('premium'))  return C.gold;
-  if (plan.toLowerCase().includes('standard')) return C.blue;
+  if (n.includes('premium') || n.includes('annuel')) return C.gold;
+  if (n.includes('standard') || n.includes('mensuel')) return C.blue;
   return C.muted;
 }
-function planBg(plan) {
-  if (plan.toLowerCase().includes('premium'))  return 'rgba(245,158,11,0.1)';
-  if (plan.toLowerCase().includes('standard')) return 'rgba(59,130,246,0.1)';
+function planBg(typeNom) {
+  const n = (typeNom || '').toLowerCase();
+
+  if (n.includes('premium') || n.includes('annuel')) return 'rgba(245,158,11,0.1)';
+  if (n.includes('standard') || n.includes('mensuel')) return 'rgba(59,130,246,0.1)';
   return 'rgba(107,114,128,0.1)';
 }
 
-/* ── Member Card ── */
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function toInputDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  return d.toISOString().split('T')[0];
+}
+
+// ─── Composant : MemberCard ──────────────────────────────────────────────────
 function MemberCard({ member, onEdit, onDelete }) {
   const [hovered, setHovered] = useState(false);
-  const isActif = member.status === 'Actif';
+  const isActif = member.abonnementStatut === 'actif';
+  const statusLabel = isActif ? 'Actif' : member.abonnementStatut ? 'Expiré' : 'Sans abo';
+  const photoSrc = member.photo
+    || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.nom || '') + ' ' + (member.prenom || ''))}&background=1f2330&color=e53935&size=300`;
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -60,7 +73,8 @@ function MemberCard({ member, onEdit, onDelete }) {
       {/* Photo */}
       <div style={{ position: 'relative', height: 170, overflow: 'hidden' }}>
         <img
-          src={member.photo} alt={member.nom}
+          src={photoSrc}
+          alt={member.nom}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s', transform: hovered ? 'scale(1.05)' : 'scale(1)' }}
           onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nom)}&background=1f2330&color=e53935&size=300`; }}
         />
@@ -70,44 +84,62 @@ function MemberCard({ member, onEdit, onDelete }) {
           fontSize: '0.65rem', fontWeight: 700,
           fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1, textTransform: 'uppercase',
           padding: '4px 10px', borderRadius: 20,
-          background: isActif ? C.green : C.accent, color: '#fff',
+          background: isActif ? C.green : C.accent,
+          color: '#fff',
           boxShadow: isActif ? '0 2px 8px rgba(34,197,94,0.4)' : '0 2px 8px rgba(229,57,53,0.4)',
         }}>
-          {member.status}
+          {statusLabel}
         </span>
       </div>
 
       {/* Content */}
       <div style={{ padding: '14px 16px 16px' }}>
-        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem', fontWeight: 700, color: C.text, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {member.nom}
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem', fontWeight: 700, color: C.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {member.nom} {member.prenom}
         </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: planBg(member.plan), borderRadius: 6, padding: '3px 10px', marginBottom: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: planColor(member.plan) }} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: planColor(member.plan) }}>{member.plan}</span>
+
+        {/* Badge abonnement */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: planBg(member.typeNom), borderRadius: 6, padding: '3px 10px', marginBottom: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: planColor(member.typeNom) }} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: planColor(member.typeNom) }}>
+            {member.typeNom || 'Aucun abonnement'}
+          </span>
         </div>
+
+        {/* Email / Téléphone */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-          {[{ Icon: Mail, text: member.email }, { Icon: Phone, text: member.phone }].map(({ Icon, text }) => (
-            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {[{ Icon: Mail, text: member.email }, { Icon: Phone, text: member.numTelephone }].map(({ Icon, text }) => (
+            <div key={Icon.displayName} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon size={11} color={C.muted} />
               </div>
-              <span style={{ fontSize: '0.75rem', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{text}</span>
+              <span style={{ fontSize: '0.75rem', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {text || '—'}
+              </span>
             </div>
           ))}
         </div>
+
         <div style={{ fontSize: '0.68rem', color: C.muted, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>
           <Calendar size={11} />
-          <span>Inscrit le <strong style={{ color: C.subtle, fontWeight: 500 }}>{member.inscrit}</strong></span>
+          <span>Inscrit le <strong style={{ color: C.subtle, fontWeight: 500 }}>{formatDate(member.dateCreation)}</strong></span>
         </div>
+
         <div style={{ height: 1, background: C.border, marginBottom: 14 }} />
+
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => onEdit(member)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, borderRadius: 8, padding: '8px 12px', fontFamily: "'Barlow', sans-serif", fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+          <button
+            onClick={() => onEdit(member)}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, borderRadius: 8, padding: '8px 12px', fontFamily: "'Barlow', sans-serif", fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+          >
             <Edit2 size={13} /> Modifier
           </button>
-          <button onClick={() => onDelete(member.id)} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, cursor: 'pointer' }}
+          <button
+            onClick={() => onDelete(member.idAdherent)}
+            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(229,57,53,0.1)'; e.currentTarget.style.color = C.accent; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = C.muted; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = C.muted; }}
+          >
             <Trash2 size={13} />
           </button>
         </div>
@@ -116,30 +148,38 @@ function MemberCard({ member, onEdit, onDelete }) {
   );
 }
 
-/* ── Edit Modal avec Caméra et Nouveaux Champs ── */
-function EditMemberModal({ member, onSave, onClose }) {
+// ─── Composant : EditMemberModal ─────────────────────────────────────────────
+function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
   const [tab, setTab] = useState('adherent');
-  const [form, setForm] = useState({ 
-    ...member, 
-    prenom: member.prenom || '', 
-    mode: member.mode || 'Musculation' 
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    idAdherent: member.idAdherent,
+    nom: member.nom || '',
+    prenom: member.prenom || '',
+    dateNaissance: toInputDate(member.dateNaissance),
+    numTelephone: member.numTelephone || '',
+    email: member.email || '',
+    sexe: member.sexe || 'Homme',
+    photo: member.photo || '',
+    // abonnement
+    idAbonnement: member.idAbonnement || null,
+    type_id: member.type_id || (typesAbonnement[0]?.id ?? ''),
+    dateDebut: toInputDate(member.dateDebut),
+    dateFin: toInputDate(member.dateFin),
+    abonnementStatut: member.abonnementStatut || 'actif',
   });
-  
-  // État pour la caméra
-  const [showCamera, setShowCamera] = useState(false);
-  const videoRef = React.useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  
-  const inp = { background: '#312829', border: '1px solid #3d3233', borderRadius: 6, padding: '7px 10px', color: C.text, fontFamily: 'inherit', fontSize: '0.83rem', outline: 'none', width: '100%' };
 
-  // --- LOGIQUE CAMÉRA ---
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef(null);
+
   const startCamera = async () => {
     setShowCamera(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch (err) {
+    } catch {
       alert("Impossible d'accéder à la caméra");
       setShowCamera(false);
     }
@@ -150,99 +190,133 @@ function EditMemberModal({ member, onSave, onClose }) {
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    const data = canvas.toDataURL('image/png');
-    
-    // Arrêter la caméra
-    videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-    
-    set('photo', data);
+    videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+    set('photo', canvas.toDataURL('image/png'));
     setShowCamera(false);
   };
 
+  const handleSave = async () => {
+    if (!form.nom.trim()) return alert('Le nom est requis.');
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = {
+    background: '#312829', border: '1px solid #3d3233', borderRadius: 6,
+    padding: '7px 10px', color: C.text, fontFamily: 'inherit',
+    fontSize: '0.83rem', outline: 'none', width: '100%',
+  };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
       <div style={{ background: '#1a1516', border: '1px solid #3d3233', borderRadius: 14, width: 700, maxWidth: '96vw', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(0,0,0,0.7)', fontFamily: "'Barlow', sans-serif" }}>
-        
-        {/* Tabs */}
+
+        {/* Tabs header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#231e1f', borderBottom: '1px solid #3d3233', padding: '0 16px' }}>
           <div style={{ display: 'flex' }}>
             {[{ key: 'adherent', label: 'Adhérent' }, { key: 'abonnement', label: 'Abonnement' }].map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? C.accent : 'transparent', border: 'none', color: tab === t.key ? '#fff' : C.muted, padding: '11px 20px', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>{t.label}</button>
+              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? C.accent : 'transparent', border: 'none', color: tab === t.key ? '#fff' : C.muted, padding: '11px 20px', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
+                {t.label}
+              </button>
             ))}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, fontSize: '1.1rem', cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, fontSize: '1.1rem', cursor: 'pointer', padding: 4 }}>✕</button>
         </div>
 
+        {/* Body */}
         <div style={{ padding: '20px 22px', overflowY: 'auto', flex: 1 }}>
-          
+
           {tab === 'adherent' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-              
-              {/* Section Photo Interactive */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 15, padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid #3d3233' }}>
-                <div style={{ position: 'relative', width: 90, height: 90 }}>
-                   <img src={form.photo} style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover', border: `2px solid ${C.accent}` }} />
-                </div>
 
+              {/* Photo */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 8, padding: 15, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid #3d3233' }}>
+                <img
+                  src={form.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(form.nom + ' ' + form.prenom)}&background=1f2330&color=e53935&size=200`}
+                  style={{ width: 80, height: 80, borderRadius: 10, objectFit: 'cover', border: `2px solid ${C.accent}`, flexShrink: 0 }}
+                  onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(form.nom)}&background=1f2330&color=e53935&size=200`; }}
+                />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600, marginBottom: 8 }}>Photo de l'adhérent</div>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <input type="file" id="fileEdit" hidden onChange={e => {
+                  <div style={{ fontSize: '0.88rem', color: '#fff', fontWeight: 600, marginBottom: 8 }}>Photo de l'adhérent</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <input type="file" id="fileEdit" hidden accept="image/*" onChange={e => {
                       const reader = new FileReader();
-                      reader.onload = (ev) => set('photo', ev.target.result);
+                      reader.onload = ev => set('photo', ev.target.result);
                       reader.readAsDataURL(e.target.files[0]);
                     }} />
-                    <button onClick={() => document.getElementById('fileEdit').click()} style={{ background: '#3d3233', border: 'none', color: '#fff', padding: '8px 15px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Importer</button>
-                    <button onClick={startCamera} style={{ background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, padding: '8px 15px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Prendre maintenant</button>
+                    <button onClick={() => document.getElementById('fileEdit').click()} style={{ background: '#3d3233', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Importer</button>
+                    <button onClick={startCamera} style={{ background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, padding: '7px 14px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Prendre une photo</button>
                   </div>
                 </div>
               </div>
 
-              {/* Interface Caméra (s'affiche si activée) */}
+              {/* Caméra */}
               {showCamera && (
-                <div style={{ position: 'relative', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 15 }}>
+                <div style={{ position: 'relative', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
                   <video ref={videoRef} autoPlay style={{ width: '100%', display: 'block' }} />
                   <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10 }}>
                     <button onClick={takePhoto} style={{ background: C.green, color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Capturer</button>
-                    <button onClick={() => setShowCamera(false)} style={{ background: '#666', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+                    <button onClick={() => { videoRef.current?.srcObject?.getTracks().forEach(t => t.stop()); setShowCamera(false); }} style={{ background: '#555', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
                   </div>
                 </div>
               )}
 
-              {/* Champs texte */}
+              {/* Champs adhérent */}
               {[
                 { label: 'Nom :', key: 'nom', type: 'text' },
                 { label: 'Prénom :', key: 'prenom', type: 'text' },
-                { label: 'Mode :', key: 'mode', type: 'text' },
+                { label: 'Sexe :', key: 'sexe', type: 'select', opts: ['Homme', 'Femme'] },
                 { label: 'Date de naissance :', key: 'dateNaissance', type: 'date' },
-                { label: 'Téléphone :', key: 'phone', type: 'text' },
+                { label: 'Téléphone :', key: 'numTelephone', type: 'text' },
                 { label: 'E-Mail :', key: 'email', type: 'email' },
               ].map(({ label, key, type, opts }) => (
                 <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 150, fontWeight: 600 }}>{label}</span>
-                  {type === 'select' 
-                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select>
+                  <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600 }}>{label}</span>
+                  {type === 'select'
+                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>
+                        {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
                     : <input style={inp} type={type} value={form[key]} onChange={e => set(key, e.target.value)} />
                   }
                 </div>
               ))}
             </div>
+
           ) : (
-            /* --- TAB ABONNEMENT --- */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            /* Tab Abonnement */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+
+              {!form.idAbonnement && (
+                <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: '0.8rem', color: C.gold }}>
+                  Cet adhérent n'a pas encore d'abonnement actif. Remplissez les champs ci-dessous pour en créer un.
+                </div>
+              )}
+
               {[
-                { label: "Type d'abonnement :", key: 'plan', type: 'select', opts: ['Premium Annuel', 'Standard Mensuel', 'Basic Trimestriel'] },
-                { label: 'Prix :', key: 'prix', type: 'text' },
-                { label: 'Date Debut :', key: 'dateDebut', type: 'date' },
-                { label: 'Date Fin :', key: 'dateFin', type: 'date' },
-                { label: 'Statut :', key: 'status', type: 'select', opts: ['Actif', 'Expiré'] },
+                {
+                  label: "Type d'abonnement :", key: 'type_id', type: 'select',
+                  opts: typesAbonnement.map(t => ({ value: t.id, label: `${t.nom} — ${t.prix} DA` }))
+                },
+                { label: 'Date début :', key: 'dateDebut', type: 'date' },
+                { label: 'Date fin :', key: 'dateFin', type: 'date' },
+                {
+                  label: 'Statut :', key: 'abonnementStatut', type: 'select',
+                  opts: [{ value: 'actif', label: 'Actif' }, { value: 'expiré', label: 'Expiré' }, { value: 'suspendu', label: 'Suspendu' }]
+                },
               ].map(({ label, key, type, opts }) => (
                 <div key={key}>
-                  <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>{label}</div>
                   {type === 'select'
-                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>{opts.map(o => <option key={o}>{o}</option>)}</select>
+                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>
+                        {opts.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
+                      </select>
                     : <input style={inp} type={type} value={form[key]} onChange={e => set(key, e.target.value)} />
                   }
                 </div>
@@ -253,53 +327,204 @@ function EditMemberModal({ member, onSave, onClose }) {
 
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 22px', borderTop: '1px solid #3d3233', background: '#231e1f' }}>
-          <button onClick={() => onSave(form)} style={{ background: C.accent, border: 'none', borderRadius: 7, padding: '9px 24px', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Enregistrer les modifications</button>
-          <button onClick={onClose} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 20px', color: C.muted, cursor: 'pointer' }}>Annuler</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, background: saving ? '#7a2020' : C.accent, border: 'none', borderRadius: 7, padding: '9px 24px', color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}
+          >
+            {saving && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+            Enregistrer
+          </button>
+          <button onClick={onClose} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 20px', color: C.muted, fontFamily: 'inherit', fontSize: '0.875rem', cursor: 'pointer' }}>
+            Annuler
+          </button>
         </div>
       </div>
     </div>
   );
 }
-/* ── Toast ── */
-function Toast({ message }) {
-  return message ? (
-    <div style={{ position: 'fixed', bottom: 28, right: 32, background: C.green, color: '#fff', borderRadius: 10, padding: '13px 22px', fontWeight: 600, fontSize: '0.875rem', zIndex: 1100, boxShadow: '0 6px 24px rgba(34,197,94,0.35)' }}>
-      ✓ {message}
+
+// ─── Composant : Toast ───────────────────────────────────────────────────────
+function Toast({ message, error }) {
+  if (!message) return null;
+  return (
+    <div style={{ position: 'fixed', bottom: 28, right: 32, background: error ? C.accent : C.green, color: '#fff', borderRadius: 10, padding: '13px 22px', fontWeight: 600, fontSize: '0.875rem', zIndex: 1100, boxShadow: `0 6px 24px ${error ? 'rgba(229,57,53,0.35)' : 'rgba(34,197,94,0.35)'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+      {error ? <AlertCircle size={15} /> : '✓'} {message}
     </div>
-  ) : null;
+  );
 }
 
-/* ════════════════════════════════
-   PAGE
-════════════════════════════════ */
+// ─── PAGE PRINCIPALE ─────────────────────────────────────────────────────────
 export default function Adherent() {
-  const [adherents, setAdherents] = useState(INITIAL_DATA);
-  const [search, setSearch]       = useState('');
-  const [filterIdx, setFilterIdx] = useState(0);
-  const [modal, setModal]         = useState(null);
-  const [editTarget, setEditTarget] = useState(null);
-  const [toast, setToast]         = useState('');
+  const [adherents, setAdherents]       = useState([]);
+  const [typesAbo, setTypesAbo]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
+  const [filterIdx, setFilterIdx]       = useState(0);
+  const [modal, setModal]               = useState(null); // null | 'add' | 'edit'
+  const [editTarget, setEditTarget]     = useState(null);
+  const [toast, setToast]               = useState({ msg: '', error: false });
 
-  const showToast  = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2800); };
+  // ── Utils ──────────────────────────────────────────────────────────────────
+  const showToast = (msg, error = false) => {
+    setToast({ msg, error });
+    setTimeout(() => setToast({ msg: '', error: false }), 2800);
+  };
+
+  // ── Chargement initial ────────────────────────────────────────────────────
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [data, types] = await Promise.all([
+        window.api.getAdherentsAvecAbonnement(),
+        window.api.getTypesAbonnement(),
+      ]);
+      setAdherents(data);
+      setTypesAbo(types);
+    } catch (err) {
+      showToast('Erreur lors du chargement des données', true);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleClose = () => { setModal(null); setEditTarget(null); };
-  const handleEdit  = (m) => { setEditTarget(m); setModal('edit'); };
-  const handleSaveEdit = (form) => { setAdherents(l => l.map(a => a.id === editTarget.id ? { ...a, ...form } : a)); showToast('Adhérent modifié avec succès'); handleClose(); };
-  const handleSaveAdd  = (m)    => { setAdherents(l => [...l, m]); showToast('Adhérent ajouté avec succès'); handleClose(); };
-  const handleDelete   = (id)   => { if (!window.confirm('Confirmer la suppression ?')) return; setAdherents(l => l.filter(a => a.id !== id)); showToast('Adhérent supprimé'); };
 
-  const actif  = adherents.filter(a => a.status === 'Actif').length;
-  const expire = adherents.filter(a => a.status === 'Expiré').length;
+  const handleEdit = (m) => { setEditTarget(m); setModal('edit'); };
 
+  const handleSaveEdit = async (form) => {
+    try {
+      // 1. Mettre à jour les infos adhérent
+      await window.api.updateAdherent({
+        idAdherent:    form.idAdherent,
+        nom:           form.nom,
+        prenom:        form.prenom,
+        dateNaissance: form.dateNaissance,
+        numTelephone:  form.numTelephone,
+        email:         form.email,
+        sexe:          form.sexe,
+      });
+
+      // 2. Mettre à jour la photo si modifiée
+      if (form.photo !== editTarget.photo) {
+        await window.api.updateAdherentPhoto({
+          idAdherent: form.idAdherent,
+          photo: form.photo,
+        });
+      }
+
+      // 3. Abonnement : update si existant, create si nouveau
+      if (form.dateDebut && form.dateFin && form.type_id) {
+        if (form.idAbonnement) {
+          // Mise à jour abonnement existant via updateAbonnement (à ajouter dans main.js si besoin)
+          await window.api.updateAbonnement({
+            idAbonnement: form.idAbonnement,
+            type_id:      form.type_id,
+            dateDebut:    form.dateDebut,
+            dateFin:      form.dateFin,
+            statut:       form.abonnementStatut,
+          });
+        } else {
+          // Création d'un nouvel abonnement
+          await window.api.addAbonnement({
+            adherent_id: form.idAdherent,
+            type_id:     form.type_id,
+            dateDebut:   form.dateDebut,
+            dateFin:     form.dateFin,
+            statut:      form.abonnementStatut,
+          });
+        }
+      }
+
+      showToast('Adhérent modifié avec succès');
+      handleClose();
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Erreur lors de la modification', true);
+      throw err;
+    }
+  };
+
+  const handleSaveAdd = async (data) => {
+    try {
+      // 1. Créer l'adhérent
+      const result = await window.api.addAdherent({
+        nom:           data.nom,
+        prenom:        data.prenom,
+        dateNaissance: data.dateNaissance,
+        numTelephone:  data.numTelephone,
+        email:         data.email,
+        sexe:          data.sexe,
+      });
+
+      const newId = result.insertId;
+
+      // 2. Upload photo si fournie
+      if (data.photo && newId) {
+        await window.api.updateAdherentPhoto({ idAdherent: newId, photo: data.photo });
+      }
+
+      // 3. Créer l'abonnement si renseigné
+      if (data.type_id && data.dateDebut && data.dateFin && newId) {
+        await window.api.addAbonnement({
+          adherent_id: newId,
+          type_id:     data.type_id,
+          dateDebut:   data.dateDebut,
+          dateFin:     data.dateFin,
+          statut:      'actif',
+        });
+      }
+
+      showToast('Adhérent ajouté avec succès');
+      handleClose();
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      showToast("Erreur lors de l'ajout", true);
+      throw err;
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Supprimer cet adhérent et toutes ses données liées ?')) return;
+    try {
+      await window.api.deleteAdherentComplet(id);
+      showToast('Adhérent supprimé');
+      setAdherents(l => l.filter(a => a.idAdherent !== id));
+    } catch (err) {
+      console.error(err);
+      showToast('Erreur lors de la suppression', true);
+    }
+  };
+
+  // ── Filtrage ──────────────────────────────────────────────────────────────
   const filtered = adherents.filter(a => {
     const q = search.toLowerCase();
-    return (a.nom.toLowerCase().includes(q) || a.email.toLowerCase().includes(q))
-      && (FILTERS[filterIdx] === 'Tous' || a.status === FILTERS[filterIdx]);
+    const matchSearch =
+      (a.nom || '').toLowerCase().includes(q) ||
+      (a.prenom || '').toLowerCase().includes(q) ||
+      (a.email || '').toLowerCase().includes(q) ||
+      (a.numTelephone || '').includes(q);
+    const matchFilter =
+      filterIdx === 0 ||
+      (a.abonnementStatut || '').toLowerCase() === FILTERS[filterIdx];
+    return matchSearch && matchFilter;
   });
 
+  const actif  = adherents.filter(a => a.abonnementStatut === 'actif').length;
+  const expire = adherents.filter(a => a.abonnementStatut === 'expiré').length;
+
+  // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: C.bg }}>
 
-      {/* ── Hero Header with gym BG ── */}
+      {/* ── Hero Header ── */}
       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${GYM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)' }} />
@@ -312,73 +537,125 @@ export default function Adherent() {
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: '0.72rem', color: C.accent, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 600 }}>Adhérents</span>
             </div>
-            <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '3rem', fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: 'uppercase' }}>
+            <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '3rem', fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: 'uppercase', color: C.text }}>
               Gestion des adhérents
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
               {[
-                { count: adherents.length, label: 'adhérents au total', color: C.muted },
-                { count: actif,  label: 'actifs',   color: C.green },
-                { count: expire, label: 'expirés',  color: C.accent },
+                { count: adherents.length, label: 'au total',  color: C.muted  },
+                { count: actif,            label: 'actifs',    color: C.green  },
+                { count: expire,           label: 'expirés',   color: C.accent },
               ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                    <span style={{ fontSize: '0.82rem', color: C.muted }}><strong style={{ color }}>{count}</strong> {label}</span>
+                    <span style={{ fontSize: '0.82rem', color: C.muted }}>
+                      <strong style={{ color }}>{count}</strong> {label}
+                    </span>
                   </div>
                 </React.Fragment>
               ))}
             </div>
           </div>
 
-          <button onClick={() => setModal('add')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 20px rgba(229,57,53,0.4)', transition: 'all 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(229,57,53,0.5)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(229,57,53,0.4)'; }}>
-            <Plus size={17} /> Ajouter un adhérent
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={loadData}
+              title="Rafraîchir"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, background: 'rgba(255,255,255,0.07)', border: `1px solid ${C.border}`, borderRadius: 10, cursor: 'pointer', color: C.muted }}
+              onMouseEnter={e => e.currentTarget.style.color = C.text}
+              onMouseLeave={e => e.currentTarget.style.color = C.muted}
+            >
+              <RefreshCw size={16} />
+            </button>
+            <button
+              onClick={() => setModal('add')}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 20px rgba(229,57,53,0.4)', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(229,57,53,0.5)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(229,57,53,0.4)'; }}
+            >
+              <Plus size={17} /> Ajouter un adhérent
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ── Toolbar ── */}
       <div style={{ display: 'flex', gap: 12, padding: '14px 36px', background: C.bg, borderBottom: `1px solid ${C.border}`, flexShrink: 0, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: 440 }}>
-          <Search size={15} color={C.muted} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }} />
-          <input type="text" placeholder="Rechercher par nom ou email..." value={search} onChange={e => setSearch(e.target.value)}
+          <Search size={15} color={C.muted} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="Rechercher par nom, email, téléphone..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, padding: '10px 14px 10px 38px', color: C.text, fontFamily: "'Barlow', sans-serif", fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
             onFocus={e => e.target.style.borderColor = 'rgba(229,57,53,0.4)'}
             onBlur={e => e.target.style.borderColor = C.border}
           />
         </div>
+
         <div style={{ display: 'flex', background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, overflow: 'hidden' }}>
-          {FILTERS.map((f, i) => (
-            <button key={f} onClick={() => setFilterIdx(i)} style={{ padding: '9px 18px', border: 'none', borderRight: i < FILTERS.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: filterIdx === i ? C.accent : 'transparent', color: filterIdx === i ? '#fff' : C.muted, fontFamily: "'Barlow', sans-serif", fontSize: '0.82rem', fontWeight: filterIdx === i ? 700 : 400 }}>
+          {FILTER_LABELS.map((f, i) => (
+            <button
+              key={f}
+              onClick={() => setFilterIdx(i)}
+              style={{ padding: '9px 18px', border: 'none', borderRight: i < FILTER_LABELS.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: filterIdx === i ? C.accent : 'transparent', color: filterIdx === i ? '#fff' : C.muted, fontFamily: "'Barlow', sans-serif", fontSize: '0.82rem', fontWeight: filterIdx === i ? 700 : 400 }}
+            >
               {f}
             </button>
           ))}
         </div>
+
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', fontSize: '0.8rem', color: C.muted, gap: 6 }}>
           <Filter size={13} /> {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* ── Grid ── */}
+      {/* ── Contenu principal ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 36px 40px' }}>
-        {filtered.length === 0 ? (
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 16, color: C.muted }}>
+            <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: C.accent }} />
+            <span>Chargement des adhérents...</span>
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted }}>
             <Users size={40} color={C.border} style={{ marginBottom: 12 }} />
-            <div>Aucun adhérent trouvé.</div>
+            <div>{search ? `Aucun résultat pour "${search}"` : 'Aucun adhérent trouvé.'}</div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 20 }}>
-            {filtered.map(m => <MemberCard key={m.id} member={m} onEdit={handleEdit} onDelete={handleDelete} />)}
+            {filtered.map(m => (
+              <MemberCard key={m.idAdherent} member={m} onEdit={handleEdit} onDelete={handleDelete} />
+            ))}
           </div>
         )}
       </div>
 
-      {modal === 'edit' && editTarget && <EditMemberModal member={editTarget} onSave={handleSaveEdit} onClose={handleClose} />}
-      {modal === 'add'  && <AddMemberModal onSave={handleSaveAdd} onClose={handleClose} />}
-      <Toast message={toast} />
+      {/* ── Modals ── */}
+      {modal === 'edit' && editTarget && (
+        <EditMemberModal
+          member={editTarget}
+          typesAbonnement={typesAbo}
+          onSave={handleSaveEdit}
+          onClose={handleClose}
+        />
+      )}
+      {modal === 'add' && (
+        <AddMemberModal
+          typesAbonnement={typesAbo}
+          onSave={handleSaveAdd}
+          onClose={handleClose}
+        />
+      )}
+
+      <Toast message={toast.msg} error={toast.error} />
+
+      {/* Spinner animation */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
