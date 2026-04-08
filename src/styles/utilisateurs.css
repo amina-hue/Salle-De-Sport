@@ -9,9 +9,12 @@
 
 /* ── Page Utilisateur ────────────────────────────────────────────────────── */
 .utilisateur-page {
-  margin-left: 240px; /* même valeur que sidebar */
+  flex: 1;               /* ← prend l'espace restant */
+  height: 100vh;         /* ← fixe la hauteur */
+  margin-left: 240px;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar {

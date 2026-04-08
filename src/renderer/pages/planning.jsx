@@ -4,16 +4,25 @@ import Button from "../components/AddButton";
 import gym from "../../images/gym.png";
 import NouvelSeanceModal from "../components/NouvelSeanceModal";
 
+const C = {
+  bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
+  border: "#252833", borderHover: "#e53935",
+  accent: "#e53935", accentDim: "rgba(229,57,53,0.12)",
+  accentBorder: "rgba(229,57,53,0.3)",
+  text: "#f0f0f0", muted: "#6b7280", subtle: "#9ca3af",
+  green: "#22c55e",
+};
+
 const days = ["Heure", "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const hours = ["8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
 
 const activityColors = {
-  Yoga:     { bg: "#22c55e", light: "#22c55e22", border: "#22c55e55" },
-  CrossFit: { bg: "#3a7bd5", light: "#3a7bd522", border: "#3a7bd555" },
-  Pilates:  { bg: "#8b5cf6", light: "#8b5cf622", border: "#8b5cf655" },
-  Boxing:   { bg: "#e63946", light: "#e6394622", border: "#e6394655" },
-  Spinning: { bg: "#f59e0b", light: "#f59e0b22", border: "#f59e0b55" },
-  Aqua:     { bg: "#06b6d4", light: "#06b6d422", border: "#06b6d455" },
+  Yoga:     { bg: "#22c55e" },
+  CrossFit: { bg: "#3a7bd5" },
+  Pilates:  { bg: "#8b5cf6" },
+  Boxing:   { bg: "#e63946" },
+  Spinning: { bg: "#f59e0b" },
+  Aqua:     { bg: "#06b6d4" },
 };
 
 const sessions = [
@@ -69,6 +78,7 @@ const SessionCard = ({ session }) => {
 
 const Planning = () => {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [openModal, setOpenModal] = useState(false);
 
   const grid = {};
   for (let d = 1; d <= 7; d++) { grid[d] = {}; for (let h = 0; h < hours.length; h++) grid[d][h] = null; }
@@ -77,124 +87,144 @@ const Planning = () => {
     grid[s.day][s.hour] = s;
     for (let span = 1; span < s.duration; span++) occupied[`${s.day}-${s.hour + span}`] = true;
   });
-  const [openModal, setOpenModal] = useState(false);
-  return (
-    <div style={{
-      flex: 1,
-      height: "100%",
-      overflowY: "auto",
-      padding: "28px 32px",
-      backgroundImage: `linear-gradient(rgba(11,11,18,0.6), rgba(11,11,18,0.95)), url(${gym})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      fontFamily: "'Inter','Segoe UI',sans-serif",
-      color: "#f1f1f1",
-    }}>
 
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
-            <div style={{ width: 4, height: 26, borderRadius: 4, background: "linear-gradient(180deg,#e63946,#c1121f)" }} />
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: "-.4px" }}>Planning des séances</h1>
+  const totalSessions = sessions.length;
+  const totalSpots = sessions.reduce((acc, s) => acc + s.spots, 0);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
+
+      {/* ── Hero Header ── */}
+      <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gym})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, ${C.bg})` }} />
+
+        <div style={{ position: "relative", padding: "32px 36px 36px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
+              <ChevronRight size={12} color={C.muted} />
+              <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>Planning</span>
+            </div>
+            <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
+              Planning des séances
+            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 12 }}>
+              {[
+                { count: totalSessions, label: "séances cette semaine", color: C.muted  },
+                { count: totalSpots,    label: "places réservées",      color: C.green  },
+              ].map(({ count, label, color }, i) => (
+                <React.Fragment key={label}>
+                  {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                    <span style={{ fontSize: "0.82rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}><strong style={{ color }}>{count}</strong> {label}</span>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
           </div>
-          <p style={{ margin: "0 0 0 14px", color: "#FFFFFF", fontSize: 13 }}>Gérez et organisez les séances de la semaine</p>
+
+          <button onClick={() => setOpenModal(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontFamily: "'Barlow', sans-serif", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(229,57,53,0.4)", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(229,57,53,0.5)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(229,57,53,0.4)"; }}>
+            <Plus size={17} /> Ajouter une séance
+          </button>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button style={{ background: "#1a1a26", border: "1px solid #ffffff0f", color: "#888", borderRadius: 10, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 500 }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#22222f"; e.currentTarget.style.color = "#ddd"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#1a1a26"; e.currentTarget.style.color = "#888"; }}>
+      </div>
+
+      {/* ── Toolbar / Week nav ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 36px", background: C.bg, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => setWeekOffset(w => w - 1)} style={{ width: 34, height: 34, borderRadius: 8, background: C.card, border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer", display: "grid", placeItems: "center", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.color = C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}>
+            <ChevronLeft size={15} />
+          </button>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 700, color: C.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5 }}>Semaine du 24 Février 2026</div>
+            <div style={{ fontSize: "0.72rem", color: C.muted, marginTop: 1 }}>Du 24 Fév au 02 Mars 2026</div>
+          </div>
+          <button onClick={() => setWeekOffset(w => w + 1)} style={{ width: 34, height: 34, borderRadius: 8, background: C.card, border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer", display: "grid", placeItems: "center", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHover; e.currentTarget.style.color = C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}>
+            <ChevronRight size={15} />
+          </button>
+        </div>
+        <div style={{ background: C.card, borderRadius: 9999, padding: 4, display: "inline-flex", border: `1px solid ${C.border}` }}>
+          <button style={{ padding: "6px 20px", borderRadius: 9999, border: "none", cursor: "pointer", fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", fontWeight: 700, background: C.accent, color: "#fff" }}>
             Semaine
           </button>
-          <Button
-  variant="primary"
-  icon={Plus}
-  onClick={() => setOpenModal(true)}
->
-  Ajouter une séance
-</Button>  
-{openModal && (
-  <NouvelSeanceModal
-    onClose={() => setOpenModal(false)}
-    onSave={(data) => {
-      console.log("Nouvelle séance :", data);
-      setOpenModal(false);
-    }}
-  />
-)}      </div>
+        </div>
       </div>
 
-      {/* Week navigator */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(39,29,31,0.85)", border: "1px solid #ffffff08", borderRadius: 14, padding: "14px 20px", marginBottom: 20 }}>
-        <button onClick={() => setWeekOffset(w => w - 1)} style={{ width: 32, height: 32, borderRadius: 8, background: "#ffffff08", border: "1px solid #ffffff10", color: "#777", cursor: "pointer", display: "grid", placeItems: "center" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#ffffff15"; e.currentTarget.style.color = "#fff"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#ffffff08"; e.currentTarget.style.color = "#777"; }}>
-          <ChevronLeft size={15} />
-        </button>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#e8e8e8" }}>Semaine du 24 Février 2026</div>
-          <div style={{ fontSize: 11, color: "#d3cccc", marginTop: 2 }}>Du 24 Fév au 02 Mars 2026</div>
-        </div>
-        <button onClick={() => setWeekOffset(w => w + 1)} style={{ width: 32, height: 32, borderRadius: 8, background: "#ffffff08", border: "1px solid #ffffff10", color: "#777", cursor: "pointer", display: "grid", placeItems: "center" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#ffffff15"; e.currentTarget.style.color = "#fff"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#ffffff08"; e.currentTarget.style.color = "#777"; }}>
-          <ChevronRight size={15} />
-        </button>
-      </div>
+      {/* ── Content ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 36px 36px" }}>
 
-      {/* Calendar grid */}
-      <div style={{ background: "rgba(85,85,85,0.7)", borderRadius: 16, border: "1px solid #ffffff08", overflow: "hidden", marginBottom: 24 }}>
-        {/* Day headers */}
-        <div style={{ display: "grid", background: "rgba(39,29,31,0.9)", gridTemplateColumns: "64px repeat(7, 1fr)", borderBottom: "1px solid #ffffff08" }}>
-          {days.map((d, i) => (
-            <div key={d} style={{ padding: "12px 8px", textAlign: "center", fontSize: i === 0 ? 10 : 12, color: i === 2 ? "#e63946" : "#555", fontWeight: i === 0 ? 500 : 700, background: i === 2 ? "#dfcece" : "transparent", borderRight: i < days.length - 1 ? "1px solid #ffffff05" : "none", letterSpacing: ".3px" }}>
-              {i === 2 ? (
-                <div>
-                  <div style={{ fontSize: 10, color: "#e63946", letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 2 }}>{d}</div>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#e63946", color: "#fff", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", margin: "0 auto" }}>24</div>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ textTransform: "uppercase", fontSize: 10, letterSpacing: ".5px", marginBottom: 2 }}>{d}</div>
-                  {i > 0 && <div style={{ fontSize: 12, color: "#666", fontWeight: 600 }}>{20 + i}</div>}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Hour rows */}
-        {hours.map((hour, hIdx) => (
-          <div key={hour} style={{ display: "grid", gridTemplateColumns: "64px repeat(7, 1fr)", height: CELL_HEIGHT, borderBottom: hIdx < hours.length - 1 ? "1px solid #ffffff05" : "none" }}>
-            <div style={{ padding: "8px 10px 0", fontSize: 11, color: "#444", fontWeight: 600, borderRight: "1px solid #ffffff05", textAlign: "right", background: "rgba(39,29,31,0.9)" }}>{hour}</div>
-            {[1, 2, 3, 4, 5, 6, 7].map(dayIdx => {
-              const key = `${dayIdx}-${hIdx}`;
-              if (occupied[key]) return <div key={dayIdx} style={{ borderRight: dayIdx < 7 ? "1px solid #ffffff05" : "none", background: dayIdx === 2 ? "#e6394604" : "transparent", position: "relative" }} />;
-              const session = grid[dayIdx][hIdx];
-              return (
-                <div key={dayIdx} style={{ borderRight: dayIdx < 7 ? "1px solid #ffffff05" : "none", background: dayIdx === 2 ? "#e6394604" : "transparent", position: "relative", transition: "background .1s" }}
-                  onMouseEnter={e => { if (!session) e.currentTarget.style.background = "#ffffff03"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = dayIdx === 2 ? "#e6394604" : "transparent"; }}>
-                  {session && <SessionCard session={session} />}
-                </div>
-              );
-            })}
+        {/* Calendar grid */}
+        <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 20 }}>
+          {/* Day headers */}
+          <div style={{ display: "grid", gridTemplateColumns: "64px repeat(7, 1fr)", borderBottom: `1px solid ${C.border}`, background: "#14161c" }}>
+            {days.map((d, i) => (
+              <div key={d} style={{ padding: "12px 8px", textAlign: "center", borderRight: i < days.length - 1 ? `1px solid ${C.border}` : "none", background: i === 2 ? "rgba(229,57,53,0.08)" : "transparent" }}>
+                {i === 0 ? (
+                  <span style={{ fontSize: 10, color: C.muted, fontFamily: "'Barlow', sans-serif" }}> </span>
+                ) : i === 2 ? (
+                  <div>
+                    <div style={{ fontSize: "0.65rem", color: C.accent, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontFamily: "'Barlow', sans-serif", fontWeight: 700 }}>{d}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", margin: "0 auto", fontFamily: "'Barlow Condensed', sans-serif" }}>24</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: "0.65rem", color: C.muted, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontFamily: "'Barlow', sans-serif", fontWeight: 600 }}>{d}</div>
+                    <div style={{ fontSize: "0.75rem", color: C.subtle, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif" }}>{20 + i}</div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Legend */}
-      <div style={{ background: "#1a1a26", border: "1px solid #ffffff08", borderRadius: 14, padding: "16px 22px" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 12, letterSpacing: ".3px", textTransform: "uppercase" }}>Légende des activités</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px 20px" }}>
-          {Object.entries(activityColors).map(([name, col]) => (
-            <div key={name} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: col.bg }} />
-              <span style={{ fontSize: 12, color: "#eee", fontWeight: 500 }}>{name}</span>
+          {/* Hour rows */}
+          {hours.map((hour, hIdx) => (
+            <div key={hour} style={{ display: "grid", gridTemplateColumns: "64px repeat(7, 1fr)", height: CELL_HEIGHT, borderBottom: hIdx < hours.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <div style={{ padding: "8px 10px 0", fontSize: 11, color: C.muted, fontWeight: 600, borderRight: `1px solid ${C.border}`, textAlign: "right", background: "#14161c", fontFamily: "'Barlow', sans-serif" }}>{hour}</div>
+              {[1, 2, 3, 4, 5, 6, 7].map(dayIdx => {
+                const key = `${dayIdx}-${hIdx}`;
+                if (occupied[key]) return <div key={dayIdx} style={{ borderRight: dayIdx < 7 ? `1px solid ${C.border}` : "none", background: dayIdx === 2 ? "rgba(229,57,53,0.03)" : "transparent", position: "relative" }} />;
+                const session = grid[dayIdx][hIdx];
+                return (
+                  <div key={dayIdx} style={{ borderRight: dayIdx < 7 ? `1px solid ${C.border}` : "none", background: dayIdx === 2 ? "rgba(229,57,53,0.03)" : "transparent", position: "relative", transition: "background .1s" }}
+                    onMouseEnter={e => { if (!session) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = dayIdx === 2 ? "rgba(229,57,53,0.03)" : "transparent"; }}>
+                    {session && <SessionCard session={session} />}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
+
+        {/* Legend */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 22px" }}>
+          <div style={{ fontSize: "0.65rem", fontFamily: "'Barlow', sans-serif", fontWeight: 700, color: C.muted, marginBottom: 12, letterSpacing: 1, textTransform: "uppercase" }}>Légende des activités</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "10px 16px" }}>
+            {Object.entries(activityColors).map(([name, col]) => (
+              <div key={name} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: col.bg, flexShrink: 0 }} />
+                <span style={{ fontSize: "0.78rem", color: C.subtle, fontWeight: 500, fontFamily: "'Barlow', sans-serif" }}>{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {openModal && (
+        <NouvelSeanceModal
+          onClose={() => setOpenModal(false)}
+          onSave={(data) => { console.log("Nouvelle séance :", data); setOpenModal(false); }}
+        />
+      )}
     </div>
   );
 };

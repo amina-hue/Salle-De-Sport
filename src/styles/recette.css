@@ -11,23 +11,26 @@
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
-   margin-left: 220px;
+  height: 100vh;        /* ← manquait */
+  margin-left: 240px;   /* ← aligner avec la sidebar */
 }
 
+/* ── Background et overlay ── */
 .recette-bg {
   position: fixed;
   inset: 0;
-  left: 185px;
+  left: 240px;
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
   z-index: 0;
+  filter: brightness(0.95); /* léger assombrissement pour lisibilité */
 }
 
 .recette-overlay {
   position: fixed;
   inset: 0;
-  left: 185px;
+  left: 240px;
   background: rgba(10, 10, 15, 0.4);
   z-index: 1;
 }
@@ -148,6 +151,27 @@
 
 .recette-filter-btn:hover {
   background: #c53030;
+}
+
+.recette-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(229, 62, 62, 0.1);
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  color: #e53e3e;
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.recette-reset-btn:hover {
+  background: rgba(229, 62, 62, 0.2);
+  color: #fff;
 }
 
 /* ── Stats col ── */
@@ -465,25 +489,4 @@
   color: #555;
   padding: 40px 0;
   font-size: 14px;
-}
-
-.recette-reset-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: rgba(229, 62, 62, 0.1);
-  border: 1px solid rgba(229, 62, 62, 0.25);
-  color: #e53e3e;
-  border-radius: 8px;
-  padding: 8px 0;
-  font-size: 13px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
-}
-
-.recette-reset-btn:hover {
-  background: rgba(229, 62, 62, 0.2);
-  color: #fff;
 }
