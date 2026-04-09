@@ -21,6 +21,7 @@ function App() {
   return (
     <HashRouter>
       <Routes>
+        
 
         {/* ── Redirection racine → connexion ── */}
         <Route path="/" element={<Navigate to="/connexion" replace />} />
@@ -56,3 +57,6 @@ if (container) {
 } else {
   console.error('❌ Aucun élément #root trouvé dans index.html');
 }
+
+
+

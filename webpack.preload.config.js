@@ -1,5 +1,5 @@
 module.exports = {
-  target: 'electron-preload',
+target: 'electron-renderer',
   module: {
     rules: [
       // loaders si besoin

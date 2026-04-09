@@ -34,7 +34,7 @@ module.exports = {
       config: {
         mainConfig: './webpack.main.config.js',
         renderer: {
-          config: './webpack.renderer.config.js',
+  config: require('./webpack.renderer.config.js'),
           entryPoints: [
             {
               html: './src/index.html',
