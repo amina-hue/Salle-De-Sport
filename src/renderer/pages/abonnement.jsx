@@ -109,7 +109,7 @@ const AbonnementsPage = () => {
 
  const fetchTypes = async () => {
   try {
-    const data = await window.electron.getTypeAbonnements();
+    const data = await window.api.getTypeAbonnements();
     setTypes(data); // ← chaque plan contient maintenant features[]
   } catch (err) {
     console.error(err);
@@ -123,7 +123,7 @@ const handleSaveType = async () => {
   useEffect(() => { fetchTypes(); }, []);
 
   const handleDeleteType = (id) => setDeleteConfirm(id);
-  const confirmDelete    = async () => { await window.electron.deleteTypeAbonnement(deleteConfirm); setDeleteConfirm(null); fetchTypes(); };
+  const confirmDelete    = async () => { await <window className="api"></window>.deleteTypeAbonnement(deleteConfirm); setDeleteConfirm(null); fetchTypes(); };
   
 
   return (

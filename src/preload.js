@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
   getAdherentsParMois:        ()     => invoke('getAdherentsParMois'),
 
   // ── Abonnements ──
+  
   getAbonnements:             ()     => invoke('getAbonnements'),
   getTypesAbonnement:         ()     => invoke('getTypesAbonnement'),
   getTypeAbonnements:         ()     => invoke('getTypeAbonnements'),

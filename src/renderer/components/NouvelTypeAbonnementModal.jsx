@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import GYM_BG from '../../images/background.png';
 
 const C = { accent: '#e53935', text: '#f0f0f0', muted: '#7a7f8e' };
 
-const IconX = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconX = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
 
-const lbl = { fontSize: '0.78rem', color: C.muted, fontWeight: 600, marginBottom: 5, display: 'block' };
+const lbl = {
+  fontSize: '0.78rem', color: C.muted, fontWeight: 600,
+  marginBottom: 5, display: 'block',
+};
 const inp = {
-  width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(229,57,53,0.45)',
-  borderRadius: 7, padding: '11px 14px', color: C.text, fontFamily: "'Barlow', sans-serif",
+  width: '100%', background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(229,57,53,0.45)', borderRadius: 7,
+  padding: '11px 14px', color: C.text, fontFamily: "'Barlow', sans-serif",
   fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box',
 };
 
@@ -46,34 +55,42 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
     prix:  type?.prix  ?? '',
   });
 
-const [selectedRules, setSelectedRules] = useState(() => {
-  if (!type?.features) return [];
-  // features est maintenant toujours un tableau JS, plus de JSON string
-  return Array.isArray(type.features) ? type.features : [];
-});
+  const [selectedRules, setSelectedRules] = useState(() => {
+    if (!type?.features) return [];
+    return Array.isArray(type.features) ? type.features : [];
+  });
 
   const [errors, setErrors] = useState({});
-  
+  const [newRule, setNewRule] = useState('');
 
   const set = (k, v) => {
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: '' }));
   };
-  const [newRule, setNewRule] = useState('');
 
   const isPremium  = form.nom.toLowerCase().includes('premium');
   const accent     = isPremium ? '#e63946' : '#3a7bd5';
   const tier       = isPremium ? 'Premium' : 'Standard';
   const dureeLabel = DUREES.find(d => d.value === Number(form.duree))?.label || '— mois';
-  const rules      = isPremium ? RULES_PREMIUM : RULES_STANDARD;
+  const suggestedRules = isPremium ? RULES_PREMIUM : RULES_STANDARD;
 
- 
-
+  // ✅ Toggle une règle prédéfinie (ajoute ou retire)
   const toggleRule = (rule) => {
-   setSelectedRules(prev => {
-  if (prev.includes(newRule.trim())) return prev;
-  return [...prev, newRule.trim()];
-});
+    setSelectedRules(prev =>
+      prev.includes(rule)
+        ? prev.filter(r => r !== rule)
+        : [...prev, rule]
+    );
+  };
+
+  // ✅ Ajouter une règle personnalisée
+  const addCustomRule = () => {
+    const trimmed = newRule.trim();
+    if (!trimmed) return;
+    if (!selectedRules.includes(trimmed)) {
+      setSelectedRules(prev => [...prev, trimmed]);
+    }
+    setNewRule('');
   };
 
   const validate = () => {
@@ -87,40 +104,36 @@ const [selectedRules, setSelectedRules] = useState(() => {
 
   const handleSave = async () => {
     if (!validate()) return;
-   const payload = { nom: form.nom.trim(), duree: Number(form.duree), prix: Number(form.prix), features: selectedRules };
+    const payload = {
+      nom:      form.nom.trim(),
+      duree:    Number(form.duree),
+      prix:     Number(form.prix),
+      features: selectedRules,
+    };
     if (isEdit) {
-      await window.electron.updateTypeAbonnement({ ...payload, id: type.id });
+      await window.api.updateTypeAbonnement({ ...payload, id: type.id });
     } else {
-      await window.electron.addTypeAbonnement(payload);
+      await window.api.addTypeAbonnement(payload);
     }
     onSave?.();
   };
 
-
-
-
-
   return (
     <div
-      style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, background: 'rgba(0,0,0,0.6)', padding: '20px' }}
+      style={{
+        position: 'fixed', inset: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 999, background: 'rgba(0,0,0,0.6)', padding: '20px',
+      }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      {/* ── Conteneur modal ── */}
       <div style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: 650,
-        borderRadius: 16,
-        overflow: 'hidden',
-        boxShadow: '0 24px 60px rgba(0,0,0,0.8)',
-        fontFamily: "'Barlow', sans-serif",
-        color: C.text,
-        maxHeight: '90vh',   // ← clé : hauteur max
-        display: 'flex',
-        flexDirection: 'column',
+        position: 'relative', width: '100%', maxWidth: 650, borderRadius: 16,
+        overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.8)',
+        fontFamily: "'Barlow', sans-serif", color: C.text,
+        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
       }}>
 
-        {/* ── Header fixe ── */}
+        {/* ── Header ── */}
         <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${GYM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center 40%' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.58)' }} />
@@ -140,15 +153,10 @@ const [selectedRules, setSelectedRules] = useState(() => {
         </div>
 
         {/* ── Body scrollable ── */}
-        <div style={{
-          background: '#1a1516',
-          padding: '24px 28px',
-          overflowY: 'auto',  // ← scroll
-          flexGrow: 1,
-        }}>
+        <div style={{ background: '#1a1516', padding: '24px 28px', overflowY: 'auto', flexGrow: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
 
-            {/* Colonne gauche */}
+            {/* ── Colonne gauche ── */}
             <div>
               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: C.text, marginBottom: 18, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 Informations du plan
@@ -200,37 +208,76 @@ const [selectedRules, setSelectedRules] = useState(() => {
                 {errors.prix && <span style={{ fontSize: '0.72rem', color: C.accent, marginTop: 4, display: 'block' }}>{errors.prix}</span>}
               </div>
 
-              {/* Règles */}
-              {/* Ajouter nouvelle règle */}
-<div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-  <input
-    type="text"
-    value={newRule}
-    onChange={e => setNewRule(e.target.value)}
-    placeholder="Nouvelle règle..."
-    style={{ ...inp, flex: 1 }}
-  />
-  <button
-    onClick={() => {
-      if (newRule.trim() === '') return;
-      setSelectedRules(prev => [...prev, newRule.trim()]);
-      setNewRule('');
-    }}
-    style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 12px', cursor: 'pointer', fontWeight: 700 }}
-  >
-    Ajouter
-  </button>
-</div>  
+              {/* ── Règles prédéfinies ── */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={lbl}>Règles suggérées</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {suggestedRules.map(rule => {
+                    const isSelected = selectedRules.includes(rule);
+                    return (
+                      <div
+                        key={rule}
+                        onClick={() => toggleRule(rule)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '7px 10px', borderRadius: 7, cursor: 'pointer',
+                          background: isSelected ? `${accent}18` : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isSelected ? accent + '55' : 'rgba(255,255,255,0.08)'}`,
+                          fontSize: '0.8rem', color: isSelected ? C.text : C.muted,
+                          transition: 'all 0.15s', userSelect: 'none',
+                        }}
+                      >
+                        <span style={{
+                          width: 14, height: 14, borderRadius: 3,
+                          border: `1.5px solid ${isSelected ? accent : '#444'}`,
+                          background: isSelected ? accent : 'transparent',
+                          display: 'grid', placeItems: 'center',
+                          fontSize: 10, color: '#fff', flexShrink: 0,
+                          transition: 'all 0.15s',
+                        }}>
+                          {isSelected ? '✓' : ''}
+                        </span>
+                        {rule}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Règle personnalisée ── */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={lbl}>Règle personnalisée</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text"
+                    value={newRule}
+                    onChange={e => setNewRule(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addCustomRule(); }}
+                    placeholder="ex: Accès piscine..."
+                    style={{ ...inp, flex: 1 }}
+                  />
+                  <button
+                    onClick={addCustomRule}
+                    style={{
+                      background: accent, color: '#fff', border: 'none',
+                      borderRadius: 6, padding: '8px 14px', cursor: 'pointer',
+                      fontWeight: 700, fontSize: '1.1rem', flexShrink: 0,
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Colonne droite — aperçu */}
+            {/* ── Colonne droite — aperçu ── */}
             <div>
               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: C.text, marginBottom: 18, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 Aperçu
               </div>
 
-              {/* Carte preview — sticky pour rester visible en scrollant */}
               <div style={{ position: 'sticky', top: 0 }}>
+                {/* Carte preview */}
                 <div style={{ background: 'rgba(21,20,20,0.75)', borderRadius: 14, padding: '20px', border: '1px solid rgb(20,19,19)', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, right: 0, background: isPremium ? 'linear-gradient(135deg,#e63946,#c1121f)' : 'linear-gradient(135deg,#3a7bd5,#1a56b0)', fontSize: 9, color: '#fff', padding: '3px 10px', borderBottomLeftRadius: 8, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase' }}>
                     {tier}
@@ -247,22 +294,26 @@ const [selectedRules, setSelectedRules] = useState(() => {
                     </span>
                   </div>
                   <p style={{ color: '#555', fontSize: 11, margin: '0 0 14px' }}>par {dureeLabel}</p>
-                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', minHeight: 40 }}>
-  {selectedRules.length === 0 ? (
-    <li style={{ fontSize: 12, color: '#333', fontStyle: 'italic' }}>Aucune règle sélectionnée</li>
-  ) : selectedRules.map((r, i) => (
-    <li key={i} style={{ fontSize: 12, color: '#aaa', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-      <span style={{ color: accent, fontSize: 14 }}>✓</span>
-      <span style={{ flexGrow: 1 }}>{r}</span>
-      <button
-        onClick={() => setSelectedRules(prev => prev.filter((_, idx) => idx !== i))}
-        style={{ background: 'transparent', border: 'none', color: '#e63946', cursor: 'pointer', fontWeight: 700 }}
-      >
-        ×
-      </button>
-    </li>
-  ))}
-</ul>
+
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', minHeight: 40 }}>
+                    {selectedRules.length === 0 ? (
+                      <li style={{ fontSize: 12, color: '#333', fontStyle: 'italic' }}>Aucune règle sélectionnée</li>
+                    ) : (
+                      selectedRules.map((r, i) => (
+                        <li key={i} style={{ fontSize: 12, color: '#aaa', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                          <span style={{ color: accent, fontSize: 14 }}>✓</span>
+                          <span style={{ flexGrow: 1 }}>{r}</span>
+                          <button
+                            onClick={() => setSelectedRules(prev => prev.filter((_, idx) => idx !== i))}
+                            style={{ background: 'transparent', border: 'none', color: '#e63946', cursor: 'pointer', fontWeight: 700, fontSize: 14, lineHeight: 1, padding: '0 2px' }}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #ffffff08', paddingTop: 12 }}>
                     <span style={{ fontSize: 11, color: '#666' }}><span style={{ color: '#f1f1f1', fontWeight: 600 }}>0</span> adhérents</span>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#22c55e20', color: '#22c55e' }}>ACTIF</span>
@@ -280,15 +331,11 @@ const [selectedRules, setSelectedRules] = useState(() => {
           </div>
         </div>
 
-        {/* ── Footer fixe en bas ── */}
+        {/* ── Footer ── */}
         <div style={{
-          background: '#1a1516',
-          borderTop: '1px solid #ffffff08',
-          padding: '16px 28px',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: 10,
-          flexShrink: 0,  // ← reste toujours visible
+          background: '#1a1516', borderTop: '1px solid #ffffff08',
+          padding: '16px 28px', display: 'flex', justifyContent: 'flex-end',
+          gap: 10, flexShrink: 0,
         }}>
           <button
             onClick={onClose}
@@ -307,7 +354,6 @@ const [selectedRules, setSelectedRules] = useState(() => {
             {isEdit ? 'Enregistrer les modifications' : 'Créer le plan'}
           </button>
         </div>
-
       </div>
     </div>
   );
