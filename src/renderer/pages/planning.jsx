@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
 import { ChevronLeft, ChevronRight, Plus, Users } from "lucide-react";
 import Button from "../components/AddButton";
 import gym from "../../images/gym.png";
 import NouvelSeanceModal from "../components/NouvelSeanceModal";
+import { useLocation, useNavigate } from "react-router-dom"; 
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -79,7 +80,9 @@ const SessionCard = ({ session }) => {
 const Planning = () => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [openModal, setOpenModal] = useState(false);
-
+  const location = useLocation();   // ✅ AJOUT
+  const navigate = useNavigate();
+  
   const grid = {};
   for (let d = 1; d <= 7; d++) { grid[d] = {}; for (let h = 0; h < hours.length; h++) grid[d][h] = null; }
   const occupied = {};
@@ -90,6 +93,13 @@ const Planning = () => {
 
   const totalSessions = sessions.length;
   const totalSpots = sessions.reduce((acc, s) => acc + s.spots, 0);
+   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openModal') === 'true') {
+      setOpenModal(true);
+      navigate('/planning', { replace: true });
+    }
+  }, [location.search]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>

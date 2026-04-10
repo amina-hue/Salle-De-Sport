@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ChevronRight, Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
 import gym from "../../images/gym.png";
 import NouvelTypeAbonnementModal from "../components/NouvelTypeAbonnementModal";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -12,11 +13,18 @@ const C = {
   green: "#22c55e", gold: "#f59e0b", blue: "#3a7bd5",
 };
 
+const avatarColors = [C.accent, C.blue, C.gold, "#8b5cf6", C.green];
+
+function initials(nom, prenom) {
+  return `${(prenom || '').charAt(0)}${(nom || '').charAt(0)}`.toUpperCase();
+}
+
 /* ── Plan Card ── */
 const PlanCard = ({ plan, onEdit, onDelete }) => {
   const [hovered, setHovered] = useState(false);
   const isPremium = plan.tier === "premium";
   const accent = isPremium ? C.accent : C.blue;
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -36,15 +44,14 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
       </div>
 
       <div style={{ padding: "20px" }}>
-        {/* Duration badge */}
         <span style={{ color: C.muted, fontSize: "0.65rem", background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", fontWeight: 600 }}>
           {plan.duration}
         </span>
 
-        {/* Name */}
-        <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1.2rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "8px 0 4px" }}>{plan.name}</h3>
+        <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1.2rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "8px 0 4px" }}>
+          {plan.name}
+        </h3>
 
-        {/* Price */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 4, margin: "10px 0 2px" }}>
           <span style={{ fontFamily: "'Barlow Condensed', sans-serif", color: accent, fontSize: "1.8rem", fontWeight: 800, lineHeight: 1 }}>{plan.price}</span>
         </div>
@@ -63,13 +70,13 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
           )}
         </ul>
 
-        {/* Footer */}
+        {/* Footer — ✅ nombre_adherents réel */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
           <span style={{ fontSize: "0.72rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
-            <span style={{ color: C.text, fontWeight: 600 }}>{plan.members}</span> adhérents
+            <span style={{ color: C.text, fontWeight: 600 }}>{plan.members}</span> adhérent{plan.members !== 1 ? 's' : ''} actif{plan.members !== 1 ? 's' : ''}
           </span>
-          <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "3px 8px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: plan.full ? C.accentDim : "rgba(34,197,94,0.12)", color: plan.full ? C.accent : C.green }}>
-            {plan.full ? "COMPLET" : "ACTIF"}
+          <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "3px 8px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: "rgba(34,197,94,0.12)", color: C.green }}>
+            ACTIF
           </span>
         </div>
 
@@ -91,40 +98,70 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
   );
 };
 
-const expiryData = [
-  { initials: "SM", name: "Sophie Martin", plan: "Premium Mensuel",     days: "2 jours",  status: "urgent",  color: C.accent },
-  { initials: "LB", name: "Lucas Bernard", plan: "Standard Mensuel",    days: "4 jours",  status: "warning", color: C.gold   },
-  { initials: "ED", name: "Emma Dubois",   plan: "Premium Trimestriel", days: "4 jours",  status: "warning", color: C.gold   },
-  { initials: "TP", name: "Thomas Petit",  plan: "Standard Mensuel",    days: "6 jours",  status: "warning", color: C.gold   },
-  { initials: "JM", name: "Julie Moreau",  plan: "Premium Annuel",      days: "22 jours", status: "ok",      color: C.green  },
-];
-const avatarColors = [C.accent, C.blue, C.gold, "#8b5cf6", C.green];
-
 /* ── Page ── */
 const AbonnementsPage = () => {
+    const location = useLocation();
+  const navigate = useNavigate();
   const [types, setTypes]                 = useState([]);
+  const [expirant, setExpirant]           = useState([]);   // ✅ vrais données
   const [modalTypeOpen, setModalTypeOpen] = useState(false);
   const [typeAEditer, setTypeAEditer]     = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
- const fetchTypes = async () => {
-  try {
-    const data = await window.electron.getTypeAbonnements();
-    setTypes(data); // ← chaque plan contient maintenant features[]
-  } catch (err) {
-    console.error(err);
-  }
-};
+  // ── Chargement ──────────────────────────────────────────────────────────
+  const fetchTypes = async () => {
+    try {
+      const data = await window.api.getTypeAbonnements();
+      setTypes(data);
+    } catch (err) {
+      console.error('getTypeAbonnements:', err);
+    }
+  };
 
-const handleSaveType = async () => {
-  await fetchTypes();   // recharge les plans avec leurs règles
-  setModalTypeOpen(false);
-};
-  useEffect(() => { fetchTypes(); }, []);
+  const fetchExpirant = async () => {
+    try {
+      const data = await window.api.getAbonnementsExpirant();
+      setExpirant(data);
+    } catch (err) {
+      console.error('getAbonnementsExpirant:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTypes();
+    fetchExpirant();
+  }, []);
+   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openModal') === 'true') {
+      setTypeAEditer(null);
+      setModalTypeOpen(true);
+      navigate('/abonnements', { replace: true });
+    }
+  }, [location.search]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+  const handleSaveType = async () => {
+    await fetchTypes();
+    setModalTypeOpen(false);
+  };
 
   const handleDeleteType = (id) => setDeleteConfirm(id);
-  const confirmDelete    = async () => { await window.electron.deleteTypeAbonnement(deleteConfirm); setDeleteConfirm(null); fetchTypes(); };
-  
+
+  const confirmDelete = async () => {
+    await window.api.deleteTypeAbonnement(deleteConfirm);
+    setDeleteConfirm(null);
+    fetchTypes();
+  };
+
+  // ── Statut badge expiration ──────────────────────────────────────────────
+  const statusInfo = (jours) => {
+    if (jours <= 3)  return { label: "Urgent",  color: C.accent };
+    if (jours <= 10) return { label: "Bientôt", color: C.gold   };
+    return               { label: "OK",      color: C.green  };
+  };
+
+  const nbExpirant = expirant.length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
@@ -148,20 +185,24 @@ const handleSaveType = async () => {
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 12 }}>
               {[
                 { count: types.length, label: "types disponibles", color: C.muted },
-                { count: 8,            label: "expirent bientôt",  color: C.gold  },
+                { count: nbExpirant,   label: "expirent bientôt",  color: C.gold  },
               ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
-                    <span style={{ fontSize: "0.82rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}><strong style={{ color }}>{count}</strong> {label}</span>
+                    <span style={{ fontSize: "0.82rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
+                      <strong style={{ color }}>{count}</strong> {label}
+                    </span>
                   </div>
                 </React.Fragment>
               ))}
             </div>
           </div>
 
-          <button onClick={() => { setTypeAEditer(null); setModalTypeOpen(true); }} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontFamily: "'Barlow', sans-serif", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(229,57,53,0.4)", transition: "all 0.2s" }}
+          <button
+            onClick={() => { setTypeAEditer(null); setModalTypeOpen(true); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontFamily: "'Barlow', sans-serif", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(229,57,53,0.4)", transition: "all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(229,57,53,0.5)"; }}
             onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(229,57,53,0.4)"; }}>
             <Plus size={17} /> Ajouter un type
@@ -172,14 +213,18 @@ const handleSaveType = async () => {
       {/* ── Content ── */}
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px 40px" }}>
 
-        {/* Alert */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: "14px 18px", marginBottom: 28 }}>
-          <AlertCircle size={18} color={C.accent} />
-          <div style={{ fontFamily: "'Barlow', sans-serif" }}>
-            <span style={{ color: C.text, fontWeight: 600, fontSize: "0.875rem" }}>Abonnements à renouveler — </span>
-            <span style={{ color: C.muted, fontSize: "0.875rem" }}>8 abonnements expirent dans les 15 prochains jours. Pensez à contacter vos adhérents.</span>
+        {/* Alert dynamique */}
+        {nbExpirant > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: "14px 18px", marginBottom: 28 }}>
+            <AlertCircle size={18} color={C.accent} />
+            <div style={{ fontFamily: "'Barlow', sans-serif" }}>
+              <span style={{ color: C.text, fontWeight: 600, fontSize: "0.875rem" }}>Abonnements à renouveler — </span>
+              <span style={{ color: C.muted, fontSize: "0.875rem" }}>
+                {nbExpirant} abonnement{nbExpirant > 1 ? 's expirent' : ' expire'} dans les 30 prochains jours. Pensez à contacter vos adhérents.
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Plans */}
         <div style={{ marginBottom: 36 }}>
@@ -204,9 +249,8 @@ const handleSaveType = async () => {
                     duration: `${t.duree} mois`,
                     price:    `${Number(t.prix).toLocaleString()} DA`,
                     per:      `par ${t.duree} mois`,
-                    features: t.features ?? [],   // ← règles réelles depuis la DB
-                    members:  0,
-                    full:     false,
+                    features: t.features ?? [],
+                    members:  t.nombre_adherents ?? 0,   // ✅ depuis la BDD
                     tier:     t.nom.toLowerCase().includes("premium") ? "premium" : "standard",
                   }}
                   onEdit={() => { setTypeAEditer(t); setModalTypeOpen(true); }}
@@ -217,51 +261,97 @@ const handleSaveType = async () => {
           )}
         </div>
 
-        {/* Expiry table */}
+        {/* ✅ Tableau expiration — données réelles */}
         <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
           <div style={{ padding: "18px 24px 14px", borderBottom: `1px solid ${C.border}` }}>
-            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: C.text }}>Abonnements arrivant à expiration</h2>
-            <p style={{ margin: "3px 0 0", color: C.muted, fontSize: "0.78rem", fontFamily: "'Barlow', sans-serif" }}>Quotas des renouvellements à venir</p>
+            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: C.text }}>
+              Abonnements arrivant à expiration
+            </h2>
+            <p style={{ margin: "3px 0 0", color: C.muted, fontSize: "0.78rem", fontFamily: "'Barlow', sans-serif" }}>
+              Adhérents dont l'abonnement expire dans les 30 prochains jours
+            </p>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#14161c" }}>
-                {["Adhérent", "Abonnement", "Expire dans", "Statut", "Actions"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "11px 22px", fontSize: "0.65rem", color: C.muted, letterSpacing: 1, fontWeight: 700, fontFamily: "'Barlow', sans-serif", textTransform: "uppercase" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {expiryData.map((row, i) => (
-                <tr key={i} style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <td style={{ padding: "13px 22px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1.5px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "0.75rem", fontWeight: 700, color: avatarColors[i % avatarColors.length] }}>
-                        {row.initials}
-                      </div>
-                      <span style={{ fontSize: "0.875rem", fontWeight: 500, color: C.text, fontFamily: "'Barlow', sans-serif" }}>{row.name}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.subtle, fontFamily: "'Barlow', sans-serif" }}>{row.plan}</td>
-                  <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.text, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif" }}>{row.days}</td>
-                  <td style={{ padding: "13px 22px" }}>
-                    <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "4px 10px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: row.color + "22", color: row.color }}>
-                      {row.status === "urgent" ? "Urgent" : row.status === "warning" ? "Bientôt" : "OK"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "13px 22px" }}>
-                    <button style={{ fontSize: "0.78rem", color: C.blue, background: "rgba(58,123,213,0.12)", border: "1px solid rgba(58,123,213,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(58,123,213,0.22)"; e.currentTarget.style.color = "#fff"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(58,123,213,0.12)"; e.currentTarget.style.color = C.blue; }}>
-                      Contacter
-                    </button>
-                  </td>
+
+          {expirant.length === 0 ? (
+            <div style={{ padding: "32px", textAlign: "center", color: C.muted, fontSize: "0.875rem", fontFamily: "'Barlow', sans-serif" }}>
+              ✅ Aucun abonnement n'expire dans les 30 prochains jours.
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#14161c" }}>
+                  {["Adhérent", "Abonnement", "Expire dans", "Date fin", "Statut", "Actions"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "11px 22px", fontSize: "0.65rem", color: C.muted, letterSpacing: 1, fontWeight: 700, fontFamily: "'Barlow', sans-serif", textTransform: "uppercase" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {expirant.map((row, i) => {
+                  const jours = Number(row.joursRestants);
+                  const { label, color } = statusInfo(jours);
+                  const expireLabel = jours === 0 ? "Aujourd'hui" : jours === 1 ? "Demain" : `${jours} jours`;
+                  const dateFin = row.dateFin ? new Date(row.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+                  return (
+                    <tr key={i} style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+
+                      {/* Adhérent */}
+                      <td style={{ padding: "13px 22px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1.5px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "0.75rem", fontWeight: 700, color: avatarColors[i % avatarColors.length], flexShrink: 0 }}>
+                            {initials(row.nom, row.prenom)}
+                          </div>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 500, color: C.text, fontFamily: "'Barlow', sans-serif" }}>
+                            {row.prenom} {row.nom}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Type abonnement */}
+                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.subtle, fontFamily: "'Barlow', sans-serif" }}>
+                        {row.typeNom}
+                      </td>
+
+                      {/* Jours restants */}
+                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: color, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif" }}>
+                        {expireLabel}
+                      </td>
+
+                      {/* Date fin */}
+                      <td style={{ padding: "13px 22px", fontSize: "0.8rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
+                        {dateFin}
+                      </td>
+
+                      {/* Statut */}
+                      <td style={{ padding: "13px 22px" }}>
+                        <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "4px 10px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: color + "22", color }}>
+                          {label}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: "13px 22px" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {row.numTelephone && (
+                            <a href={`tel:${row.numTelephone}`} style={{ fontSize: "0.78rem", color: C.blue, background: "rgba(58,123,213,0.12)", border: "1px solid rgba(58,123,213,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", textDecoration: "none", display: "inline-block" }}>
+                              📞 Appeler
+                            </a>
+                          )}
+                          {row.email && (
+                            <a href={`mailto:${row.email}`} style={{ fontSize: "0.78rem", color: C.gold, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", textDecoration: "none", display: "inline-block" }}>
+                              ✉ Email
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -281,7 +371,7 @@ const handleSaveType = async () => {
               <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", color: C.text }}>Supprimer ce type ?</h3>
             </div>
             <p style={{ margin: "0 0 24px", fontSize: "0.875rem", color: C.muted, lineHeight: 1.6, fontFamily: "'Barlow', sans-serif" }}>
-              Cette action est irréversible. Les abonnements liés à ce type pourraient être affectés.
+              Cette action est irréversible. Les abonnements liés à ce type seront supprimés.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "9px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", cursor: "pointer" }}>Annuler</button>
