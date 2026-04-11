@@ -600,6 +600,24 @@ ipcMain.handle('getRecetteParMois', async () => {
   });
 });
 
+ipcMain.handle('getStatsRevenueGraph', async () => {
+  return new Promise((resolve, reject) => {
+    // Cette requête récupère les revenus des abonnements groupés par mois
+    const sql = `
+      SELECT 
+        DATE_FORMAT(datePaiement, '%b') as month, 
+        SUM(montant) as total 
+      FROM Paiement 
+      WHERE datePaiement >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+      GROUP BY month 
+      ORDER BY datePaiement ASC
+    `;
+    db.query(sql, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
 // ══════════════════════════════════════════════
 //  UTILISATEURS
 // ══════════════════════════════════════════════
