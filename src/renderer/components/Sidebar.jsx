@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   BarChart2, Users, CreditCard, DollarSign,
@@ -13,31 +13,45 @@ const C = {
 
 const MENU = [
   {
-    name: 'Statistiques', icon: BarChart2,
+    name: 'Statistiques', icon: BarChart2, permKey: 'statistiques',
     children: [
-      { name: 'Adhérents',    path: '/statistiques/adherents'   },
-      { name: 'Abonnements',  path: '/statistiques/abonnements' },
-      { name: 'Revenue',      path: '/statistiques/revenue'     },
+      { name: 'Adhérents',   path: '/statistiques/adherents'   },
+      { name: 'Abonnements', path: '/statistiques/abonnements' },
+      { name: 'Revenue',     path: '/statistiques/revenue'     },
     ]
   },
-  { name: 'Adhérents',   icon: Users,      path: '/adherents'   },
-  { name: 'Abonnements', icon: CreditCard, path: '/abonnements' },
-  { name: 'Paiements',   icon: DollarSign, path: '/paiements'   },
-  { name: 'Planning',    icon: Calendar,   path: '/planning'    },
-  { name: 'Recette',     icon: TrendingUp, path: '/recette'     },
-  { name: 'Magasin',     icon: Package,    path: '/magasin'     },
-  { name: 'Utilisateur', icon: User,       path: '/utilisateurs'},
-  { name: 'Paramètres',  icon: Settings,   path: '/parametres'  },
-];
+  { name: 'Adhérents',   icon: Users,      path: '/adherents',    permKey: 'adherents'   },
+  { name: 'Abonnements', icon: CreditCard, path: '/abonnements',  permKey: 'abonnements' },
+  { name: 'Paiements',   icon: DollarSign, path: '/paiements',    permKey: 'paiements'   },
+  { name: 'Planning',    icon: Calendar,   path: '/planning',     permKey: 'planning'    },
+  { name: 'Recette',     icon: TrendingUp, path: '/recette',      permKey: 'recette'     },
+  { name: 'Magasin',     icon: Package,    path: '/magasin',      permKey: 'magasin'     },
+  { name: 'Utilisateur', icon: User,       path: '/utilisateurs', permKey: 'utilisateur' },
+  { name: 'Paramètres',  icon: Settings,   path: '/parametres', permKey: 'parametres' },];
 
 export default function Sidebar() {
+  const [rolePerms, setRolePerms] = useState({});
+
+useEffect(() => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const role_id = user.role_id;
+  if (!role_id) return;
+
+  window.electron.invoke("getPermissions", role_id)
+    .then(perms => setRolePerms(perms))
+    .catch(err => console.error("Erreur permissions sidebar", err));
+}, []);
+
+const canAccess = (permKey) => {
+  if (!permKey) return true;
+  return (rolePerms[permKey] || "autorise") !== "interdit";
+};
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [statsOpen, setStatsOpen] = useState(
-    location.pathname.startsWith('/statistiques')
-  );
+  const [statsOpen, setStatsOpen] = useState(location.pathname.startsWith('/statistiques'));
 
-  const isActive = (path) => location.pathname === path;
+
+  const isActive    = (path) => location.pathname === path;
   const isStatActive = location.pathname.startsWith('/statistiques');
 
   const btnStyle = (active) => ({
@@ -76,10 +90,12 @@ export default function Sidebar() {
 
       {/* Menu */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-        {MENU.map(({ name, icon: Icon, path, children }) => {
+        {MENU.map(({ name, icon: Icon, path, children, permKey }) => {
 
-          /* ── Item with sub-menu (Statistiques) ── */
+          /* ── Item avec sous-menu (Statistiques) ── */
           if (children) {
+            // ✅ Cacher si interdit
+            if (!canAccess(permKey)) return null;
             return (
               <div key={name}>
                 <button
@@ -92,18 +108,11 @@ export default function Sidebar() {
                   <span style={{ flex: 1 }}>{name}</span>
                   {statsOpen ? <ChevronDown size={14} style={{ opacity: 0.6 }} /> : <ChevronRight size={14} style={{ opacity: 0.6 }} />}
                 </button>
-
-                {/* Sub-items */}
                 {statsOpen && (
                   <div style={{ marginLeft: 16, marginBottom: 4, borderLeft: `2px solid ${C.border}`, paddingLeft: 10 }}>
                     {children.map(({ name: cName, path: cPath }) => (
-                      <button
-                        key={cName}
-                        onClick={() => navigate(cPath)}
-                        style={{
-                          ...btnStyle(isActive(cPath)),
-                          fontSize: '0.82rem', padding: '8px 10px',
-                        }}
+                      <button key={cName} onClick={() => navigate(cPath)}
+                        style={{ ...btnStyle(isActive(cPath)), fontSize: '0.82rem', padding: '8px 10px' }}
                         onMouseEnter={e => { if (!isActive(cPath)) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = C.text; } }}
                         onMouseLeave={e => { if (!isActive(cPath)) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.muted; } }}
                       >
@@ -117,13 +126,13 @@ export default function Sidebar() {
             );
           }
 
-          /* ── Regular item ── */
+          /* ── Item régulier ── */
+          // ✅ Cacher si interdit
+          if (!canAccess(permKey)) return null;
+
           const active = isActive(path);
           return (
-            <button
-              key={name}
-              onClick={() => navigate(path)}
-              style={btnStyle(active)}
+            <button key={name} onClick={() => navigate(path)} style={btnStyle(active)}
               onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = C.text; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.muted; } }}
             >
@@ -138,7 +147,7 @@ export default function Sidebar() {
       {/* Logout */}
       <div style={{ padding: '12px 10px', borderTop: `1px solid ${C.border}` }}>
         <button
-          onClick={() => navigate('/connexion')}
+          onClick={() => { localStorage.removeItem("user"); navigate('/connexion'); }}
           style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.muted, fontFamily: "'Barlow', sans-serif", fontSize: '0.875rem', transition: 'all 0.18s' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(229,57,53,0.08)'; e.currentTarget.style.color = C.accent; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.muted; }}

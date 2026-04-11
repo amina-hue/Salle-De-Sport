@@ -69,4 +69,5 @@ contextBridge.exposeInMainWorld('api', {
 
   // ── Auth ──
   login:                      (data) => invoke('login', data),
+  getRolesAvecCount:          ()     => invoke('getRolesAvecCount'),
 });

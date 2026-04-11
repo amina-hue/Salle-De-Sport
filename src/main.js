@@ -744,3 +744,62 @@ ipcMain.handle('getCoachs', async () => {
     );
   });
 });
+
+ipcMain.handle('getRolesAvecCount', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT r.id, r.nom AS name, COUNT(u.idUtilisateur) AS users
+       FROM Role r
+       LEFT JOIN Utilisateur u ON u.role_id = r.id
+       GROUP BY r.id, r.nom
+       ORDER BY r.id`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
+//permissions
+// Récupérer les permissions d'un rôle
+ipcMain.handle('getPermissions', async (event, role_id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'SELECT page_key, statut FROM Permissions WHERE role_id = ?',
+      [role_id],
+      (err, result) => {
+        if (err) reject(err);
+        else {
+          // Convertir en objet { page_key: statut }
+          const perms = {};
+          result.forEach(r => { perms[r.page_key] = r.statut; });
+          resolve(perms);
+        }
+      }
+    );
+  });
+});
+
+// Sauvegarder les permissions d'un rôle
+ipcMain.handle('savePermissions', async (event, { role_id, permissions }) => {
+  return new Promise((resolve, reject) => {
+    // Supprimer les anciennes permissions du rôle
+    db.query('DELETE FROM Permissions WHERE role_id = ?', [role_id], (err) => {
+      if (err) return reject(err);
+
+      const entries = Object.entries(permissions);
+      if (!entries.length) return resolve({ success: true });
+
+      // Insérer les nouvelles
+      const values = entries.map(([key, statut]) => [role_id, key, statut]);
+      db.query(
+        'INSERT INTO Permissions (role_id, page_key, statut) VALUES ?',
+        [values],
+        (err2) => {
+          if (err2) reject(err2);
+          else resolve({ success: true });
+        }
+      );
+    });
+  });
+});
