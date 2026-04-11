@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('api', {
   searchAdherents:            (q)    => invoke('searchAdherents', q),
   getStatsAdherents:          ()     => invoke('getStatsAdherents'),
   getAdherentsParMois:        ()     => invoke('getAdherentsParMois'),
+  getStatsPageAdherent:       ()     => invoke('getStatsPageAdherent'), 
 
   // ── Abonnements ──
   
@@ -69,4 +70,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // ── Auth ──
   login:                      (data) => invoke('login', data),
+  
+// Fréquentation par jour de la semaine
+  getFrequentationSemaine: () => invoke('getFrequentationSemaine'),
 });
