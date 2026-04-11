@@ -34,9 +34,13 @@ contextBridge.exposeInMainWorld('api', {
   updateTypeAbonnement:       (data) => invoke('updateTypeAbonnement', data),
   deleteTypeAbonnement:       (id)   => invoke('deleteTypeAbonnement', id),
 
-  // ── Paiements ──
+ // ── Paiements ──
   getPaiements:               ()     => invoke('getPaiements'),
   addPaiement:                (data) => invoke('addPaiement', data),
+  
+  // ICI : On s'assure que les deux noms appellent 'getAdherentsWithAbonnement'
+  getAdherentsWithAbonnement: ()     => invoke('getAdherentsWithAbonnement'),
+  getAdherentsAvecAbonnement: ()     => invoke('getAdherentsWithAbonnement'),
 
   // ── Produits ──
   getProduits:                ()     => invoke('getProduits'),
