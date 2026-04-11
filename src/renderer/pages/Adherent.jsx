@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import AddMemberModal from '../components/AddMemberModal';
 import GYM_BG from '../../images/background.png';
+import { useLocation, useNavigate } from "react-router-dom";
 
 // ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
@@ -14,22 +15,23 @@ const C = {
   accentBorder: 'rgba(229,57,53,0.3)',
   text: '#f0f0f0', muted: '#6b7280', subtle: '#9ca3af',
   green: '#22c55e', gold: '#f59e0b', blue: '#3b82f6',
+  orange: '#f97316',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-const FILTERS = ['Tous', 'actif', 'expiré'];
-const FILTER_LABELS = ['Tous', 'Actif', 'Expiré'];
+
+// ✅ CORRIGÉ : Filtres incluant suspendu
+const FILTERS       = ['Tous', 'actif', 'expiré', 'suspendu'];
+const FILTER_LABELS = ['Tous', 'Actif', 'Expiré', 'Suspendu'];
 
 function planColor(typeNom) {
   const n = (typeNom || '').toLowerCase();
-
   if (n.includes('premium') || n.includes('annuel')) return C.gold;
   if (n.includes('standard') || n.includes('mensuel')) return C.blue;
   return C.muted;
 }
 function planBg(typeNom) {
   const n = (typeNom || '').toLowerCase();
-
   if (n.includes('premium') || n.includes('annuel')) return 'rgba(245,158,11,0.1)';
   if (n.includes('standard') || n.includes('mensuel')) return 'rgba(59,130,246,0.1)';
   return 'rgba(107,114,128,0.1)';
@@ -49,11 +51,23 @@ function toInputDate(dateStr) {
   return d.toISOString().split('T')[0];
 }
 
+// ✅ NOUVEAU : couleur et label selon le statut
+function statusConfig(statut) {
+  switch ((statut || '').toLowerCase()) {
+    case 'actif':    return { label: 'Actif',    bg: '#22c55e', shadow: 'rgba(34,197,94,0.4)'  };
+    case 'expiré':   return { label: 'Expiré',   bg: '#e53935', shadow: 'rgba(229,57,53,0.4)'  };
+    case 'suspendu': return { label: 'Suspendu', bg: '#f97316', shadow: 'rgba(249,115,22,0.4)' };
+    default:         return { label: 'Sans abo', bg: '#6b7280', shadow: 'rgba(107,114,128,0.4)' };
+  }
+}
+
 // ─── Composant : MemberCard ──────────────────────────────────────────────────
 function MemberCard({ member, onEdit, onDelete }) {
   const [hovered, setHovered] = useState(false);
-  const isActif = member.abonnementStatut === 'actif';
-  const statusLabel = isActif ? 'Actif' : member.abonnementStatut ? 'Expiré' : 'Sans abo';
+
+  // ✅ CORRIGÉ : utilise statusConfig pour afficher le bon statut et la bonne couleur
+  const sc = statusConfig(member.abonnementStatut);
+
   const photoSrc = member.photo
     || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.nom || '') + ' ' + (member.prenom || ''))}&background=1f2330&color=e53935&size=300`;
 
@@ -79,16 +93,17 @@ function MemberCard({ member, onEdit, onDelete }) {
           onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nom)}&background=1f2330&color=e53935&size=300`; }}
         />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, background: 'linear-gradient(transparent, rgba(14,15,17,0.9))' }} />
+        {/* ✅ CORRIGÉ : badge dynamique selon le statut réel */}
         <span style={{
           position: 'absolute', top: 10, right: 10,
           fontSize: '0.65rem', fontWeight: 700,
           fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1, textTransform: 'uppercase',
           padding: '4px 10px', borderRadius: 20,
-          background: isActif ? C.green : C.accent,
+          background: sc.bg,
           color: '#fff',
-          boxShadow: isActif ? '0 2px 8px rgba(34,197,94,0.4)' : '0 2px 8px rgba(229,57,53,0.4)',
+          boxShadow: `0 2px 8px ${sc.shadow}`,
         }}>
-          {statusLabel}
+          {sc.label}
         </span>
       </div>
 
@@ -166,6 +181,7 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     type_id: member.type_id || (typesAbonnement[0]?.id ?? ''),
     dateDebut: toInputDate(member.dateDebut),
     dateFin: toInputDate(member.dateFin),
+    // ✅ CORRIGÉ : utilise le vrai statut de l'abonnement
     abonnementStatut: member.abonnementStatut || 'actif',
   });
 
@@ -295,7 +311,7 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
 
               {!form.idAbonnement && (
                 <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: '0.8rem', color: C.gold }}>
-                  Cet adhérent n'a pas encore d'abonnement actif. Remplissez les champs ci-dessous pour en créer un.
+                  Cet adhérent n'a pas encore d'abonnement. Remplissez les champs ci-dessous pour en créer un.
                 </div>
               )}
 
@@ -308,7 +324,12 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                 { label: 'Date fin :', key: 'dateFin', type: 'date' },
                 {
                   label: 'Statut :', key: 'abonnementStatut', type: 'select',
-                  opts: [{ value: 'actif', label: 'Actif' }, { value: 'expiré', label: 'Expiré' }, { value: 'suspendu', label: 'Suspendu' }]
+                  // ✅ CORRIGÉ : inclus 'suspendu' dans les options
+                  opts: [
+                    { value: 'actif',    label: 'Actif'    },
+                    { value: 'expiré',   label: 'Expiré'   },
+                    { value: 'suspendu', label: 'Suspendu' },
+                  ]
                 },
               ].map(({ label, key, type, opts }) => (
                 <div key={key}>
@@ -321,6 +342,21 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                   }
                 </div>
               ))}
+
+              {/* ✅ NOUVEAU : aperçu du statut actuel */}
+              {form.idAbonnement && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid #3d3233' }}>
+                  <span style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>Statut actuel :</span>
+                  <span style={{
+                    fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8,
+                    padding: '3px 10px', borderRadius: 20,
+                    background: statusConfig(form.abonnementStatut).bg,
+                    color: '#fff',
+                  }}>
+                    {statusConfig(form.abonnementStatut).label}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -356,27 +392,27 @@ function Toast({ message, error }) {
 
 // ─── PAGE PRINCIPALE ─────────────────────────────────────────────────────────
 export default function Adherent() {
+   const location = useLocation();
+  const navigate = useNavigate();
   const [adherents, setAdherents]       = useState([]);
   const [typesAbo, setTypesAbo]         = useState([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
   const [filterIdx, setFilterIdx]       = useState(0);
-  const [modal, setModal]               = useState(null); // null | 'add' | 'edit'
+  const [modal, setModal]               = useState(null);
   const [editTarget, setEditTarget]     = useState(null);
   const [toast, setToast]               = useState({ msg: '', error: false });
 
-  // ── Utils ──────────────────────────────────────────────────────────────────
   const showToast = (msg, error = false) => {
     setToast({ msg, error });
     setTimeout(() => setToast({ msg: '', error: false }), 2800);
   };
 
-  // ── Chargement initial ────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [data, types] = await Promise.all([
-        window.api.getAdherentsAvecAbonnement(),
+        window.api.getAdherentsAvecAbonnement(), // ✅ auto-expire + récupère tous les statuts
         window.api.getTypesAbonnement(),
       ]);
       setAdherents(data);
@@ -390,16 +426,21 @@ export default function Adherent() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("openModal") === "true") {
+      setModal("add");
+      // Nettoie l'URL sans recharger la page
+      navigate("/adherents", { replace: true });
+    }
+  }, [location.search]);
 
   const handleClose = () => { setModal(null); setEditTarget(null); };
+  const handleEdit  = (m) => { setEditTarget(m); setModal('edit'); };
 
-  const handleEdit = (m) => { setEditTarget(m); setModal('edit'); };
-
+  // ── Modifier un adhérent ──────────────────────────────────────────────────
   const handleSaveEdit = async (form) => {
     try {
-      // 1. Mettre à jour les infos adhérent
       await window.api.updateAdherent({
         idAdherent:    form.idAdherent,
         nom:           form.nom,
@@ -410,7 +451,6 @@ export default function Adherent() {
         sexe:          form.sexe,
       });
 
-      // 2. Mettre à jour la photo si modifiée
       if (form.photo !== editTarget.photo) {
         await window.api.updateAdherentPhoto({
           idAdherent: form.idAdherent,
@@ -418,31 +458,30 @@ export default function Adherent() {
         });
       }
 
-      // 3. Abonnement : update si existant, create si nouveau
-      if (form.dateDebut && form.dateFin && form.type_id) {
-        if (form.idAbonnement) {
-          // Mise à jour abonnement existant via updateAbonnement (à ajouter dans main.js si besoin)
-          await window.api.updateAbonnement({
-            idAbonnement: form.idAbonnement,
-            type_id:      form.type_id,
-            dateDebut:    form.dateDebut,
-            dateFin:      form.dateFin,
-            statut:       form.abonnementStatut,
-          });
-        } else {
-          // Création d'un nouvel abonnement
-          await window.api.addAbonnement({
-            adherent_id: form.idAdherent,
-            type_id:     form.type_id,
-            dateDebut:   form.dateDebut,
-            dateFin:     form.dateFin,
-            statut:      form.abonnementStatut,
-          });
-        }
+      // ✅ CORRIGÉ : mise à jour abonnement même si on change juste le statut
+      if (form.idAbonnement) {
+        // Abonnement existant → on met toujours à jour (statut, type, dates)
+        await window.api.updateAbonnement({
+          idAbonnement: form.idAbonnement,
+          type_id:      parseInt(form.type_id),
+          dateDebut:    form.dateDebut,
+          dateFin:      form.dateFin,
+          statut:       form.abonnementStatut,
+        });
+      } else if (form.dateDebut && form.dateFin && form.type_id) {
+        // Pas d'abonnement existant → on en crée un seulement si les dates sont remplies
+        await window.api.addAbonnement({
+          adherent_id: form.idAdherent,
+          type_id:     parseInt(form.type_id),
+          dateDebut:   form.dateDebut,
+          dateFin:     form.dateFin,
+          statut:      form.abonnementStatut,
+        });
       }
 
       showToast('Adhérent modifié avec succès');
       handleClose();
+      setFilterIdx(0); // ✅ revenir sur "Tous" pour voir l'adhérent avec son nouveau statut
       await loadData();
     } catch (err) {
       console.error(err);
@@ -451,33 +490,42 @@ export default function Adherent() {
     }
   };
 
+  // ── Ajouter un adhérent ───────────────────────────────────────────────────
   const handleSaveAdd = async (data) => {
     try {
-      // 1. Créer l'adhérent
       const result = await window.api.addAdherent({
         nom:           data.nom,
         prenom:        data.prenom,
-        dateNaissance: data.dateNaissance,
+        dateNaissance: data.dateNaissance || null,
         numTelephone:  data.numTelephone,
-        email:         data.email,
+        email:         data.email || null,
         sexe:          data.sexe,
       });
 
       const newId = result.insertId;
 
-      // 2. Upload photo si fournie
       if (data.photo && newId) {
         await window.api.updateAdherentPhoto({ idAdherent: newId, photo: data.photo });
       }
 
-      // 3. Créer l'abonnement si renseigné
-      if (data.type_id && data.dateDebut && data.dateFin && newId) {
-        await window.api.addAbonnement({
+      let aboId = null;
+      if (data.type_id && data.dateDebut && newId) {
+        const aboResult = await window.api.addAbonnement({
           adherent_id: newId,
-          type_id:     data.type_id,
+          type_id:     parseInt(data.type_id),
           dateDebut:   data.dateDebut,
-          dateFin:     data.dateFin,
+          dateFin:     data.dateFin || null,
           statut:      'actif',
+        });
+        aboId = aboResult?.insertId ?? null;
+      }
+
+      if (aboId && data.montant && data.montant > 0) {
+        await window.api.addPaiement({
+          abonnement_id: aboId,
+          montant:       data.montant,
+          datePaiement:  data.dateDebut,
+          modePaiement:  data.modePaiement || 'cash',
         });
       }
 
@@ -491,6 +539,7 @@ export default function Adherent() {
     }
   };
 
+  // ── Supprimer ─────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cet adhérent et toutes ses données liées ?')) return;
     try {
@@ -511,16 +560,21 @@ export default function Adherent() {
       (a.prenom || '').toLowerCase().includes(q) ||
       (a.email || '').toLowerCase().includes(q) ||
       (a.numTelephone || '').includes(q);
+
+    // ✅ CORRIGÉ : comparaison insensible à la casse + gère NULL (Sans abo)
+    const statut = (a.abonnementStatut || '').toLowerCase();
     const matchFilter =
       filterIdx === 0 ||
-      (a.abonnementStatut || '').toLowerCase() === FILTERS[filterIdx];
+      statut === FILTERS[filterIdx];
+
     return matchSearch && matchFilter;
   });
 
-  const actif  = adherents.filter(a => a.abonnementStatut === 'actif').length;
-  const expire = adherents.filter(a => a.abonnementStatut === 'expiré').length;
+  // ✅ CORRIGÉ : compteurs basés sur le vrai statut
+  const actif    = adherents.filter(a => (a.abonnementStatut || '').toLowerCase() === 'actif').length;
+  const expire   = adherents.filter(a => (a.abonnementStatut || '').toLowerCase() === 'expiré').length;
+  const suspendu = adherents.filter(a => (a.abonnementStatut || '').toLowerCase() === 'suspendu').length;
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: C.bg }}>
 
@@ -540,11 +594,14 @@ export default function Adherent() {
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '3rem', fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: 'uppercase', color: C.text }}>
               Gestion des adhérents
             </h1>
+
+            {/* ✅ CORRIGÉ : 4 compteurs avec les bons statuts */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
               {[
-                { count: adherents.length, label: 'au total',  color: C.muted  },
-                { count: actif,            label: 'actifs',    color: C.green  },
-                { count: expire,           label: 'expirés',   color: C.accent },
+                { count: adherents.length, label: 'au total',   color: C.muted   },
+                { count: actif,            label: 'actifs',     color: C.green   },
+                { count: expire,           label: 'expirés',    color: C.accent  },
+                { count: suspendu,         label: 'suspendus',  color: C.orange  },
               ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
@@ -596,6 +653,7 @@ export default function Adherent() {
           />
         </div>
 
+        {/* ✅ CORRIGÉ : 4 boutons de filtre */}
         <div style={{ display: 'flex', background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, overflow: 'hidden' }}>
           {FILTER_LABELS.map((f, i) => (
             <button
@@ -615,7 +673,6 @@ export default function Adherent() {
 
       {/* ── Contenu principal ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 36px 40px' }}>
-
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 16, color: C.muted }}>
             <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: C.accent }} />
@@ -653,8 +710,6 @@ export default function Adherent() {
       )}
 
       <Toast message={toast.msg} error={toast.error} />
-
-      {/* Spinner animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );

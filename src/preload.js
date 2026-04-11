@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('api', {
   addAbonnement:              (data) => invoke('addAbonnement', data),
   updateAbonnement:           (data) => invoke('updateAbonnement', data),
   addTypeAbonnement:          (data) => invoke('addTypeAbonnement', data),
+  getAbonnementsExpirant:     ()     => invoke('getAbonnementsExpirant'), 
   updateTypeAbonnement:       (data) => invoke('updateTypeAbonnement', data),
   deleteTypeAbonnement:       (id)   => invoke('deleteTypeAbonnement', id),
 

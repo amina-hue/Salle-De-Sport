@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState,useEffect  } from "react";
 import { ChevronRight, Search, Filter, Download, Plus, Check, Clock, AlertTriangle, Receipt } from "lucide-react";
 import gym from "../../images/gym.png";
 import NouveauPaiementModal from "../components/NouveauPaiementModal";
+import { useLocation, useNavigate } from "react-router-dom"; 
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -55,6 +56,8 @@ const StatCard = ({ title, value, sub, icon: Icon, bg, border, color, softBg, so
 );
 
 const Paiement = () => {
+   const location = useLocation();   // ✅ AJOUT
+  const navigate = useNavigate(); 
   const [search, setSearch]     = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
   const [openModal, setOpenModal]   = useState(false);
@@ -63,6 +66,13 @@ const Paiement = () => {
   const payeCount     = paiements.filter(p => p.statut === "Payé").length;
   const attenteCount  = paiements.filter(p => p.statut === "En attente").length;
   const retardCount   = paiements.filter(p => p.statut === "En retard").length;
+   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openModal') === 'true') {
+      setOpenModal(true);
+      navigate('/paiements', { replace: true });
+    }
+  }, [location.search]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
