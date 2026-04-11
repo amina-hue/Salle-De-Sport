@@ -400,32 +400,67 @@ ipcMain.handle('getTypesAbonnement', async () => {
 // ══════════════════════════════════════════════
 //  PAIEMENTS
 // ══════════════════════════════════════════════
-
 ipcMain.handle('getPaiements', async () => {
   return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT p.*, CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom
-       FROM Paiement p
-       JOIN Abonnement a ON p.abonnement_id = a.idAbonnement
-       JOIN Adherent ad ON a.adherent_id = ad.idAdherent
-       ORDER BY p.datePaiement DESC`,
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
+    // Cette requête récupère le paiement ET le nom de l'adhérent via les jointures
+    const sql = `
+      SELECT 
+        p.idPaiement as id, 
+        p.montant, 
+        p.datePaiement as date, 
+        p.modePaiement as mode,
+        a.nom, 
+        a.prenom,
+        'Payé' as statut -- Comme tu n'as pas de colonne statut, on en simule une
+      FROM Paiement p
+      JOIN Abonnement ab ON p.abonnement_id = ab.idAbonnement
+      JOIN Adherent a ON ab.adherent_id = a.idAdherent
+      ORDER BY p.datePaiement DESC
+    `;
+
+    db.query(sql, (err, results) => {
+      if (err) {
+        console.error("Erreur getPaiements:", err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
   });
 });
 
 ipcMain.handle('addPaiement', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { abonnement_id, montant, datePaiement, modePaiement } = data;
+    const { abonnement_id, montant, date, mode } = data;
+    
+    // 1. Mapping du mode de paiement pour correspondre à l'ENUM de ta BDD
+    // Ta BDD attend : 'cash', 'carte', 'virement'
+    let modeSQL = 'cash'; 
+    if (mode === 'Carte bancaire') modeSQL = 'carte';
+    if (mode === 'Virement') modeSQL = 'virement';
+    if (mode === 'Espèces') modeSQL = 'cash';
+
+    // 2. Requête SQL (Note : datePaiement et modePaiement selon ton script SQL)
+    const sql = 'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)';
+    
     db.query(
-      'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)',
-      [abonnement_id, montant, datePaiement, modePaiement],
+      sql,
+      [abonnement_id, montant, date, modeSQL],
       (err, result) => {
-        if (err) { console.error("❌ addPaiement error:", err); reject(err); }
-        else resolve(result);
+        if (err) {
+          console.error("❌ ERREUR SQL addPaiement:", err);
+          // On résout avec success: false pour que le catch de React ne se déclenche pas violemment
+          resolve({ success: false, error: err.message });
+        } else {
+          resolve({ success: true, insertId: result.insertId });
+        }
       }
     );
   });
+});
+// Alias pour éviter l'erreur de nom entre Anglais et Français
+ipcMain.handle('getAdherentsWithAbonnement', async (event) => {
+  return ipcMain.handleIpcs.get('getAdherentsAvecAbonnement')(event);
 });
 
 // ══════════════════════════════════════════════
@@ -565,6 +600,24 @@ ipcMain.handle('getRecetteParMois', async () => {
   });
 });
 
+ipcMain.handle('getStatsRevenueGraph', async () => {
+  return new Promise((resolve, reject) => {
+    // Cette requête récupère les revenus des abonnements groupés par mois
+    const sql = `
+      SELECT 
+        DATE_FORMAT(datePaiement, '%b') as month, 
+        SUM(montant) as total 
+      FROM Paiement 
+      WHERE datePaiement >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+      GROUP BY month 
+      ORDER BY datePaiement ASC
+    `;
+    db.query(sql, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
 // ══════════════════════════════════════════════
 //  UTILISATEURS
 // ══════════════════════════════════════════════

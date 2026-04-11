@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   // ── Adhérents ──
   getAdherents:               ()     => invoke('getAdherents'),
   getAdherentsAvecAbonnement: ()     => invoke('getAdherentsAvecAbonnement'),
+  getAdherentsWithAbonnement: () => invoke('getAdherentsAvecAbonnement'),
   getAdherentDetail:          (id)   => invoke('getAdherentDetail', id),
   addAdherent:                (data) => invoke('addAdherent', data),
   updateAdherent:             (data) => invoke('updateAdherent', data),
@@ -24,7 +25,6 @@ contextBridge.exposeInMainWorld('api', {
   getAdherentsParMois:        ()     => invoke('getAdherentsParMois'),
 
   // ── Abonnements ──
-  
   getAbonnements:             ()     => invoke('getAbonnements'),
   getTypesAbonnement:         ()     => invoke('getTypesAbonnement'),
   getTypeAbonnements:         ()     => invoke('getTypeAbonnements'),
