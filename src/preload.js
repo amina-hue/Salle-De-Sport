@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   // ── Adhérents ──
   getAdherents:               ()     => invoke('getAdherents'),
   getAdherentsAvecAbonnement: ()     => invoke('getAdherentsAvecAbonnement'),
+  getAdherentsWithAbonnement: () => invoke('getAdherentsAvecAbonnement'),
   getAdherentDetail:          (id)   => invoke('getAdherentDetail', id),
   addAdherent:                (data) => invoke('addAdherent', data),
   updateAdherent:             (data) => invoke('updateAdherent', data),
@@ -24,23 +25,19 @@ contextBridge.exposeInMainWorld('api', {
   getAdherentsParMois:        ()     => invoke('getAdherentsParMois'),
 
   // ── Abonnements ──
-  
   getAbonnements:             ()     => invoke('getAbonnements'),
   getTypesAbonnement:         ()     => invoke('getTypesAbonnement'),
   getTypeAbonnements:         ()     => invoke('getTypeAbonnements'),
   addAbonnement:              (data) => invoke('addAbonnement', data),
   updateAbonnement:           (data) => invoke('updateAbonnement', data),
   addTypeAbonnement:          (data) => invoke('addTypeAbonnement', data),
+  getAbonnementsExpirant:     ()     => invoke('getAbonnementsExpirant'), 
   updateTypeAbonnement:       (data) => invoke('updateTypeAbonnement', data),
   deleteTypeAbonnement:       (id)   => invoke('deleteTypeAbonnement', id),
 
- // ── Paiements ──
+  // ── Paiements ──
   getPaiements:               ()     => invoke('getPaiements'),
   addPaiement:                (data) => invoke('addPaiement', data),
-  
-  // ICI : On s'assure que les deux noms appellent 'getAdherentsWithAbonnement'
-  getAdherentsWithAbonnement: ()     => invoke('getAdherentsWithAbonnement'),
-  getAdherentsAvecAbonnement: ()     => invoke('getAdherentsWithAbonnement'),
 
   // ── Produits ──
   getProduits:                ()     => invoke('getProduits'),
