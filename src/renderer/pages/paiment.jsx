@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useState,useEffect  } from "react";
-=======
 import React, { useState, useEffect } from "react";
->>>>>>> tintin
 import { ChevronRight, Search, Filter, Download, Plus, Check, Clock, AlertTriangle, Receipt } from "lucide-react";
 import gym from "../../images/gym.png";
 import NouveauPaiementModal from "../components/NouveauPaiementModal";
@@ -50,26 +46,14 @@ const StatCard = ({ title, value, sub, icon: Icon, bg, border, color, softBg, so
 );
 
 const Paiement = () => {
-<<<<<<< HEAD
-   const location = useLocation();   // ✅ AJOUT
-  const navigate = useNavigate(); 
-  const [search, setSearch]     = useState("");
-=======
   const location = useLocation();
   const navigate = useNavigate(); 
   
   const [listePaiements, setListePaiements] = useState([]);
   const [search, setSearch] = useState("");
->>>>>>> tintin
   const [hoveredRow, setHoveredRow] = useState(null);
   const [openModal, setOpenModal] = useState(false);
 
-<<<<<<< HEAD
-  const payeCount     = paiements.filter(p => p.statut === "Payé").length;
-  const attenteCount  = paiements.filter(p => p.statut === "En attente").length;
-  const retardCount   = paiements.filter(p => p.statut === "En retard").length;
-   useEffect(() => {
-=======
   // 1. Charger les données depuis Electron
   const fetchPaiements = async () => {
     if (window.api?.getPaiements) {
@@ -82,31 +66,25 @@ const Paiement = () => {
     fetchPaiements();
     
     // Gestion du paramètre URL pour ouvrir la modale
->>>>>>> tintin
     const params = new URLSearchParams(location.search);
     if (params.get('openModal') === 'true') {
       setOpenModal(true);
       navigate('/paiements', { replace: true });
     }
   }, [location.search]);
-<<<<<<< HEAD
-=======
 
  const handleSaveNewPaiement = async (formData) => {
   try {
     const response = await window.api.addPaiement(formData);
-    
-    if (response.success) { // Grâce à la correction dans main.js, ceci fonctionnera
+    if (response?.success) {
       setOpenModal(false);
-      // Recharger la liste
-      const data = await window.api.getPaiements();
-      setListePaiements(data);
+      await fetchPaiements(); // recharger la liste
     } else {
-      alert("Erreur BDD : " + response.error);
+      alert("Erreur lors de l'enregistrement : " + (response?.error || "inconnue"));
     }
   } catch (err) {
-    console.error("Erreur appel API:", err);
-    alert("Impossible de communiquer avec la base de données.");
+    console.error("Erreur:", err);
+    alert("Erreur de communication avec la base de données.");
   }
 };
 
@@ -125,7 +103,6 @@ const Paiement = () => {
   const totalEncaisse = stats.paye.reduce((acc, p) => acc + Number(p.montant), 0);
   const totalAttente = stats.attente.reduce((acc, p) => acc + Number(p.montant), 0);
   const totalRetard = stats.retard.reduce((acc, p) => acc + Number(p.montant), 0);
->>>>>>> tintin
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>

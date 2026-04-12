@@ -402,31 +402,26 @@ ipcMain.handle('getTypesAbonnement', async () => {
 // ══════════════════════════════════════════════
 ipcMain.handle('getPaiements', async () => {
   return new Promise((resolve, reject) => {
-    // Cette requête récupère le paiement ET le nom de l'adhérent via les jointures
     const sql = `
       SELECT 
         p.idPaiement as id, 
         p.montant, 
-        p.datePaiement as date, 
+        DATE_FORMAT(p.datePaiement, '%d/%m/%Y') as date,
         p.modePaiement as mode,
         a.nom, 
         a.prenom,
-        'Payé' as statut -- Comme tu n'as pas de colonne statut, on en simule une
+        'Payé' as statut
       FROM Paiement p
       JOIN Abonnement ab ON p.abonnement_id = ab.idAbonnement
       JOIN Adherent a ON ab.adherent_id = a.idAdherent
       ORDER BY p.datePaiement DESC
     `;
-
     db.query(sql, (err, results) => {
-      if (err) {
-        console.error("Erreur getPaiements:", err);
-        reject(err);
-      } else {
-        resolve(results);
-      }
+      if (err) { console.error("Erreur getPaiements:", err); reject(err); }
+      else resolve(results);
     });
   });
+
 });
 
 ipcMain.handle('addPaiement', async (event, data) => {
@@ -458,11 +453,45 @@ ipcMain.handle('addPaiement', async (event, data) => {
     );
   });
 });
-// Alias pour éviter l'erreur de nom entre Anglais et Français
-ipcMain.handle('getAdherentsWithAbonnement', async (event) => {
-  return ipcMain.handleIpcs.get('getAdherentsAvecAbonnement')(event);
-});
 
+ipcMain.handle('getAdherentsWithAbonnement', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT ad.*,
+        ab.idAbonnement, ab.type_id, ab.dateDebut, ab.dateFin,
+        ab.statut AS abonnementStatut,
+        t.nom AS typeNom, t.prix AS typePrix
+       FROM Adherent ad
+       INNER JOIN Abonnement ab ON ab.idAbonnement = (
+         SELECT idAbonnement FROM Abonnement
+         WHERE adherent_id = ad.idAdherent
+         AND statut = 'actif'
+         ORDER BY dateDebut DESC LIMIT 1
+       )
+       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+       ORDER BY ad.nom ASC`,
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
+ipcMain.handle('getAbonnementsNonPaies', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        ad.nom, ad.prenom,
+        ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
+        t.nom AS typeNom, t.prix AS typePrix
+       FROM Abonnement ab
+       JOIN Adherent ad ON ab.adherent_id = ad.idAdherent
+       JOIN TypeAbonnement t ON ab.type_id = t.id
+       WHERE ab.idAbonnement NOT IN (
+         SELECT DISTINCT abonnement_id FROM Paiement
+       )
+       ORDER BY ad.nom ASC`,
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
 // ══════════════════════════════════════════════
 //  PRODUITS
 // ══════════════════════════════════════════════
@@ -732,5 +761,62 @@ ipcMain.handle('savePermissions', async (event, { role_id, permissions }) => {
         }
       );
     });
+  });
+});
+ipcMain.handle('getStatsAbonnements', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN statut = 'actif'    THEN 1 ELSE 0 END) AS actifs,
+        SUM(CASE WHEN statut = 'expiré'   THEN 1 ELSE 0 END) AS expires,
+        SUM(CASE WHEN statut = 'suspendu' THEN 1 ELSE 0 END) AS suspendus
+       FROM Abonnement`,
+      (err, result) => { if (err) reject(err); else resolve(result[0]); }
+    );
+  });
+});
+
+ipcMain.handle('getAbonnementsParType', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT t.nom AS name, COUNT(*) AS value
+       FROM Abonnement a
+       JOIN TypeAbonnement t ON a.type_id = t.id
+       GROUP BY t.id, t.nom`,
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
+
+ipcMain.handle('getAbonnementsExpirantBientot', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT CONCAT(ad.nom, ' ', ad.prenom) AS name,
+        ab.dateFin,
+        DATEDIFF(ab.dateFin, CURDATE()) AS joursRestants
+       FROM Abonnement ab
+       JOIN Adherent ad ON ab.adherent_id = ad.idAdherent
+       WHERE ab.statut = 'actif'
+         AND ab.dateFin >= CURDATE()
+       ORDER BY ab.dateFin ASC
+       LIMIT 5`,
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
+
+ipcMain.handle('getFrequentationHebdo', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        DAYNAME(dateDebut) AS day,
+        COUNT(*) AS value
+       FROM Abonnement
+       WHERE dateDebut >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+       GROUP BY DAYNAME(dateDebut), DAYOFWEEK(dateDebut)
+       ORDER BY DAYOFWEEK(dateDebut)`,
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
   });
 });

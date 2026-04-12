@@ -42,8 +42,12 @@ useEffect(() => {
     .catch(err => console.error("Erreur permissions sidebar", err));
 }, []);
 
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+
 const canAccess = (permKey) => {
   if (!permKey) return true;
+  // Admin (role_id = 1) a toujours accès à tout
+  if (user.role_id === 1) return true;
   return (rolePerms[permKey] || "autorise") !== "interdit";
 };
   const navigate  = useNavigate();

@@ -226,15 +226,21 @@ const loadRoles = async () => {
                   <td style={{ padding: "14px 22px", color: C.subtle, fontSize: "0.875rem", fontFamily: "'Barlow', sans-serif" }}>
                     {role.users} utilisateur{role.users !== 1 ? "s" : ""}
                   </td>
-                  <td style={{ padding: "14px 22px" }}>
-                    {/* ✅ handleOpenRole au lieu de setSelectedRole */}
-                    <button onClick={() => handleOpenRole(role)}
-                      style={{ fontSize: "0.78rem", color: C.accent, background: C.accentDim, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: "6px 16px", cursor: "pointer", fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(229,57,53,0.22)"}
-                      onMouseLeave={e => e.currentTarget.style.background = C.accentDim}>
-                      Modifier permissions
-                    </button>
-                  </td>
+                      <td style={{ padding: "14px 22px" }}>
+                        {role.id === 1 ? (
+                          // ✅ Pas de modification pour Admin
+                          <span style={{ fontSize: "0.78rem", color: C.muted, fontFamily: "'Barlow', sans-serif", fontStyle: "italic" }}>
+                            Accès total
+                          </span>
+                        ) : (
+                          <button onClick={() => handleOpenRole(role)}
+                            style={{ fontSize: "0.78rem", color: C.accent, background: C.accentDim, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: "6px 16px", cursor: "pointer", fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "rgba(229,57,53,0.22)"}
+                            onMouseLeave={e => e.currentTarget.style.background = C.accentDim}>
+                            Modifier permissions
+                          </button>
+                        )}
+                      </td>
                 </tr>
               ))}
             </tbody>

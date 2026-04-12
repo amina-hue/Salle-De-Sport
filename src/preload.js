@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   // ── Paiements ──
   getPaiements:               ()     => invoke('getPaiements'),
   addPaiement:                (data) => invoke('addPaiement', data),
-
+  getAbonnementsNonPaies: () => invoke('getAbonnementsNonPaies'),
   // ── Produits ──
   getProduits:                ()     => invoke('getProduits'),
   addProduit:                 (data) => invoke('addProduit', data),
@@ -71,4 +71,12 @@ contextBridge.exposeInMainWorld('api', {
   // ── Auth ──
   login:                      (data) => invoke('login', data),
   getRolesAvecCount:          ()     => invoke('getRolesAvecCount'),
+  // ── Stats Abonnements ──
+  getStatsAbonnements:           ()  => invoke('getStatsAbonnements'),
+  getAbonnementsParType:         ()  => invoke('getAbonnementsParType'),
+  getAbonnementsExpirantBientot: ()  => invoke('getAbonnementsExpirantBientot'),
+  getFrequentationHebdo:         ()  => invoke('getFrequentationHebdo'),
+  // ── Permissions ──
+  getPermissions:                (role_id)          => invoke('getPermissions', role_id),
+  savePermissions:               (data)             => invoke('savePermissions', data),
 });
