@@ -843,7 +843,9 @@ ipcMain.handle('getFrequentationHebdo', async () => {
        GROUP BY DAYNAME(dateDebut), DAYOFWEEK(dateDebut)
        ORDER BY DAYOFWEEK(dateDebut)`,
       (err, result) => { if (err) reject(err); else resolve(result); }
-
+    );
+  });
+});
 // Fréquentation par jour de la semaine
 ipcMain.handle('getFrequentationSemaine', async () => {
   return new Promise((resolve, reject) => {
