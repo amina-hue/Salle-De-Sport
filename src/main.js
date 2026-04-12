@@ -740,6 +740,32 @@ ipcMain.handle('getPermissions', async (event, role_id) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  STATISTIQUES PAGE ADHÉRENT
+// ══════════════════════════════════════════════
+ipcMain.handle('getStatsPageAdherent', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT
+        (SELECT COUNT(*) FROM Adherent) AS total,
+
+        (SELECT COUNT(DISTINCT ad.idAdherent)
+         FROM Adherent ad
+         JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+         WHERE ab.statut = 'actif') AS actifs,
+
+        (SELECT COUNT(*)
+         FROM Adherent
+         WHERE MONTH(dateCreation) = MONTH(CURDATE())
+         AND YEAR(dateCreation) = YEAR(CURDATE())) AS nouveauxCeMois`,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result[0]);
+      }
+    );
+  });
+});
+
 // Sauvegarder les permissions d'un rôle
 ipcMain.handle('savePermissions', async (event, { role_id, permissions }) => {
   return new Promise((resolve, reject) => {
@@ -817,6 +843,39 @@ ipcMain.handle('getFrequentationHebdo', async () => {
        GROUP BY DAYNAME(dateDebut), DAYOFWEEK(dateDebut)
        ORDER BY DAYOFWEEK(dateDebut)`,
       (err, result) => { if (err) reject(err); else resolve(result); }
+
+// Fréquentation par jour de la semaine
+ipcMain.handle('getFrequentationSemaine', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        DAYOFWEEK(date) AS jourNum,
+        COUNT(*) AS total
+       FROM Presence
+       GROUP BY DAYOFWEEK(date)
+       ORDER BY DAYOFWEEK(date)`,
+      (err, result) => {
+        if (err) return reject(err);
+
+        // DAYOFWEEK : 1=Dim, 2=Lun, 3=Mar, 4=Mer, 5=Jeu, 6=Ven, 7=Sam
+        const jours = [
+          { jourNum: 1, day: "Dim" },
+          { jourNum: 2, day: "Lun" },
+          { jourNum: 3, day: "Mar" },
+          { jourNum: 4, day: "Mer" },
+          { jourNum: 5, day: "Jeu" },
+          { jourNum: 6, day: "Ven" },
+          { jourNum: 7, day: "Sam" },
+        ];
+
+        // Fusionner — si un jour a 0 présences il apparaît quand même avec 0
+        const data = jours.map(j => {
+          const found = result.find(r => r.jourNum === j.jourNum);
+          return { day: j.day, value: found ? found.total : 0 };
+        });
+
+        resolve(data);
+      }
     );
   });
 });
