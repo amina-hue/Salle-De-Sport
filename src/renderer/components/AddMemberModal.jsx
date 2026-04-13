@@ -307,16 +307,29 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
 }
 
 // ── MODAL PRINCIPAL ──────────────────────────────────────────────────────────
-export default function AddMemberModal({ typesAbonnement = [], onSave, onClose }) {
-  
+export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = [], onSave, onClose }) {
+
   const [step,   setStep]   = useState(1);
   const [saving, setSaving] = useState(false);
+  const [typesAbonnement, setTypesAbonnement] = useState(typesAbonnementProp);
   const [form,   setForm]   = useState({
     sexe:      'Homme',
     dateDebut: new Date().toISOString().split('T')[0],
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // ✅ Chargement autonome si aucun type n'est passé en prop
+  useEffect(() => {
+    if (typesAbonnementProp.length === 0 && window.api?.getTypesAbonnement) {
+      window.api.getTypesAbonnement().then(data => {
+        if (data) setTypesAbonnement(data);
+      }).catch(console.error);
+    }
+  }, []);
+
+
+  
 
   const handleSave = async () => {
     if (!form.type_id)   { alert("Veuillez sélectionner un type d'abonnement."); return; }
