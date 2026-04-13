@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { ChevronRight, Plus, Trash2, Shield, Check } from "lucide-react";
 import gymBg from "../../images/Gymnastique.png";
+import QuickActions from "../components/QuickActions";
+import { useLocation, useNavigate } from "react-router-dom"; 
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -60,6 +62,7 @@ const [loadingPerms, setLoadingPerms] = useState(false);
   const [newActCouleur, setNewActCouleur] = useState("#22c55e");
   const [savingAct,     setSavingAct]     = useState(false);
   const [errorAct,      setErrorAct]      = useState("");
+  const navigate = useNavigate(); 
 
   useEffect(() => { loadActivites(); }, []);
 
@@ -158,6 +161,7 @@ const loadRoles = async () => {
               <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>Paramètres</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
               Paramètres

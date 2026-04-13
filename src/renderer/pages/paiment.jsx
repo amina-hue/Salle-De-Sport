@@ -3,6 +3,7 @@ import { ChevronRight, Search, Filter, Download, Plus, Check, Clock, AlertTriang
 import gym from "../../images/gym.png";
 import NouveauPaiementModal from "../components/NouveauPaiementModal";
 import { useLocation, useNavigate } from "react-router-dom"; 
+import QuickActions from "../components/QuickActions";
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -118,6 +119,7 @@ const Paiement = () => {
               <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>Paiements</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
               Gestion financière

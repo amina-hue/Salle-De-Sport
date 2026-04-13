@@ -42,11 +42,11 @@ function InputField({ label, icon: Icon, type = 'text', placeholder, value, onCh
 
 // ── STEP 1 — Infos personnelles ──────────────────────────────────────────────
 function StepPersonnel({ form, set, onNext, onClose }) {
-  const fileRef  = useRef();
-  const videoRef = useRef(null);
+  const fileRef   = useRef();
+  const videoRef  = useRef(null);
   const canvasRef = useRef(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [preview, setPreview] = useState(form.photo || null);
+  const [preview,    setPreview]    = useState(form.photo || null);
 
   const startCamera = async () => {
     setShowCamera(true);
@@ -91,15 +91,18 @@ function StepPersonnel({ form, set, onNext, onClose }) {
         <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text, marginBottom: 16, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Photo de profil</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <div style={{ width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: `2px solid ${showCamera ? C.accent : 'rgba(229,57,53,0.3)'}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {showCamera ? <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : preview ? <img src={preview} alt="profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <span style={{ color: C.muted, opacity: 0.5 }}><IconUser /></span>}
+            {showCamera
+              ? <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : preview
+                ? <img src={preview} alt="profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ color: C.muted, opacity: 0.5 }}><IconUser /></span>
+            }
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               {!showCamera
                 ? <button onClick={startCamera} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.accent, border: 'none', borderRadius: 7, padding: '9px 16px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}><IconCamera /> Caméra</button>
-                : <button onClick={takePhoto} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#22c55e', border: 'none', borderRadius: 7, padding: '9px 16px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Capturer</button>
+                : <button onClick={takePhoto}   style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#22c55e', border: 'none', borderRadius: 7, padding: '9px 16px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Capturer</button>
               }
               <button onClick={() => fileRef.current.click()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 7, padding: '9px 16px', color: C.text, fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}><IconUpload /> Importer</button>
             </div>
@@ -146,7 +149,7 @@ function StepPersonnel({ form, set, onNext, onClose }) {
   );
 }
 
-// ── STEP 2 — Abonnement (avec vrais types de la BDD) ────────────────────────
+// ── STEP 2 — Abonnement ──────────────────────────────────────────────────────
 function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, saving }) {
   const inp = {
     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(229,57,53,0.5)',
@@ -156,21 +159,20 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
   };
   const inpIcon = { ...inp, paddingLeft: 38 };
 
-  // Trouver le type sélectionné
-  const selectedType = typesAbonnement.find(t => t.id === parseInt(form.type_id));
-  const prixBase = parseFloat(selectedType?.prix) || 0;
-  const remise   = parseFloat(form.remise) || 0;
+  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+  const prixBase         = parseFloat(selectedType?.prix) || 0;
+  const remise           = parseFloat(form.remise) || 0;
   const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
   const total  = prixBase * (1 - remise / 100) + fraisInscription;
   const verser = parseFloat(form.verser) || 0;
   const manque = Math.max(0, total - verser);
 
-  // Calculer date fin selon durée du type (en jours)
+  // ✅ CORRIGÉ : utilise setMonth (mois) et non setDate (jours)
   const computeDateFin = (debut, typeId) => {
     const type = typesAbonnement.find(t => t.id === parseInt(typeId));
-    if (!debut || !type) return '';
+    if (!debut || !type?.duree) return '';
     const d = new Date(debut);
-    d.setDate(d.getDate() + (type.duree || 30));
+    d.setMonth(d.getMonth() + Number(type.duree));
     return d.toISOString().split('T')[0];
   };
 
@@ -189,7 +191,7 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
       <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Abonnement de l'adhérent</div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Type abonnement — depuis la BDD */}
+        {/* Type abonnement */}
         <div>
           <label style={labelStyle}>Type d'abonnement <span style={{ color: C.accent }}>*</span></label>
           <div style={{ position: 'relative' }}>
@@ -240,7 +242,9 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
           <span style={{ color: C.accent }}><IconArrow /></span>
           <div>
             <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, marginBottom: 2 }}>Date fin</div>
-            <div style={{ fontSize: '0.85rem', color: form.dateFin ? C.text : C.muted }}>{form.dateFin ? new Date(form.dateFin).toLocaleDateString('fr-FR') : '—'}</div>
+            <div style={{ fontSize: '0.85rem', color: form.dateFin ? C.text : C.muted }}>
+              {form.dateFin ? new Date(form.dateFin).toLocaleDateString('fr-FR') : '—'}
+            </div>
           </div>
         </div>
 
@@ -275,7 +279,9 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
             <input type="checkbox" checked={!!form.fraisInscription} onChange={e => set('fraisInscription', e.target.checked)} style={{ accentColor: C.accent, width: 16, height: 16 }} />
             <span style={{ fontSize: '0.85rem', color: C.muted }}>Frais d'inscription</span>
           </label>
-          {form.fraisInscription && <input type="number" value={form.fraisInscriptionMontant || ''} onChange={e => set('fraisInscriptionMontant', e.target.value)} placeholder="0" style={{ ...inp, width: 90, padding: '8px 12px' }} />}
+          {form.fraisInscription && (
+            <input type="number" value={form.fraisInscriptionMontant || ''} onChange={e => set('fraisInscriptionMontant', e.target.value)} placeholder="0" style={{ ...inp, width: 90, padding: '8px 12px' }} />
+          )}
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '0.78rem', color: C.muted, fontWeight: 600, marginBottom: 2 }}>Total à payer</div>
@@ -305,20 +311,19 @@ export default function AddMemberModal({ typesAbonnement = [], onSave, onClose }
   const [step,   setStep]   = useState(1);
   const [saving, setSaving] = useState(false);
   const [form,   setForm]   = useState({
-    sexe: 'Homme',
+    sexe:      'Homme',
     dateDebut: new Date().toISOString().split('T')[0],
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.type_id) { alert("Veuillez sélectionner un type d'abonnement."); return; }
-    if (!form.dateDebut)  { alert("La date de début est requise."); return; }
+    if (!form.type_id)   { alert("Veuillez sélectionner un type d'abonnement."); return; }
+    if (!form.dateDebut) { alert("La date de début est requise."); return; }
 
     setSaving(true);
     try {
       await onSave({
-        // Adhérent
         nom:           form.nom,
         prenom:        form.prenom,
         dateNaissance: form.dateNaissance || null,
@@ -326,13 +331,11 @@ export default function AddMemberModal({ typesAbonnement = [], onSave, onClose }
         email:         form.email || null,
         sexe:          form.sexe,
         photo:         form.photo || null,
-        // Abonnement
-        type_id:   parseInt(form.type_id),
-        dateDebut: form.dateDebut,
-        dateFin:   form.dateFin || null,
-        // Paiement
-        montant:   form.verser ? parseFloat(form.verser) : 0,
-        modePaiement: 'cash',
+        type_id:       parseInt(form.type_id),
+        dateDebut:     form.dateDebut,
+        dateFin:       form.dateFin || null,
+        montant:       form.verser ? parseFloat(form.verser) : 0,
+        modePaiement:  'cash',
       });
     } finally {
       setSaving(false);
@@ -340,8 +343,10 @@ export default function AddMemberModal({ typesAbonnement = [], onSave, onClose }
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, background: 'rgba(0,0,0,0.75)' }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
+    <div
+      style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, background: 'rgba(0,0,0,0.75)' }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
       <div style={{ position: 'relative', width: '100%', maxWidth: 860, margin: '0 20px', fontFamily: "'Barlow', sans-serif", color: C.text, borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.8)' }}>
 
         {/* Header */}
@@ -354,7 +359,6 @@ export default function AddMemberModal({ typesAbonnement = [], onSave, onClose }
               <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
                 Étape {step}/2 — {step === 1 ? 'Informations personnelles' : 'Abonnement'}
               </div>
-              {/* Stepper */}
               <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                 {[1, 2].map(s => (
                   <div key={s} style={{ width: s === step ? 24 : 8, height: 8, borderRadius: 4, background: s <= step ? C.accent : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }} />
@@ -370,8 +374,8 @@ export default function AddMemberModal({ typesAbonnement = [], onSave, onClose }
         {/* Body */}
         <div style={{ background: '#1a1516', padding: '28px 32px' }}>
           {step === 1
-            ? <StepPersonnel form={form} set={set} onNext={() => setStep(2)} onClose={onClose} />
-            : <StepAbonnement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(1)} onSave={handleSave} onClose={onClose} saving={saving} />
+            ? <StepPersonnel    form={form} set={set} onNext={() => setStep(2)} onClose={onClose} />
+            : <StepAbonnement   form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(1)} onSave={handleSave} onClose={onClose} saving={saving} />
           }
         </div>
       </div>

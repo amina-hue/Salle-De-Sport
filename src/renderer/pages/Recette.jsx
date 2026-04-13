@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { ChevronRight, ChevronLeft, Filter, RotateCcw, Calendar } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom"; 
 import gymBg from "../../images/gym1.png";
+import QuickActions from "../components/QuickActions";
 
 const PAGE_SIZE = 7;
 
@@ -42,6 +44,7 @@ const Recette = () => {
   const [dateFin, setDateFin]           = useState("");
   const [activeFilter, setActiveFilter] = useState({ debut: "", fin: "" });
   const [currentPage, setCurrentPage]   = useState(1);
+  const navigate = useNavigate(); 
 
   useEffect(() => { loadData(); }, []);
 
@@ -107,6 +110,7 @@ const Recette = () => {
               <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>Recettes</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
               Recettes
