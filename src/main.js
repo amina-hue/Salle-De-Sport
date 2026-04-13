@@ -476,20 +476,25 @@ ipcMain.handle('getAdherentsWithAbonnement', async () => {
 });
 ipcMain.handle('getAbonnementsNonPaies', async () => {
   return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
+    const sql = `
+      SELECT 
         ad.nom, ad.prenom,
         ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
-        t.nom AS typeNom, t.prix AS typePrix
-       FROM Abonnement ab
-       JOIN Adherent ad ON ab.adherent_id = ad.idAdherent
-       JOIN TypeAbonnement t ON ab.type_id = t.id
-       WHERE ab.idAbonnement NOT IN (
-         SELECT DISTINCT abonnement_id FROM Paiement
-       )
-       ORDER BY ad.nom ASC`,
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
+        t.nom AS typeNom, t.prix AS typePrix,
+        IFNULL(SUM(p.montant), 0) AS totalPaye,
+        (t.prix - IFNULL(SUM(p.montant), 0)) AS resteAPayer -- Calcul du reste
+      FROM Abonnement ab
+      JOIN Adherent ad ON ab.adherent_id = ad.idAdherent
+      JOIN TypeAbonnement t ON ab.type_id = t.id
+      LEFT JOIN Paiement p ON ab.idAbonnement = p.abonnement_id
+      GROUP BY ab.idAbonnement
+      HAVING resteAPayer > 0
+      ORDER BY ad.nom ASC
+    `;
+    db.query(sql, (err, result) => {
+      if (err) { reject(err); }
+      else resolve(result);
+    });
   });
 });
 // ══════════════════════════════════════════════
