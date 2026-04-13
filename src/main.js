@@ -1,10 +1,13 @@
+
 const { app, BrowserWindow, session, ipcMain } = require('electron');
 const path = require('node:path');
 const db = require('./db');
 
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
+if (require('electron-squirrel-startup')) app.quit();
+
+// ══════════════════════════════════════════════
+//  FENÊTRE PRINCIPALE
+// ══════════════════════════════════════════════
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -18,7 +21,6 @@ const createWindow = () => {
     },
   });
 
-  // ── Fix CSP ──
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -35,11 +37,7 @@ const createWindow = () => {
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.show();
-  });
-
+  mainWindow.webContents.on('did-finish-load', () => mainWindow.show());
   // mainWindow.webContents.openDevTools();
 };
 
@@ -54,757 +52,447 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// ── Helper : transforme un db.query callback en Promise ──────────────────────
+const query = (sql, params = []) =>
+  new Promise((resolve, reject) =>
+    db.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)))
+  );
+
 // ══════════════════════════════════════════════
-//  LOGIN
-// ══════════════════════════════════════════════
-ipcMain.handle('login', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { email, motDePasse } = data;
-    db.query(
-      'SELECT * FROM Utilisateur WHERE email = ? AND motDePasse = ?',
-      [email, motDePasse],
-      (err, result) => {
-        if (err) reject(err);
-        else if (result.length === 0) resolve({ success: false, message: 'Email ou mot de passe incorrect' });
-        else resolve({ success: true, user: result[0] });
-      }
-    );
-  });
-});
-// ══════════════════════════════════════════════
-//  ADHERENTS
+//  AUTH
 // ══════════════════════════════════════════════
 
-// Récupérer tous les adhérents
+ipcMain.handle('login', async (_, { email, motDePasse }) => {
+  const result = await query(
+    'SELECT * FROM Utilisateur WHERE email = ? AND motDePasse = ?',
+    [email, motDePasse]
+  );
+  if (!result.length) return { success: false, message: 'Email ou mot de passe incorrect' };
+  return { success: true, user: result[0] };
+});
+
+// ══════════════════════════════════════════════
+//  ADHÉRENTS
+// ══════════════════════════════════════════════
+
 ipcMain.handle('getAdherents', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Adherent ORDER BY dateCreation DESC', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  return query('SELECT * FROM Adherent ORDER BY dateCreation DESC');
 });
 
-// Ajouter un adhérent
-ipcMain.handle('addAdherent', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { nom, prenom, dateNaissance, numTelephone, email, sexe } = data;
-    db.query(
-      'INSERT INTO Adherent (nom, prenom, dateNaissance, numTelephone, email, sexe) VALUES (?, ?, ?, ?, ?, ?)',
-      [nom, prenom, dateNaissance, numTelephone, email, sexe],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve({ insertId: result.insertId }); // ← IMPORTANT
-      }
-    );
-  });
+ipcMain.handle('getAdherentDetail', async (_, id) => {
+  const result = await query(
+    `SELECT
+       ad.*,
+       ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
+       t.nom AS typeNom, t.prix AS typePrix, t.duree
+     FROM Adherent ad
+     LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent AND ab.statut = 'actif'
+     LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+     WHERE ad.idAdherent = ?
+     ORDER BY ab.dateDebut DESC
+     LIMIT 1`,
+    [id]
+  );
+  return result[0] || null;
 });
 
-// Modifier un adhérent
-ipcMain.handle('updateAdherent', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { idAdherent, nom, prenom, dateNaissance, numTelephone, email, sexe } = data;
-    db.query(
-      'UPDATE Adherent SET nom=?, prenom=?, dateNaissance=?, numTelephone=?, email=?, sexe=? WHERE idAdherent=?',
-      [nom, prenom, dateNaissance, numTelephone, email, sexe, idAdherent],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
-});
-
-// // Supprimer un adhérent
-ipcMain.handle('deleteAdherent', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Adherent WHERE idAdherent=?', [id], (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
-});
-
-// ══════════════════════════════════════════════
-//  ADHERENTS — handlers complémentaires
-// ══════════════════════════════════════════════
-
-// Récupérer un adhérent avec son abonnement actif
-ipcMain.handle('getAdherentDetail', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        ad.*,
-        ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
-        t.nom AS typeNom, t.prix AS typePrix, t.duree
-       FROM Adherent ad
-       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
-         AND ab.statut = 'actif'
-       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
-       WHERE ad.idAdherent = ?
-       ORDER BY ab.dateDebut DESC
-       LIMIT 1`,
-      [id],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result[0] || null);
-      }
-    );
-  });
-});
-
-// Récupérer tous les adhérents avec leur abonnement actif (pour la vue liste enrichie)
 ipcMain.handle('getAdherentsAvecAbonnement', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        ad.*,
-        ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
-        t.nom AS typeNom, t.prix AS typePrix
-       FROM Adherent ad
-       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
-         AND ab.statut = 'actif'
-       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
-       ORDER BY ad.dateCreation DESC`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+  return query(
+    `SELECT
+       ad.*,
+       ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
+       t.nom AS typeNom, t.prix AS typePrix
+     FROM Adherent ad
+     LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent AND ab.statut = 'actif'
+     LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+     ORDER BY ad.dateCreation DESC`
+  );
 });
 
-// Mettre à jour la photo d'un adhérent
-ipcMain.handle('updateAdherentPhoto', async (event, { idAdherent, photo }) => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      'UPDATE Adherent SET photo = ? WHERE idAdherent = ?',
-      [photo, idAdherent],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('searchAdherents', async (_, q) => {
+  const like = `%${q}%`;
+  return query(
+    `SELECT ad.*, ab.statut AS abonnementStatut, t.nom AS typeNom
+     FROM Adherent ad
+     LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent AND ab.statut = 'actif'
+     LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+     WHERE ad.nom LIKE ? OR ad.prenom LIKE ? OR ad.email LIKE ? OR ad.numTelephone LIKE ?
+     ORDER BY ad.nom ASC`,
+    [like, like, like, like]
+  );
 });
 
-// Supprimer un adhérent et tout ce qui lui est lié (cascade manuelle)
-ipcMain.handle('deleteAdherentComplet', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    // 1. Supprimer les présences
-    db.query('DELETE FROM Presence WHERE adherent_id = ?', [id], (err) => {
-      if (err) return reject(err);
-
-      // 2. Récupérer les abonnements pour supprimer les paiements liés
-      db.query('SELECT idAbonnement FROM Abonnement WHERE adherent_id = ?', [id], (err2, abos) => {
-        if (err2) return reject(err2);
-
-        const aboIds = abos.map(a => a.idAbonnement);
-
-        const deletePaiements = (cb) => {
-          if (!aboIds.length) return cb();
-          db.query('DELETE FROM Paiement WHERE abonnement_id IN (?)', [aboIds], cb);
-        };
-
-        deletePaiements((err3) => {
-          if (err3) return reject(err3);
-
-          // 3. Supprimer les abonnements
-          db.query('DELETE FROM Abonnement WHERE adherent_id = ?', [id], (err4) => {
-            if (err4) return reject(err4);
-
-            // 4. Supprimer l'adhérent
-            db.query('DELETE FROM Adherent WHERE idAdherent = ?', [id], (err5, result) => {
-              if (err5) return reject(err5);
-              else resolve(result);
-            });
-          });
-        });
-      });
-    });
-  });
+ipcMain.handle('addAdherent', async (_, { nom, prenom, dateNaissance, numTelephone, email, sexe }) => {
+  const result = await query(
+    'INSERT INTO Adherent (nom, prenom, dateNaissance, numTelephone, email, sexe) VALUES (?, ?, ?, ?, ?, ?)',
+    [nom, prenom, dateNaissance, numTelephone, email, sexe]
+  );
+  return { insertId: result.insertId };
 });
 
-// Rechercher des adhérents (nom, prénom, email, téléphone)
-ipcMain.handle('searchAdherents', async (event, query) => {
-  return new Promise((resolve, reject) => {
-    const q = `%${query}%`;
-    db.query(
-      `SELECT ad.*, ab.statut AS abonnementStatut, t.nom AS typeNom
-       FROM Adherent ad
-       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent AND ab.statut = 'actif'
-       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
-       WHERE ad.nom LIKE ? OR ad.prenom LIKE ? OR ad.email LIKE ? OR ad.numTelephone LIKE ?
-       ORDER BY ad.nom ASC`,
-      [q, q, q, q],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('updateAdherent', async (_, { idAdherent, nom, prenom, dateNaissance, numTelephone, email, sexe }) => {
+  return query(
+    'UPDATE Adherent SET nom=?, prenom=?, dateNaissance=?, numTelephone=?, email=?, sexe=? WHERE idAdherent=?',
+    [nom, prenom, dateNaissance, numTelephone, email, sexe, idAdherent]
+  );
 });
 
-// Statistiques adhérents (pour dashboard)
+ipcMain.handle('updateAdherentPhoto', async (_, { idAdherent, photo }) => {
+  return query('UPDATE Adherent SET photo = ? WHERE idAdherent = ?', [photo, idAdherent]);
+});
+
+ipcMain.handle('deleteAdherent', async (_, id) => {
+  return query('DELETE FROM Adherent WHERE idAdherent=?', [id]);
+});
+
+ipcMain.handle('deleteAdherentComplet', async (_, id) => {
+  // 1. Présences
+  await query('DELETE FROM Presence WHERE adherent_id = ?', [id]);
+
+  // 2. Paiements liés aux abonnements
+  const abos = await query('SELECT idAbonnement FROM Abonnement WHERE adherent_id = ?', [id]);
+  const aboIds = abos.map(a => a.idAbonnement);
+  if (aboIds.length) {
+    await query('DELETE FROM Paiement WHERE abonnement_id IN (?)', [aboIds]);
+  }
+
+  // 3. Abonnements
+  await query('DELETE FROM Abonnement WHERE adherent_id = ?', [id]);
+
+  // 4. Adhérent
+  return query('DELETE FROM Adherent WHERE idAdherent = ?', [id]);
+});
+
+// ══════════════════════════════════════════════
+//  STATISTIQUES ADHÉRENTS
+// ══════════════════════════════════════════════
+
 ipcMain.handle('getStatsAdherents', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT
-        COUNT(DISTINCT ad.idAdherent) AS total,
-        SUM(CASE WHEN ab.statut = 'actif' THEN 1 ELSE 0 END) AS actifs,
-        SUM(CASE WHEN ab.statut = 'expiré' THEN 1 ELSE 0 END) AS expires,
-        SUM(CASE WHEN ab.statut = 'suspendu' THEN 1 ELSE 0 END) AS suspendus,
-        SUM(CASE WHEN ad.sexe = 'Homme' THEN 1 ELSE 0 END) AS hommes,
-        SUM(CASE WHEN ad.sexe = 'Femme' THEN 1 ELSE 0 END) AS femmes
-       FROM Adherent ad
-       LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result[0]);
-      }
-    );
-  });
+  const result = await query(
+    `SELECT
+       COUNT(DISTINCT ad.idAdherent)                                  AS total,
+       SUM(CASE WHEN ab.statut = 'actif'    THEN 1 ELSE 0 END)       AS actifs,
+       SUM(CASE WHEN ab.statut = 'expiré'   THEN 1 ELSE 0 END)       AS expires,
+       SUM(CASE WHEN ab.statut = 'suspendu' THEN 1 ELSE 0 END)       AS suspendus,
+       SUM(CASE WHEN ad.sexe  = 'Homme'     THEN 1 ELSE 0 END)       AS hommes,
+       SUM(CASE WHEN ad.sexe  = 'Femme'     THEN 1 ELSE 0 END)       AS femmes
+     FROM Adherent ad
+     LEFT JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent`
+  );
+  return result[0];
 });
 
-// Nouveaux adhérents par mois (graphique)
+ipcMain.handle('getStatsPageAdherent', async () => {
+  const result = await query(
+    `SELECT
+       (SELECT COUNT(*) FROM Adherent)AS total,
+       (SELECT COUNT(DISTINCT ad.idAdherent)
+        FROM Adherent ad
+        JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+        WHERE ab.statut = 'actif') AS actifs,
+           (SELECT COUNT(*)
+        FROM Adherent
+        WHERE dateCreation >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+       ) AS nouveauxCeMois`
+  );
+  return result[0];
+});
+
 ipcMain.handle('getAdherentsParMois', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        DATE_FORMAT(dateCreation, '%Y-%m') AS mois,
-        COUNT(*) AS total
-       FROM Adherent
-       GROUP BY mois
-       ORDER BY mois DESC
-       LIMIT 12`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+  return query(
+    `SELECT
+       DATE_FORMAT(dateCreation, '%Y-%m') AS mois,
+       COUNT(*)                           AS total
+     FROM Adherent
+     WHERE YEAR(dateCreation) = YEAR(CURDATE())
+     GROUP BY mois
+     ORDER BY mois ASC`
+  );
 });
-ipcMain.handle('updateAbonnement', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { idAbonnement, type_id, dateDebut, dateFin, statut } = data;
-    db.query(
-      'UPDATE Abonnement SET type_id=?, dateDebut=?, dateFin=?, statut=? WHERE idAbonnement=?',
-      [type_id, dateDebut, dateFin, statut, idAbonnement],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
+
+ipcMain.handle('getFrequentationSemaine', async () => {
+  const result = await query(
+    `SELECT
+       DAYOFWEEK(dateCreation) AS jourNum,
+       COUNT(*) AS total
+     FROM Adherent
+     GROUP BY DAYOFWEEK(dateCreation)`
+  );
+
+  const map = {};
+  result.forEach(r => {
+    map[Number(r.jourNum)] = r.total;
   });
+
+  const jours = [
+    { jourNum: 1, day: 'Dim' },
+    { jourNum: 2, day: 'Lun' },
+    { jourNum: 3, day: 'Mar' },
+    { jourNum: 4, day: 'Mer' },
+    { jourNum: 5, day: 'Jeu' },
+    { jourNum: 6, day: 'Ven' },
+    { jourNum: 7, day: 'Sam' },
+  ];
+
+  return jours.map(j => ({
+    day: j.day,
+    value: map[j.jourNum] || 0
+  }));
 });
+
 // ══════════════════════════════════════════════
 //  ABONNEMENTS
 // ══════════════════════════════════════════════
-// Récupérer tous les types avec leurs règles
-ipcMain.handle('getTypeAbonnements', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM TypeAbonnement ORDER BY nom ASC', (err, types) => {
-      if (err) return reject(err);
-      if (!types.length) return resolve([]);
-      db.query('SELECT * FROM Regles', (err2, regles) => {
-        if (err2) return reject(err2);
-        const result = types.map(t => ({
-          ...t,
-          features: regles
-            .filter(r => r.type_abonnement_id === t.id)
-            .map(r => r.description),
-        }));
-        resolve(result);
-      });
-    });
-  });
-});
 
-// Ajouter un type d'abonnement + ses règles
-ipcMain.handle('addTypeAbonnement', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { nom, duree, prix, features = [] } = data;
-
-    // 1️⃣ Insérer le type d'abonnement
-    db.query(
-      'INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)',
-      [nom, duree, prix],
-      (err, result) => {
-        if (err) return reject(err);
-        const typeId = result.insertId;
-
-        // 2️⃣ S'il n'y a pas de règles, on renvoie directement
-        if (!features.length) return resolve(result);
-
-        // 3️⃣ Préparer l'insertion multiple des règles
-        const placeholders = features.map(() => '(?, ?)').join(', ');
-        const flatValues = features.flatMap(f => [typeId, f]);
-
-        db.query(
-          `INSERT INTO Regles (type_abonnement_id, description) VALUES ${placeholders}`,
-          flatValues,
-          (err2) => {
-            if (err2) reject(err2);
-            else resolve(result); // succès
-          }
-        );
-      }
-    );
-  });
-});
-// Modifier un type d'abonnement + ses règles
-ipcMain.handle('updateTypeAbonnement', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { id, nom, duree, prix, features = [] } = data;
-    db.query(
-      'UPDATE TypeAbonnement SET nom=?, duree=?, prix=? WHERE id=?',
-      [nom, duree, prix, id],
-      (err) => {
-        if (err) return reject(err);
-        // Supprimer les anciennes règles (le ON DELETE CASCADE ne s'applique pas ici car le type existe encore)
-        db.query('DELETE FROM Regles WHERE type_abonnement_id=?', [id], (err2) => {
-          if (err2) return reject(err2);
-          if (!features.length) return resolve({ success: true });
-          const values = features.map(f => [id, f]);
-          db.query(
-            'INSERT INTO Regles (type_abonnement_id, description) VALUES ?',
-            [values],
-            (err3) => { if (err3) reject(err3); else resolve({ success: true }); }
-          );
-        });
-      }
-    );
-  });
-});
-ipcMain.handle('deleteTypeAbonnement', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Abonnement WHERE type_id=?', [id], (err) => {
-      if (err) return reject(err);
-
-      db.query('DELETE FROM TypeAbonnement WHERE id=?', [id], (err2, result) => {
-        if (err2) return reject(err2);
-        resolve(result);
-      });
-    });
-  });
-});
-
-// Récupérer tous les abonnements avec nom adhérent
 ipcMain.handle('getAbonnements', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT a.*, 
-        CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom,
-        t.nom AS typeNom, t.prix AS typePrix
-       FROM Abonnement a
-      LEFT JOIN Adherent ad ON a.adherent_id = ad.idAdherent
-LEFT JOIN TypeAbonnement t ON a.type_id = t.id
-       ORDER BY a.dateDebut DESC`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+  return query(
+    `SELECT
+       a.*,
+       CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom,
+       t.nom AS typeNom, t.prix AS typePrix
+     FROM Abonnement a
+     LEFT JOIN Adherent ad       ON a.adherent_id = ad.idAdherent
+     LEFT JOIN TypeAbonnement t  ON a.type_id = t.id
+     ORDER BY a.dateDebut DESC`
+  );
 });
 
-// Ajouter un abonnement
-ipcMain.handle('addAbonnement', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { adherent_id, type_id, dateDebut, dateFin, statut } = data;
-    db.query(
-      'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut) VALUES (?, ?, ?, ?, ?)',
-      [adherent_id, type_id, dateDebut, dateFin, statut],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('addAbonnement', async (_, { adherent_id, type_id, dateDebut, dateFin, statut }) => {
+  return query(
+    'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut) VALUES (?, ?, ?, ?, ?)',
+    [adherent_id, type_id, dateDebut, dateFin, statut]
+  );
 });
 
-// Récupérer les types d'abonnement
+ipcMain.handle('updateAbonnement', async (_, { idAbonnement, type_id, dateDebut, dateFin, statut }) => {
+  return query(
+    'UPDATE Abonnement SET type_id=?, dateDebut=?, dateFin=?, statut=? WHERE idAbonnement=?',
+    [type_id, dateDebut, dateFin, statut, idAbonnement]
+  );
+});
+
+// ══════════════════════════════════════════════
+//  TYPES D'ABONNEMENT
+// ══════════════════════════════════════════════
+
 ipcMain.handle('getTypesAbonnement', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM TypeAbonnement', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  return query('SELECT * FROM TypeAbonnement');
 });
 
+ipcMain.handle('getTypeAbonnements', async () => {
+  const types  = await query('SELECT * FROM TypeAbonnement ORDER BY nom ASC');
+  if (!types.length) return [];
+  const regles = await query('SELECT * FROM Regles');
+  return types.map(t => ({
+    ...t,
+    features: regles
+      .filter(r => r.type_abonnement_id === t.id)
+      .map(r => r.description),
+  }));
+});
+
+ipcMain.handle('addTypeAbonnement', async (_, { nom, duree, prix, features = [] }) => {
+  const result = await query(
+    'INSERT INTO TypeAbonnement (nom, duree, prix) VALUES (?, ?, ?)',
+    [nom, duree, prix]
+  );
+  if (!features.length) return result;
+
+  const typeId       = result.insertId;
+  const placeholders = features.map(() => '(?, ?)').join(', ');
+  const flatValues   = features.flatMap(f => [typeId, f]);
+  await query(`INSERT INTO Regles (type_abonnement_id, description) VALUES ${placeholders}`, flatValues);
+  return result;
+});
+
+ipcMain.handle('updateTypeAbonnement', async (_, { id, nom, duree, prix, features = [] }) => {
+  await query('UPDATE TypeAbonnement SET nom=?, duree=?, prix=? WHERE id=?', [nom, duree, prix, id]);
+  await query('DELETE FROM Regles WHERE type_abonnement_id=?', [id]);
+  if (!features.length) return { success: true };
+  const values = features.map(f => [id, f]);
+  await query('INSERT INTO Regles (type_abonnement_id, description) VALUES ?', [values]);
+  return { success: true };
+});
+
+ipcMain.handle('deleteTypeAbonnement', async (_, id) => {
+  await query('DELETE FROM Abonnement WHERE type_id=?', [id]);
+  return query('DELETE FROM TypeAbonnement WHERE id=?', [id]);
+});
 
 // ══════════════════════════════════════════════
 //  PAIEMENTS
 // ══════════════════════════════════════════════
 
-// Récupérer tous les paiements
 ipcMain.handle('getPaiements', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT p.*, 
-        CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom
-       FROM Paiement p
-       JOIN Abonnement a ON p.abonnement_id = a.idAbonnement
-       JOIN Adherent ad ON a.adherent_id = ad.idAdherent
-       ORDER BY p.datePaiement DESC`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+  return query(
+    `SELECT
+       p.*,
+       CONCAT(ad.nom, ' ', ad.prenom) AS adherentNom
+     FROM Paiement p
+     JOIN Abonnement a  ON p.abonnement_id = a.idAbonnement
+     JOIN Adherent   ad ON a.adherent_id   = ad.idAdherent
+     ORDER BY p.datePaiement DESC`
+  );
 });
 
-// Ajouter un paiement
-ipcMain.handle('addPaiement', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { abonnement_id, montant, datePaiement, modePaiement } = data;
-
-    db.query(
-      'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)',
-      [abonnement_id, montant, datePaiement, modePaiement],
-      (err, result) => {
-        if (err) {
-          console.error("❌ addPaiement error:", err); // 🔥 IMPORTANT
-          reject(err);
-        } else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('addPaiement', async (_, { abonnement_id, montant, datePaiement, modePaiement }) => {
+  return query(
+    'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)',
+    [abonnement_id, montant, datePaiement, modePaiement]
+  );
 });
 
+// ══════════════════════════════════════════════
+//  RECETTE
+// ══════════════════════════════════════════════
+
+ipcMain.handle('getRecette', async () => {
+  const result = await query(
+    `SELECT
+       (SELECT IFNULL(SUM(montant), 0)
+        FROM Paiement WHERE statut = 'validé')                          AS recettePaiements,
+       (SELECT IFNULL(SUM(p.prix * h.quantite), 0)
+        FROM HistoriqueVente h
+        JOIN Produit p ON h.produit_id = p.idProduit)                   AS recetteVentes`
+  );
+  const r = result[0];
+  return {
+    recettePaiements: r.recettePaiements,
+    recetteVentes:    r.recetteVentes,
+    total:            parseFloat(r.recettePaiements) + parseFloat(r.recetteVentes),
+  };
+});
+
+ipcMain.handle('getRecetteParMois', async () => {
+  return query(
+    `SELECT
+       DATE_FORMAT(datePaiement, '%Y-%m') AS mois,
+       SUM(montant)                       AS total
+     FROM Paiement
+     GROUP BY mois
+     ORDER BY mois DESC
+     LIMIT 12`
+  );
+});
 
 // ══════════════════════════════════════════════
 //  PRODUITS
 // ══════════════════════════════════════════════
 
 ipcMain.handle('getProduits', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Produit ORDER BY nom', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  return query('SELECT * FROM Produit ORDER BY nom');
 });
 
-ipcMain.handle('addProduit', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { nom, reference, stock, prix, categorie } = data;
-    db.query(
-      'INSERT INTO Produit (nom, reference, stock, prix, categorie) VALUES (?, ?, ?, ?, ?)',
-      [nom, reference, stock, prix, categorie],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('addProduit', async (_, { nom, reference, stock, prix, categorie }) => {
+  return query(
+    'INSERT INTO Produit (nom, reference, stock, prix, categorie) VALUES (?, ?, ?, ?, ?)',
+    [nom, reference, stock, prix, categorie]
+  );
 });
 
-ipcMain.handle('updateProduit', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { idProduit, nom, reference, stock, prix, categorie } = data;
-    db.query(
-      'UPDATE Produit SET nom=?, reference=?, stock=?, prix=?, categorie=? WHERE idProduit=?',
-      [nom, reference, stock, prix, categorie, idProduit],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('updateProduit', async (_, { idProduit, nom, reference, stock, prix, categorie }) => {
+  return query(
+    'UPDATE Produit SET nom=?, reference=?, stock=?, prix=?, categorie=? WHERE idProduit=?',
+    [nom, reference, stock, prix, categorie, idProduit]
+  );
 });
 
-ipcMain.handle('deleteProduit', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Produit WHERE idProduit=?', [id], (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+ipcMain.handle('deleteProduit', async (_, id) => {
+  return query('DELETE FROM Produit WHERE idProduit=?', [id]);
 });
-
 
 // ══════════════════════════════════════════════
-//  ACTIVITES
+//  ACTIVITÉS
 // ══════════════════════════════════════════════
 
 ipcMain.handle('getActivites', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Activite ORDER BY nom', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  return query('SELECT * FROM Activite ORDER BY nom');
 });
 
-ipcMain.handle('addActivite', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { nom, couleur } = data;
-    db.query(
-      'INSERT INTO Activite (nom, couleur) VALUES (?, ?)',
-      [nom, couleur],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve({ insertId: result.insertId });
-      }
-    );
-  });
+ipcMain.handle('addActivite', async (_, { nom, couleur }) => {
+  const result = await query('INSERT INTO Activite (nom, couleur) VALUES (?, ?)', [nom, couleur]);
+  return { insertId: result.insertId };
 });
 
-ipcMain.handle('deleteActivite', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Activite WHERE idActivite=?', [id], (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+ipcMain.handle('deleteActivite', async (_, id) => {
+  return query('DELETE FROM Activite WHERE idActivite=?', [id]);
 });
 
 // ══════════════════════════════════════════════
-//  SÉANCES (mise à jour)
+//  SÉANCES
 // ══════════════════════════════════════════════
+
+ipcMain.handle('getSeances', async () => {
+  return query('SELECT * FROM Seance ORDER BY date DESC');
+});
 
 ipcMain.handle('getSeancesPlanning', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT s.*,
-        CONCAT(u.nom, ' ', u.prenom) AS coachNom,
-        a.nom AS activiteNom,
-        a.couleur AS activiteCouleur
-       FROM Seance s
-       LEFT JOIN Utilisateur u ON s.coach_id = u.idUtilisateur
-       LEFT JOIN Activite a ON s.activite_id = a.idActivite
-       ORDER BY s.date, s.heureDebut`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+  return query(
+    `SELECT
+       s.*,
+       CONCAT(u.nom, ' ', u.prenom) AS coachNom,
+       a.nom    AS activiteNom,
+       a.couleur AS activiteCouleur
+     FROM Seance s
+     LEFT JOIN Utilisateur u ON s.coach_id    = u.idUtilisateur
+     LEFT JOIN Activite    a ON s.activite_id = a.idActivite
+     ORDER BY s.date, s.heureDebut`
+  );
 });
 
-ipcMain.handle('addSeance', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { date, heureDebut, heureFin, participantsMax, coach_id, activite_id } = data;
-    db.query(
-      `INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [date, heureDebut, heureFin, participantsMax, coach_id, activite_id],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve({ insertId: result.insertId });
-      }
-    );
-  });
+ipcMain.handle('addSeance', async (_, { date, heureDebut, heureFin, participantsMax, coach_id, activite_id }) => {
+  const result = await query(
+    'INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [date, heureDebut, heureFin, participantsMax, coach_id, activite_id]
+  );
+  return { insertId: result.insertId };
 });
 
-ipcMain.handle('deleteSeance', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Seance WHERE idSeance=?', [id], (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+ipcMain.handle('deleteSeance', async (_, id) => {
+  return query('DELETE FROM Seance WHERE idSeance=?', [id]);
 });
 
-
-// ══════════════════════════════════════════════
-//  RECETTE (dashboard)
-// ══════════════════════════════════════════════
-
-ipcMain.handle('getRecette', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        (SELECT IFNULL(SUM(montant), 0) FROM Paiement WHERE statut='validé') AS recettePaiements,
-        (SELECT IFNULL(SUM(p.prix * h.quantite), 0)
-         FROM HistoriqueVente h
-         JOIN Produit p ON h.produit_id = p.idProduit) AS recetteVentes`,
-      (err, result) => {
-        if (err) reject(err);
-        else {
-          const r = result[0];
-          resolve({
-            recettePaiements: r.recettePaiements,
-            recetteVentes: r.recetteVentes,
-            total: parseFloat(r.recettePaiements) + parseFloat(r.recetteVentes)
-          });
-        }
-      }
-    );
-  });
-});
-
-// Recette par mois (pour graphique)
-ipcMain.handle('getRecetteParMois', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        DATE_FORMAT(datePaiement, '%Y-%m') AS mois,
-        SUM(montant) AS total
-       FROM Paiement
-       GROUP BY mois
-       ORDER BY mois DESC
-       LIMIT 12`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
-});
 // ══════════════════════════════════════════════
 //  UTILISATEURS
 // ══════════════════════════════════════════════
 
-// Récupérer tous les utilisateurs avec leur rôle
 ipcMain.handle('getUtilisateurs', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT u.*, r.nom AS roleNom
-       FROM Utilisateur u
-       LEFT JOIN Role r ON u.role_id = r.id
-       ORDER BY u.idUtilisateur DESC`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+  return query(
+    `SELECT u.*, r.nom AS roleNom
+     FROM Utilisateur u
+     LEFT JOIN Role r ON u.role_id = r.id
+     ORDER BY u.idUtilisateur DESC`
+  );
 });
 
-// Ajouter un utilisateur
-ipcMain.handle('addUtilisateur', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { nom, prenom, email, motDePasse, role_id } = data;
-    db.query(
-      'INSERT INTO Utilisateur (nom, prenom, email, motDePasse, role_id) VALUES (?, ?, ?, ?, ?)',
-      [nom, prenom, email, motDePasse, role_id],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve({ insertId: result.insertId });
-      }
-    );
-  });
+ipcMain.handle('addUtilisateur', async (_, { nom, prenom, email, motDePasse, role_id }) => {
+  const result = await query(
+    'INSERT INTO Utilisateur (nom, prenom, email, motDePasse, role_id) VALUES (?, ?, ?, ?, ?)',
+    [nom, prenom, email, motDePasse, role_id]
+  );
+  return { insertId: result.insertId };
 });
 
-// Supprimer un utilisateur
-ipcMain.handle('deleteUtilisateur', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      'DELETE FROM Utilisateur WHERE idUtilisateur=?',
-      [id],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('updateUtilisateur', async (_, { idUtilisateur, nom, prenom, email, role_id }) => {
+  return query(
+    'UPDATE Utilisateur SET nom=?, prenom=?, email=?, role_id=? WHERE idUtilisateur=?',
+    [nom, prenom, email, role_id, idUtilisateur]
+  );
 });
 
-// Modifier un utilisateur
-ipcMain.handle('updateUtilisateur', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { idUtilisateur, nom, prenom, email, role_id } = data;
-    db.query(
-      'UPDATE Utilisateur SET nom=?, prenom=?, email=?, role_id=? WHERE idUtilisateur=?',
-      [nom, prenom, email, role_id, idUtilisateur],
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
+ipcMain.handle('deleteUtilisateur', async (_, id) => {
+  return query('DELETE FROM Utilisateur WHERE idUtilisateur=?', [id]);
 });
 
-// Récupérer tous les rôles
 ipcMain.handle('getRoles', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Role ORDER BY nom', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  return query('SELECT * FROM Role ORDER BY nom');
 });
 
-// Récupérer les coachs uniquement
 ipcMain.handle('getCoachs', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT u.idUtilisateur, u.nom, u.prenom
-       FROM Utilisateur u
-       JOIN Role r ON u.role_id = r.id
-       WHERE r.nom = 'coach'`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-      }
-    );
-  });
-});
-
-
-// ══════════════════════════════════════════════
-//  STATISTIQUES PAGE ADHÉRENT
-// ══════════════════════════════════════════════
-ipcMain.handle('getStatsPageAdherent', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT
-        (SELECT COUNT(*) FROM Adherent) AS total,
-
-        (SELECT COUNT(DISTINCT ad.idAdherent)
-         FROM Adherent ad
-         JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
-         WHERE ab.statut = 'actif') AS actifs,
-
-        (SELECT COUNT(*)
-         FROM Adherent
-         WHERE MONTH(dateCreation) = MONTH(CURDATE())
-         AND YEAR(dateCreation) = YEAR(CURDATE())) AS nouveauxCeMois`,
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result[0]);
-      }
-    );
-  });
-});
-
-
-// Fréquentation par jour de la semaine
-ipcMain.handle('getFrequentationSemaine', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        DAYOFWEEK(date) AS jourNum,
-        COUNT(*) AS total
-       FROM Presence
-       GROUP BY DAYOFWEEK(date)
-       ORDER BY DAYOFWEEK(date)`,
-      (err, result) => {
-        if (err) return reject(err);
-
-        // DAYOFWEEK : 1=Dim, 2=Lun, 3=Mar, 4=Mer, 5=Jeu, 6=Ven, 7=Sam
-        const jours = [
-          { jourNum: 1, day: "Dim" },
-          { jourNum: 2, day: "Lun" },
-          { jourNum: 3, day: "Mar" },
-          { jourNum: 4, day: "Mer" },
-          { jourNum: 5, day: "Jeu" },
-          { jourNum: 6, day: "Ven" },
-          { jourNum: 7, day: "Sam" },
-        ];
-
-        // Fusionner — si un jour a 0 présences il apparaît quand même avec 0
-        const data = jours.map(j => {
-          const found = result.find(r => r.jourNum === j.jourNum);
-          return { day: j.day, value: found ? found.total : 0 };
-        });
-
-        resolve(data);
-      }
-    );
-  });
+  return query(
+    `SELECT u.idUtilisateur, u.nom, u.prenom
+     FROM Utilisateur u
+     JOIN Role r ON u.role_id = r.id
+     WHERE r.nom = 'coach'`
+  );
 });
