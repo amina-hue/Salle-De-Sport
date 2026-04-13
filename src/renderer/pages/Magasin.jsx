@@ -301,6 +301,7 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
    MAIN PAGE
 ───────────────────────────────────────────── */
 const Magasin = () => {
+  
   const [products, setProducts]       = useState(INITIAL_PRODUCTS);
   const [search, setSearch]           = useState('');
   const [catFilter, setCatFilter]     = useState('');
