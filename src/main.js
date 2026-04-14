@@ -889,3 +889,50 @@ ipcMain.handle('vendreProduit', async (event, { produit_id, utilisateur_id, quan
     );
   });
 });
+ipcMain.handle('createAdherentComplet', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const {
+      nom, prenom, dateNaissance, numTelephone, email, sexe, photo,
+      type_id, dateDebut, dateFin,
+      montant, modePaiement
+    } = data;
+
+    // 1. Créer l'adhérent
+    db.query(
+      'INSERT INTO Adherent (nom, prenom, dateNaissance, numTelephone, email, sexe, photo) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [nom, prenom, dateNaissance || null, numTelephone, email || null, sexe, photo || null],
+      (err, resAdherent) => {
+        if (err) return reject(err);
+        const adherent_id = resAdherent.insertId;
+
+        // 2. Créer l'abonnement
+        db.query(
+          'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut) VALUES (?, ?, ?, ?, ?)',
+          [adherent_id, type_id, dateDebut, dateFin || null, 'actif'],
+          (err2, resAbo) => {
+            if (err2) return reject(err2);
+            const abonnement_id = resAbo.insertId;
+
+            // 3. Créer le paiement seulement si montant > 0
+            if (!montant || montant <= 0) {
+              return resolve({ success: true, adherent_id, abonnement_id });
+            }
+
+            let modeSQL = 'cash';
+            if (modePaiement === 'carte')    modeSQL = 'carte';
+            if (modePaiement === 'virement') modeSQL = 'virement';
+
+            db.query(
+              'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)',
+              [abonnement_id, montant, dateDebut, modeSQL],
+              (err3) => {
+                if (err3) return reject(err3);
+                resolve({ success: true, adherent_id, abonnement_id });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
+});

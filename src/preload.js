@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('api', {
 
   // ── Adhérents ──
+  createAdherentComplet: (data) =>invoke('createAdherentComplet', data),
   getAdherents:               ()     => invoke('getAdherents'),
   getAdherentsAvecAbonnement: ()     => invoke('getAdherentsAvecAbonnement'),
   getAdherentsWithAbonnement: () => invoke('getAdherentsAvecAbonnement'),

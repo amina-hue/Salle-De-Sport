@@ -9,6 +9,11 @@ const C = {
 };
 
 const DISCIPLINES = ['Musculation', 'Cardio', 'CrossFit', 'Yoga', 'Boxe', 'Natation'];
+const MODES_PAIEMENT = [
+  { value: 'cash',   label: 'Espèces',        icon: '💵' },
+  { value: 'carte',  label: 'Carte bancaire',  icon: '💳' },
+  { value: 'virement', label: 'Virement',      icon: '🏦' },
+];
 
 const IconX      = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IconUser   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
@@ -18,6 +23,8 @@ const IconUpload = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="n
 const IconCamera = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
 const IconCard   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
 const IconArrow  = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+const IconCheck  = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
+const IconMoney  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><circle cx="12" cy="15" r="2"/></svg>;
 
 const inputStyle = {
   width: '100%', background: 'rgba(255,255,255,0.06)',
@@ -150,7 +157,7 @@ function StepPersonnel({ form, set, onNext, onClose }) {
 }
 
 // ── STEP 2 — Abonnement ──────────────────────────────────────────────────────
-function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, saving }) {
+function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose }) {
   const inp = {
     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(229,57,53,0.5)',
     borderRadius: 8, padding: '10px 14px', color: C.text,
@@ -163,11 +170,8 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
   const prixBase         = parseFloat(selectedType?.prix) || 0;
   const remise           = parseFloat(form.remise) || 0;
   const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
-  const total  = prixBase * (1 - remise / 100) + fraisInscription;
-  const verser = parseFloat(form.verser) || 0;
-  const manque = Math.max(0, total - verser);
+  const total            = prixBase * (1 - remise / 100) + fraisInscription;
 
-  // ✅ CORRIGÉ : utilise setMonth (mois) et non setDate (jours)
   const computeDateFin = (debut, typeId) => {
     const type = typesAbonnement.find(t => t.id === parseInt(typeId));
     if (!debut || !type?.duree) return '';
@@ -179,11 +183,28 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
   const handleTypeChange = (val) => {
     set('type_id', val);
     set('dateFin', computeDateFin(form.dateDebut || new Date().toISOString().split('T')[0], val));
+    // Pré-remplir le montant à payer dans l'étape 3
+    const t = typesAbonnement.find(t => t.id === parseInt(val));
+    if (t) {
+      const p = parseFloat(t.prix) || 0;
+      set('totalAPayer', p);
+    }
   };
 
   const handleDebutChange = (val) => {
     set('dateDebut', val);
     set('dateFin', computeDateFin(val, form.type_id));
+  };
+
+  // Mise à jour du total à payer quand remise ou frais changent
+  useEffect(() => {
+    set('totalAPayer', total);
+  }, [total]);
+
+  const handleNext = () => {
+    if (!form.type_id) { alert("Veuillez sélectionner un type d'abonnement."); return; }
+    if (!form.dateDebut) { alert("La date de début est requise."); return; }
+    onNext();
   };
 
   return (
@@ -256,22 +277,6 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
         </div>
       </div>
 
-      {/* Prix + verser + manque */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '14px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.8rem', color: C.muted }}>Prix :</span>
-          <span style={{ fontSize: '0.95rem', color: C.text, fontWeight: 700 }}>{prixBase.toFixed(2)} <span style={{ color: C.accent }}>DA</span></span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-          <span style={{ fontSize: '0.8rem', color: C.muted }}>Versé :</span>
-          <input type="number" value={form.verser || ''} onChange={e => set('verser', e.target.value)} placeholder="0.00" style={{ ...inp, width: 100, padding: '8px 12px' }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.8rem', color: C.muted }}>Manque :</span>
-          <span style={{ fontSize: '0.95rem', color: manque > 0 ? C.accent : C.green, fontWeight: 700 }}>{manque.toFixed(2)} <span style={{ color: C.muted }}>DA</span></span>
-        </div>
-      </div>
-
       {/* Frais inscription + total */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -297,8 +302,180 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onSave, onClose, s
         </button>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 22px', color: C.muted, fontFamily: "'Barlow', sans-serif", cursor: 'pointer' }}>Annuler</button>
-          <button onClick={onSave} disabled={saving} style={{ background: saving ? '#7a2020' : C.accent, border: 'none', borderRadius: 8, padding: '10px 24px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
-            {saving ? 'Création...' : "Créer l'adhérent"}
+          <button onClick={handleNext} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.accent, border: 'none', borderRadius: 8, padding: '10px 24px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: 'pointer' }}>
+            Prochaine étape <IconArrow />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── STEP 3 — Paiement ────────────────────────────────────────────────────────
+function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, saving }) {
+  const inp = {
+    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(229,57,53,0.5)',
+    borderRadius: 8, padding: '10px 14px', color: C.text,
+    fontFamily: "'Barlow', sans-serif", fontSize: '0.875rem',
+    outline: 'none', boxSizing: 'border-box', width: '100%',
+  };
+
+  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+  const prixBase         = parseFloat(selectedType?.prix) || 0;
+  const remise           = parseFloat(form.remise) || 0;
+  const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
+  const total            = prixBase * (1 - remise / 100) + fraisInscription;
+  const verser           = parseFloat(form.verser) || 0;
+  const manque           = Math.max(0, total - verser);
+  const estSolde         = verser >= total && total > 0;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
+        Paiement de l'abonnement
+      </div>
+
+      {/* Récapitulatif abonnement */}
+      <div style={{ background: 'rgba(229,57,53,0.07)', border: '1px solid rgba(229,57,53,0.2)', borderRadius: 12, padding: '16px 20px' }}>
+        <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Récapitulatif</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: C.muted, marginBottom: 3 }}>Adhérent</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: C.text }}>{form.prenom} {form.nom}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: C.muted, marginBottom: 3 }}>Abonnement</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: C.text }}>{selectedType?.nom || '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: C.muted, marginBottom: 3 }}>Période</div>
+            <div style={{ fontSize: '0.85rem', color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {form.dateDebut ? new Date(form.dateDebut).toLocaleDateString('fr-FR') : '—'}
+              <span style={{ color: C.accent }}>→</span>
+              {form.dateFin ? new Date(form.dateFin).toLocaleDateString('fr-FR') : '—'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: C.muted, marginBottom: 3 }}>Remise</div>
+            <div style={{ fontSize: '0.85rem', color: remise > 0 ? C.gold : C.muted }}>{remise > 0 ? `-${remise}%` : 'Aucune'}</div>
+          </div>
+          {fraisInscription > 0 && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ fontSize: '0.72rem', color: C.muted, marginBottom: 3 }}>Frais d'inscription</div>
+              <div style={{ fontSize: '0.85rem', color: C.text }}>+{fraisInscription.toFixed(2)} DA</div>
+            </div>
+          )}
+        </div>
+
+        {/* Ligne séparatrice + Total */}
+        <div style={{ borderTop: '1px solid rgba(229,57,53,0.2)', marginTop: 14, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.85rem', color: C.muted, fontWeight: 600 }}>Total à payer</span>
+          <span style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: C.text }}>
+            {total.toFixed(2)} <span style={{ color: C.accent }}>DA</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Mode de paiement */}
+      <div>
+        <label style={labelStyle}>Mode de paiement <span style={{ color: C.accent }}>*</span></label>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {MODES_PAIEMENT.map(m => {
+            const selected = (form.modePaiement || 'cash') === m.value;
+            return (
+              <button
+                key={m.value}
+                onClick={() => set('modePaiement', m.value)}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  padding: '12px 10px', borderRadius: 10, cursor: 'pointer',
+                  border: selected ? `2px solid ${C.accent}` : '1px solid rgba(255,255,255,0.12)',
+                  background: selected ? 'rgba(229,57,53,0.12)' : 'rgba(255,255,255,0.04)',
+                  color: selected ? C.accent : C.muted,
+                  fontFamily: "'Barlow', sans-serif", fontWeight: selected ? 700 : 400,
+                  fontSize: '0.8rem', transition: 'all 0.15s',
+                }}
+              >
+                <span style={{ fontSize: '1.4rem' }}>{m.icon}</span>
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Montant versé */}
+      <div>
+        <label style={labelStyle}>Montant versé <span style={{ color: C.accent }}>*</span></label>
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}><IconMoney /></span>
+          <input
+            type="number"
+            min="0"
+            max={total}
+            step="0.01"
+            placeholder={`Max : ${total.toFixed(2)}`}
+            value={form.verser || ''}
+            onChange={e => set('verser', e.target.value)}
+            style={{ ...inp, paddingLeft: 40 }}
+          />
+        </div>
+        {/* Bouton "Payer en totalité" */}
+        <button
+          onClick={() => set('verser', total.toFixed(2))}
+          style={{ marginTop: 8, background: 'none', border: 'none', color: C.accent, fontSize: '0.78rem', cursor: 'pointer', fontFamily: "'Barlow', sans-serif", fontWeight: 600, textDecoration: 'underline', padding: 0 }}
+        >
+          Payer en totalité ({total.toFixed(2)} DA)
+        </button>
+      </div>
+
+      {/* Résumé versé / manquant */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>Versé</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: C.green }}>
+            {verser.toFixed(2)} <span style={{ fontSize: '0.85rem', color: C.muted }}>DA</span>
+          </div>
+        </div>
+        <div style={{ background: manque > 0 ? 'rgba(229,57,53,0.07)' : 'rgba(67,160,71,0.07)', borderRadius: 10, padding: '14px 16px', border: `1px solid ${manque > 0 ? 'rgba(229,57,53,0.2)' : 'rgba(67,160,71,0.2)'}` }}>
+          <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+            {manque > 0 ? 'Reste à payer' : 'Soldé ✓'}
+          </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: manque > 0 ? C.accent : C.green }}>
+            {manque > 0 ? `${manque.toFixed(2)}` : '0.00'} <span style={{ fontSize: '0.85rem', color: C.muted }}>DA</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Badge statut paiement */}
+      {verser > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 16px', borderRadius: 10,
+          background: estSolde ? 'rgba(67,160,71,0.1)' : 'rgba(255,193,7,0.1)',
+          border: `1px solid ${estSolde ? 'rgba(67,160,71,0.3)' : 'rgba(255,193,7,0.3)'}`,
+        }}>
+          <span style={{ fontSize: '1.1rem' }}>{estSolde ? '✅' : '⚠️'}</span>
+          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: estSolde ? C.green : C.gold }}>
+            {estSolde
+              ? 'Paiement complet — l\'abonnement sera marqué comme payé.'
+              : `Paiement partiel — il restera ${manque.toFixed(2)} DA à régler.`}
+          </span>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <button onClick={onPrev} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 22px', color: C.text, fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: 'pointer' }}>
+          Précédent
+        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 22px', color: C.muted, fontFamily: "'Barlow', sans-serif", cursor: 'pointer' }}>Annuler</button>
+          <button
+            onClick={onSave}
+            disabled={saving}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: saving ? '#7a2020' : C.accent, border: 'none', borderRadius: 8, padding: '10px 24px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}
+          >
+            {saving ? 'Création...' : <><IconCheck /> Créer l'adhérent</>}
           </button>
         </div>
       </div>
@@ -313,13 +490,13 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
   const [saving, setSaving] = useState(false);
   const [typesAbonnement, setTypesAbonnement] = useState(typesAbonnementProp);
   const [form,   setForm]   = useState({
-    sexe:      'Homme',
-    dateDebut: new Date().toISOString().split('T')[0],
+    sexe:         'Homme',
+    dateDebut:    new Date().toISOString().split('T')[0],
+    modePaiement: 'cash',
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // ✅ Chargement autonome si aucun type n'est passé en prop
   useEffect(() => {
     if (typesAbonnementProp.length === 0 && window.api?.getTypesAbonnement) {
       window.api.getTypesAbonnement().then(data => {
@@ -328,8 +505,7 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
     }
   }, []);
 
-
-  
+  const STEP_LABELS = ['Informations personnelles', 'Abonnement', 'Paiement'];
 
   const handleSave = async () => {
     if (!form.type_id)   { alert("Veuillez sélectionner un type d'abonnement."); return; }
@@ -337,20 +513,21 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
 
     setSaving(true);
     try {
-      await onSave({
-        nom:           form.nom,
-        prenom:        form.prenom,
-        dateNaissance: form.dateNaissance || null,
-        numTelephone:  form.numTelephone,
-        email:         form.email || null,
-        sexe:          form.sexe,
-        photo:         form.photo || null,
-        type_id:       parseInt(form.type_id),
-        dateDebut:     form.dateDebut,
-        dateFin:       form.dateFin || null,
-        montant:       form.verser ? parseFloat(form.verser) : 0,
-        modePaiement:  'cash',
-      });
+      await window.api.createAdherentComplet({
+          nom:            form.nom,
+          prenom:         form.prenom,
+          dateNaissance:  form.dateNaissance || null,
+          numTelephone:   form.numTelephone,
+          email:          form.email || null,
+          sexe:           form.sexe,
+          photo:          form.photo || null,
+          type_id:        parseInt(form.type_id),
+          dateDebut:      form.dateDebut,
+          dateFin:        form.dateFin || null,
+          montant:        parseFloat(form.verser) || 0,
+          modePaiement:   form.modePaiement || 'cash',
+        });
+        onClose();
     } finally {
       setSaving(false);
     }
@@ -371,11 +548,23 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
             <div>
               <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '2.4rem', fontWeight: 800, letterSpacing: 1, margin: 0, lineHeight: 1 }}>Nouvel adhérent</h1>
               <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-                Étape {step}/2 — {step === 1 ? 'Informations personnelles' : 'Abonnement'}
+                Étape {step}/3 — {STEP_LABELS[step - 1]}
               </div>
-              <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                {[1, 2].map(s => (
-                  <div key={s} style={{ width: s === step ? 24 : 8, height: 8, borderRadius: 4, background: s <= step ? C.accent : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }} />
+              {/* Stepper */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12 }}>
+                {[1, 2, 3].map(s => (
+                  <React.Fragment key={s}>
+                    <div style={{
+                      width: s === step ? 28 : (s < step ? 22 : 8),
+                      height: 8, borderRadius: 4,
+                      background: s < step ? C.green : s === step ? C.accent : 'rgba(255,255,255,0.3)',
+                      transition: 'all 0.3s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {s < step && <IconCheck />}
+                    </div>
+                    {s < 3 && <div style={{ width: 16, height: 1, background: s < step ? C.green : 'rgba(255,255,255,0.2)' }} />}
+                  </React.Fragment>
                 ))}
               </div>
             </div>
@@ -387,10 +576,15 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
 
         {/* Body */}
         <div style={{ background: '#1a1516', padding: '28px 32px' }}>
-          {step === 1
-            ? <StepPersonnel    form={form} set={set} onNext={() => setStep(2)} onClose={onClose} />
-            : <StepAbonnement   form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(1)} onSave={handleSave} onClose={onClose} saving={saving} />
-          }
+          {step === 1 && (
+            <StepPersonnel form={form} set={set} onNext={() => setStep(2)} onClose={onClose} />
+          )}
+          {step === 2 && (
+            <StepAbonnement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(1)} onNext={() => setStep(3)} onClose={onClose} />
+          )}
+          {step === 3 && (
+            <StepPaiement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(2)} onSave={handleSave} onClose={onClose} saving={saving} />
+          )}
         </div>
       </div>
     </div>
