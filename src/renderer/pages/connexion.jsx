@@ -19,10 +19,10 @@ export default function Login() {
     setError("");
 
     try {
-      const result = await window.electron.invoke("login", {
-        email:      email.trim(),
-        motDePasse: password.trim(),
-      });
+    const result = await window.api.login({
+  email: email.trim(),
+  motDePasse: password.trim(),
+});
 
       if (result.success) {
         // Stocker l'utilisateur connecté

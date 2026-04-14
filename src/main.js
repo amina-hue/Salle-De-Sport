@@ -1,10 +1,13 @@
+
 const { app, BrowserWindow, session, ipcMain } = require('electron');
 const path = require('node:path');
 const db = require('./db');
 
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
+if (require('electron-squirrel-startup')) app.quit();
+
+// ══════════════════════════════════════════════
+//  FENÊTRE PRINCIPALE
+// ══════════════════════════════════════════════
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -41,6 +44,12 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+// ── Helper : transforme un db.query callback en Promise ──────────────────────
+const query = (sql, params = []) =>
+  new Promise((resolve, reject) =>
+    db.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)))
+  );
 
 // ══════════════════════════════════════════════
 //  LOGIN
