@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Search, Package, ShoppingCart, TrendingUp, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import gymBg from '../../images/gym1.png';
 
@@ -30,24 +30,6 @@ const C = {
 /* ─────────────────────────────────────────────
    DATA
 ───────────────────────────────────────────── */
-const INITIAL_PRODUCTS = [
-  { id: 1,  nom: 'Haltères simples (5kg)',  reference: 'ALG001', stock: 40, prix: 5000,  categorie: 'Musculation'         },
-  { id: 2,  nom: 'Tapis de fitness',         reference: 'ALG002', stock: 25, prix: 3500,  categorie: 'Accessoire'          },
-  { id: 3,  nom: 'Bande élastique',          reference: 'ALG003', stock: 30, prix: 3000,  categorie: 'Musculation'         },
-  { id: 4,  nom: 'Barre de traction',        reference: 'ALG004', stock: 20, prix: 4000,  categorie: 'Musculation'         },
-  { id: 5,  nom: 'Corde à sauter',           reference: 'ALG005', stock: 15, prix: 2000,  categorie: 'Cardio / Accessoire' },
-  { id: 6,  nom: 'Banc de musculation',      reference: 'ALG006', stock: 8,  prix: 12000, categorie: 'Musculation'         },
-  { id: 7,  nom: 'Gants de sport',           reference: 'ALG007', stock: 50, prix: 1500,  categorie: 'Accessoire'          },
-  { id: 8,  nom: 'Kettlebell 10kg',          reference: 'ALG008', stock: 22, prix: 6000,  categorie: 'Musculation'         },
-  { id: 9,  nom: "Vélo d'appartement",       reference: 'ALG009', stock: 5,  prix: 35000, categorie: 'Cardio'              },
-  { id: 10, nom: 'Tapis de course',          reference: 'ALG010', stock: 3,  prix: 55000, categorie: 'Cardio'              },
-  { id: 11, nom: 'Barre olympique 20kg',     reference: 'ALG011', stock: 12, prix: 18000, categorie: 'Musculation'         },
-  { id: 12, nom: 'Disque de fonte 5kg',      reference: 'ALG012', stock: 60, prix: 2500,  categorie: 'Musculation'         },
-  { id: 13, nom: 'Tapis yoga 6mm',           reference: 'ALG013', stock: 35, prix: 1800,  categorie: 'Accessoire'          },
-  { id: 14, nom: 'Chronomètre sport',        reference: 'ALG014', stock: 18, prix: 900,   categorie: 'Accessoire'          },
-  { id: 15, nom: 'Rameur hydraulique',       reference: 'ALG015', stock: 4,  prix: 42000, categorie: 'Cardio'              },
-];
-
 const CATEGORIES = ['Musculation', 'Cardio', 'Accessoire', 'Cardio / Accessoire'];
 
 const CAT_STYLE = {
@@ -65,16 +47,6 @@ const PAGE_SIZE = 8;
 const IconX = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>
-);
-const IconDZD = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-  </svg>
-);
-const IconHash = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/>
   </svg>
 );
 
@@ -109,21 +81,44 @@ function FocusInput({ tag: Tag = 'input', style, ...props }) {
 }
 
 /* ─────────────────────────────────────────────
-   MODAL — NOUVEAU PRODUIT
+   MODAL — NOUVEAU PRODUIT / MODIFICATION
 ───────────────────────────────────────────── */
-function NouveauProduitModal({ onSave, onClose }) {
-  const [form, setForm] = useState({ nom: '', reference: '', categorie: '', stock: '', prix: '', note: '' });
+function NouveauProduitModal({ onSave, onClose, initialData }) {
+  const [form, setForm] = useState({
+    idProduit: initialData?.idProduit || null,
+    nom: initialData?.nom || '',
+    reference: initialData?.reference || '',
+    categorie: initialData?.categorie || '',
+    stock: initialData?.stock?.toString() || '',
+    prix: initialData?.prix?.toString() || '',
+    note: ''
+  });
+  
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const catStyle = CAT_STYLE[form.categorie];
   const hasPreview = form.nom || form.categorie || form.prix;
 
   const handleSave = () => {
-    const { nom, reference, categorie, stock, prix } = form;
+    const { nom, reference, categorie, stock, prix, idProduit } = form;
     if (!nom || !reference || !categorie || !stock || !prix) {
       alert('Veuillez remplir tous les champs obligatoires.');
       return;
     }
-    onSave({ nom, reference, categorie, stock: Number(stock), prix: Number(prix) });
+    
+    const productData = {
+      nom,
+      reference,
+      categorie,
+      stock: Number(stock),
+      prix: Number(prix)
+    };
+    
+    // Ajouter idProduit uniquement pour une modification
+    if (idProduit) {
+      productData.idProduit = idProduit;
+    }
+    
+    onSave(productData);
     onClose();
   };
 
@@ -146,13 +141,15 @@ function NouveauProduitModal({ onSave, onClose }) {
                 <ChevronRight size={10} color="rgba(255,255,255,0.3)" />
                 <span style={{ fontSize: '0.65rem', color: C.accent, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Magasin</span>
                 <ChevronRight size={10} color="rgba(255,255,255,0.3)" />
-                <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Nouveau</span>
+                <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>
+                  {initialData ? 'Modifier' : 'Nouveau'}
+                </span>
               </div>
               <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '2rem', fontWeight: 800, margin: 0, lineHeight: 1, color: C.text, textTransform: 'uppercase', letterSpacing: 1 }}>
-                Nouveau Produit
+                {initialData ? 'Modifier le Produit' : 'Nouveau Produit'}
               </h2>
               <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', marginTop: 6, marginBottom: 0 }}>
-                Ajouter un article à l'inventaire
+                {initialData ? 'Modifier les informations du produit' : 'Ajouter un article à l\'inventaire'}
               </p>
             </div>
             <button
@@ -252,7 +249,7 @@ function NouveauProduitModal({ onSave, onClose }) {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(229,57,53,0.5)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(229,57,53,0.4)'; }}
             >
-              <Plus size={15} /> Ajouter le produit
+              <Plus size={15} /> {initialData ? 'Mettre à jour' : 'Ajouter le produit'}
             </button>
           </div>
         </div>
@@ -299,13 +296,97 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
    MAIN PAGE
 ───────────────────────────────────────────── */
 const Magasin = () => {
-  const [products, setProducts]       = useState(INITIAL_PRODUCTS);
+  const [products, setProducts]       = useState([]);
+  const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState('');
   const [catFilter, setCatFilter]     = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal]     = useState(false);
   const [sortKey, setSortKey]         = useState('nom');
   const [sortDir, setSortDir]         = useState(1);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  /* ── Chargement des produits depuis la BDD ── */
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const result = await window.api.getProduits();
+      console.log('📦 Produits chargés depuis BDD:', result);
+      
+      // Adapter les champs : idProduit -> id pour compatibilité avec le code existant
+      const formattedProducts = result.map(p => ({
+        id: p.idProduit,
+        idProduit: p.idProduit, // Gardé pour les updates
+        nom: p.nom,
+        reference: p.reference,
+        stock: p.stock,
+        prix: parseFloat(p.prix) || 0,
+        categorie: p.categorie
+      }));
+      
+      setProducts(formattedProducts);
+    } catch (error) {
+      console.error('❌ Erreur chargement produits:', error);
+      alert('Impossible de charger les produits depuis la base de données.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ── Chargement initial ── */
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  /* ── Ajouter un produit ── */
+  const handleAdd = async (produit) => {
+    try {
+      console.log('➕ Ajout produit:', produit);
+      const result = await window.api.addProduit(produit);
+      console.log('✅ Produit ajouté, ID:', result.idProduit);
+      await loadProducts(); // Recharger la liste
+    } catch (error) {
+      console.error('❌ Erreur ajout produit:', error);
+      alert('Erreur lors de l\'ajout du produit: ' + error.message);
+    }
+  };
+
+  /* ── Modifier un produit ── */
+  const handleUpdate = async (produit) => {
+    try {
+      console.log('✏️ Modification produit:', produit);
+      const result = await window.api.updateProduit(produit);
+      console.log('✅ Produit modifié:', result);
+      await loadProducts();
+      setEditingProduct(null);
+    } catch (error) {
+      console.error('❌ Erreur modification produit:', error);
+      alert('Erreur lors de la modification du produit: ' + error.message);
+    }
+  };
+
+  /* ── Supprimer un produit ── */
+  const handleDelete = async (id, idProduit) => {
+    if (!window.confirm('Supprimer ce produit ?')) return;
+    
+    try {
+      const idToDelete = idProduit || id;
+      console.log('🗑️ Suppression produit, ID:', idToDelete);
+      const result = await window.api.deleteProduit(idToDelete);
+      console.log('✅ Produit supprimé:', result);
+      await loadProducts();
+    } catch (error) {
+      console.error('❌ Erreur suppression produit:', error);
+      alert('Erreur lors de la suppression du produit: ' + error.message);
+    }
+  };
+
+  /* ── Ouvrir la modal d'édition ── */
+  const handleEditClick = (product) => {
+    console.log('✏️ Édition du produit:', product);
+    setEditingProduct(product);
+    setShowModal(true);
+  };
 
   /* ── Derived data ── */
   const filtered = products
@@ -336,15 +417,6 @@ const Magasin = () => {
     else { setSortKey(key); setSortDir(1); }
   };
 
-  const handleAdd = (produit) => {
-    const nextId = Math.max(...products.map(p => p.id)) + 1;
-    setProducts(ps => [{ id: nextId, ...produit }, ...ps]);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Supprimer ce produit ?')) setProducts(ps => ps.filter(p => p.id !== id));
-  };
-
   const SortIcon = ({ col }) => {
     if (sortKey !== col) return <span style={{ color: C.muted, fontSize: 10, marginLeft: 4 }}>↕</span>;
     return <span style={{ color: C.accent, fontSize: 10, marginLeft: 4 }}>{sortDir === 1 ? '↑' : '↓'}</span>;
@@ -366,7 +438,6 @@ const Magasin = () => {
       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${gymBg})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,12,14,0.96) 0%, rgba(11,12,14,0.80) 55%, rgba(229,57,53,0.08) 100%)' }} />
-        {/* animated red line accent */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, width: '30%', height: 2, background: `linear-gradient(90deg, ${C.accent}, transparent)` }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: `linear-gradient(transparent, ${C.bg})` }} />
 
@@ -402,7 +473,10 @@ const Magasin = () => {
           </div>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditingProduct(null);
+              setShowModal(true);
+            }}
             style={{ display: 'flex', alignItems: 'center', gap: 9, background: C.accent, color: '#fff', border: 'none', borderRadius: 11, padding: '13px 24px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(229,57,53,0.4)', transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0 }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(229,57,53,0.55)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(229,57,53,0.4)'; }}
@@ -507,7 +581,18 @@ const Magasin = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginated.length > 0 ? paginated.map((p, i) => {
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '56px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Package size={22} color={C.accent} />
+                        </div>
+                        <div style={{ color: C.muted, fontSize: '0.875rem' }}>Chargement des produits...</div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginated.length > 0 ? paginated.map((p, i) => {
                   const cs = CAT_STYLE[p.categorie] || { bg: 'rgba(255,255,255,0.06)', color: C.muted, border: C.border };
                   const stockLow = p.stock <= 5;
                   const isLast = i === paginated.length - 1;
@@ -570,6 +655,7 @@ const Magasin = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button
                             title="Modifier"
+                            onClick={() => handleEditClick(p)}
                             style={{ width: 30, height: 30, borderRadius: 7, background: 'transparent', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.muted, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background = C.blueDim; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.3)'; e.currentTarget.style.color = C.blue; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
@@ -578,7 +664,7 @@ const Magasin = () => {
                           </button>
                           <button
                             title="Supprimer"
-                            onClick={() => handleDelete(p.id)}
+                            onClick={() => handleDelete(p.id, p.idProduit)}
                             style={{ width: 30, height: 30, borderRadius: 7, background: 'transparent', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.muted, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = C.accentBorder; e.currentTarget.style.color = C.accent; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
@@ -649,8 +735,12 @@ const Magasin = () => {
       {/* ── Modal ── */}
       {showModal && (
         <NouveauProduitModal
-          onClose={() => setShowModal(false)}
-          onSave={handleAdd}
+          onClose={() => {
+            setShowModal(false);
+            setEditingProduct(null);
+          }}
+          onSave={editingProduct ? handleUpdate : handleAdd}
+          initialData={editingProduct}
         />
       )}
     </div>

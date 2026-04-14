@@ -501,154 +501,102 @@ ipcMain.handle('getAbonnementsNonPaies', async () => {
 //  PRODUITS
 // ══════════════════════════════════════════════
 
+//  PRODUITS (MAGASIN)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 1. Récupérer tous les produits
 ipcMain.handle('getProduits', async () => {
   return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Produit ORDER BY nom',
-      (err, result) => { if (err) reject(err); else resolve(result); });
+    const sql = 'SELECT * FROM Produit ORDER BY nom ASC';
+    db.query(sql, (err, result) => {
+      if (err) {
+        console.error("Erreur SQL (getProduits):", err);
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
   });
 });
 
+// 2. Ajouter un produit
 ipcMain.handle('addProduit', async (event, data) => {
   return new Promise((resolve, reject) => {
     const { nom, reference, stock, prix, categorie } = data;
-    db.query('INSERT INTO Produit (nom, reference, stock, prix, categorie) VALUES (?, ?, ?, ?, ?)',
-      [nom, reference, stock, prix, categorie],
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
+    const sql = 'INSERT INTO Produit (nom, reference, stock, prix, categorie) VALUES (?, ?, ?, ?, ?)';
+    
+    db.query(sql, [nom, reference, stock, prix, categorie], (err, result) => {
+      if (err) {
+        console.error("Erreur SQL (addProduit):", err);
+        reject(err);
+      } else {
+        // Renvoie l'ID généré pour confirmer l'ajout
+        resolve({ idProduit: result.insertId, status: 'success' });
+      }
+    });
   });
 });
 
+// 3. Modifier un produit
 ipcMain.handle('updateProduit', async (event, data) => {
   return new Promise((resolve, reject) => {
+    // Note : on utilise idProduit qui vient de l'objet p de React
     const { idProduit, nom, reference, stock, prix, categorie } = data;
-    db.query('UPDATE Produit SET nom=?, reference=?, stock=?, prix=?, categorie=? WHERE idProduit=?',
-      [nom, reference, stock, prix, categorie, idProduit],
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
+    const sql = `
+      UPDATE Produit 
+      SET nom = ?, reference = ?, stock = ?, prix = ?, categorie = ? 
+      WHERE idProduit = ?
+    `;
+    
+    db.query(sql, [nom, reference, stock, prix, categorie, idProduit], (err, result) => {
+      if (err) {
+        console.error("Erreur SQL (updateProduit):", err);
+        reject(err);
+      } else {
+        resolve({ status: 'updated', affectedRows: result.affectedRows });
+      }
+    });
   });
 });
 
+// 4. Supprimer un produit
 ipcMain.handle('deleteProduit', async (event, id) => {
   return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Produit WHERE idProduit=?', [id],
-      (err, result) => { if (err) reject(err); else resolve(result); });
-  });
-});
-
-// ══════════════════════════════════════════════
-//  ACTIVITES
-// ══════════════════════════════════════════════
-
-ipcMain.handle('getActivites', async () => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Activite ORDER BY nom',
-      (err, result) => { if (err) reject(err); else resolve(result); });
-  });
-});
-
-ipcMain.handle('addActivite', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { nom, couleur } = data;
-    db.query('INSERT INTO Activite (nom, couleur) VALUES (?, ?)', [nom, couleur],
-      (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
-    );
-  });
-});
-
-ipcMain.handle('deleteActivite', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Activite WHERE idActivite=?', [id],
-      (err, result) => { if (err) reject(err); else resolve(result); });
-  });
-});
-
-// ══════════════════════════════════════════════
-//  SÉANCES
-// ══════════════════════════════════════════════
-
-ipcMain.handle('getSeancesPlanning', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT s.*, CONCAT(u.nom, ' ', u.prenom) AS coachNom,
-        a.nom AS activiteNom, a.couleur AS activiteCouleur
-       FROM Seance s
-       LEFT JOIN Utilisateur u ON s.coach_id = u.idUtilisateur
-       LEFT JOIN Activite a ON s.activite_id = a.idActivite
-       ORDER BY s.date, s.heureDebut`,
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
-  });
-});
-
-ipcMain.handle('addSeance', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { date, heureDebut, heureFin, participantsMax, coach_id, activite_id } = data;
-    db.query(
-      `INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id) VALUES (?, ?, ?, ?, ?, ?)`,
-      [date, heureDebut, heureFin, participantsMax, coach_id, activite_id],
-      (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
-    );
-  });
-});
-
-ipcMain.handle('deleteSeance', async (event, id) => {
-  return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Seance WHERE idSeance=?', [id],
-      (err, result) => { if (err) reject(err); else resolve(result); });
-  });
-});
-
-// ══════════════════════════════════════════════
-//  RECETTE
-// ══════════════════════════════════════════════
-
-ipcMain.handle('getRecette', async () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT 
-        (SELECT IFNULL(SUM(montant), 0) FROM Paiement) AS recettePaiements,
-        (SELECT IFNULL(SUM(p.prix * h.quantite), 0)
-         FROM HistoriqueVente h JOIN Produit p ON h.produit_id = p.idProduit) AS recetteVentes`,
-      (err, result) => {
-        if (err) reject(err);
-        else {
-          const r = result[0];
-          resolve({
-            recettePaiements: r.recettePaiements,
-            recetteVentes:    r.recetteVentes,
-            total: parseFloat(r.recettePaiements) + parseFloat(r.recetteVentes),
-          });
-        }
+    const sql = 'DELETE FROM Produit WHERE idProduit = ?';
+    db.query(sql, [id], (err, result) => {
+      if (err) {
+        console.error("Erreur SQL (deleteProduit):", err);
+        reject(err);
+      } else {
+        resolve({ status: 'deleted' });
       }
-    );
+    });
   });
 });
-
-ipcMain.handle('getRecetteParMois', async () => {
+// ══════════════════════════════════════════════
+//  STATS MAGASIN (DYNAMIQUES)
+// ══════════════════════════════════════════════
+ipcMain.handle('getStatsMagasin', async () => {
   return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT DATE_FORMAT(datePaiement, '%Y-%m') AS mois, SUM(montant) AS total
-       FROM Paiement GROUP BY mois ORDER BY mois DESC LIMIT 12`,
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
-  });
-});
-
-ipcMain.handle('getStatsRevenueGraph', async () => {
-  return new Promise((resolve, reject) => {
-    // Cette requête récupère les revenus des abonnements groupés par mois
     const sql = `
       SELECT 
-        DATE_FORMAT(datePaiement, '%b') as month, 
-        SUM(montant) as total 
-      FROM Paiement 
-      WHERE datePaiement >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-      GROUP BY month 
-      ORDER BY datePaiement ASC
+        (SELECT COUNT(*) FROM Produit) AS totalProduits,
+        (SELECT SUM(stock) FROM Produit) AS totalStock,
+        (SELECT COUNT(*) FROM Produit WHERE stock <= 5) AS alertesStock,
+        (SELECT COUNT(*) FROM HistoriqueVente) AS totalVentes,
+        (SELECT COUNT(*) FROM HistoriqueVente WHERE date = CURDATE()) AS ventesAujourdhui,
+        (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE date = CURDATE()) AS quantiteVendueAujourdhui,
+        (SELECT COUNT(*) FROM HistoriqueVente WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())) AS ventesCeMois,
+        (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())) AS quantiteVendueCeMois
     `;
+    
     db.query(sql, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
+      if (err) {
+        console.error("Erreur SQL (getStatsMagasin):", err);
+        reject(err);
+      } else {
+        resolve(result[0]);
+      }
     });
   });
 });
@@ -882,6 +830,52 @@ ipcMain.handle('getFrequentationSemaine', async () => {
         });
 
         resolve(data);
+      }
+    );
+  });
+});
+// ══════════════════════════════════════════════
+//  STATS MAGASIN 
+// ══════════════════════════════════════════════
+ipcMain.handle('getStatsMagasin', async () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT 
+        (SELECT COUNT(*) FROM Produit) AS totalProduits,
+        (SELECT COUNT(*) FROM Produit WHERE stock < 5) AS alertesStock,
+        (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE date = CURDATE()) AS ventesAujourdhui,
+        (SELECT p.nom FROM HistoriqueVente h 
+         JOIN Produit p ON h.produit_id = p.idProduit 
+         GROUP BY h.produit_id ORDER BY SUM(h.quantite) DESC LIMIT 1) AS topProduit
+    `;
+    db.query(sql, (err, result) => {
+      if (err) reject(err);
+      else resolve(result[0]);
+    });
+  });
+});
+
+ipcMain.handle('vendreProduit', async (event, { produit_id, utilisateur_id, quantite }) => {
+  return new Promise((resolve, reject) => {
+    // 1. Vérifier et mettre à jour le stock
+    db.query(
+      'UPDATE Produit SET stock = stock - ? WHERE idProduit = ? AND stock >= ?',
+      [quantite, produit_id, quantite],
+      (err, result) => {
+        if (err) return reject(err);
+        if (result.affectedRows === 0) {
+            return resolve({ success: false, message: "Stock insuffisant ou produit inexistant" });
+        }
+
+        // 2. Enregistrer dans l'historique
+        db.query(
+          'INSERT INTO HistoriqueVente (date, utilisateur_id, produit_id, quantite) VALUES (CURDATE(), ?, ?, ?)',
+          [utilisateur_id, produit_id, quantite],
+          (err2) => {
+            if (err2) reject(err2);
+            else resolve({ success: true });
+          }
+        );
       }
     );
   });

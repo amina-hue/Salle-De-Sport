@@ -46,6 +46,11 @@ contextBridge.exposeInMainWorld('api', {
   updateProduit:              (data) => invoke('updateProduit', data),
   deleteProduit:              (id)   => invoke('deleteProduit', id),
 
+  // Les nouvelles fonctions pour les stats et les ventes
+  getStatsMagasin: () => ipcRenderer.invoke('getStatsMagasin'),
+  vendreProduit: (data) => ipcRenderer.invoke('vendreProduit', data),
+
+
   // ── Séances ──
   getSeances:                 ()     => invoke('getSeances'),
   getSeancesPlanning:         ()     => invoke('getSeancesPlanning'),
