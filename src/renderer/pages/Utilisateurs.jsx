@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ChevronRight, Plus, Pencil, Trash2, Check, Clock, AlertCircle, Calendar, X, Users } from "lucide-react";
 import gymBg from "../../images/gym1.png";
+import QuickActions from "../components/QuickActions";
+import { useLocation, useNavigate } from "react-router-dom"; 
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -179,6 +181,7 @@ const Utilisateur = () => {
 
   const [search,       setSearch]       = useState("");
   const [filterRole,   setFilterRole]   = useState("");
+   const navigate = useNavigate(); 
 
   // ── Charger données ──
   useEffect(() => { loadData(); }, []);
@@ -239,6 +242,7 @@ const Utilisateur = () => {
               <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>Utilisateurs</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
               Gestion des utilisateurs

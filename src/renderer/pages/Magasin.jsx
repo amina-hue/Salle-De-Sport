@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Search, Package, ShoppingCart, TrendingUp, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import gymBg from '../../images/gym1.png';
+import { useLocation, useNavigate } from "react-router-dom"; 
+import QuickActions from "../components/QuickActions";
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS
@@ -447,6 +449,7 @@ const Magasin = () => {
               <span style={{ fontSize: '0.68rem', color: C.muted, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: '0.68rem', color: C.accent, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>Magasin</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '3.4rem', fontWeight: 800, letterSpacing: 2, lineHeight: 1, margin: 0, textTransform: 'uppercase', color: C.text }}>
               Magasin

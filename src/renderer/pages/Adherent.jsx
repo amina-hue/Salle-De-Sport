@@ -669,6 +669,8 @@ import {
 import AddMemberModal from '../components/AddMemberModal';
 import GYM_BG from '../../images/background.png';
 import { useLocation, useNavigate } from "react-router-dom";
+import QuickActions from "../components/QuickActions";
+
 
 // ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
@@ -839,16 +841,38 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     email: member.email || '',
     sexe: member.sexe || 'Homme',
     photo: member.photo || '',
-    // abonnement
     idAbonnement: member.idAbonnement || null,
     type_id: member.type_id || (typesAbonnement[0]?.id ?? ''),
     dateDebut: toInputDate(member.dateDebut),
     dateFin: toInputDate(member.dateFin),
-    // ✅ CORRIGÉ : utilise le vrai statut de l'abonnement
     abonnementStatut: member.abonnementStatut || 'actif',
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // ── Calcul automatique de la date de fin ──────────────────────────────────
+  // Appelé quand type_id ou dateDebut change
+  const computeAndSetDateFin = (dateDebut, typeId) => {
+    if (!dateDebut || !typeId) return;
+    const found = typesAbonnement.find(t => String(t.id) === String(typeId));
+    if (!found?.duree) return;
+    const d = new Date(dateDebut);
+    if (isNaN(d)) return;
+    d.setMonth(d.getMonth() + Number(found.duree));
+    const iso = d.toISOString().split('T')[0];
+    set('dateFin', iso);
+  };
+
+  const handleTypeChange = (newTypeId) => {
+    set('type_id', newTypeId);
+    computeAndSetDateFin(form.dateDebut, newTypeId);
+  };
+
+  const handleDateDebutChange = (newDate) => {
+    set('dateDebut', newDate);
+    computeAndSetDateFin(newDate, form.type_id);
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef(null);
@@ -969,7 +993,7 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
             </div>
 
           ) : (
-            /* Tab Abonnement */
+            /* ── Tab Abonnement ── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
 
               {!form.idAbonnement && (
@@ -978,35 +1002,61 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                 </div>
               )}
 
-              {[
-                {
-                  label: "Type d'abonnement :", key: 'type_id', type: 'select',
-                  opts: typesAbonnement.map(t => ({ value: t.id, label: `${t.nom} — ${t.prix} DA` }))
-                },
-                { label: 'Date début :', key: 'dateDebut', type: 'date' },
-                { label: 'Date fin :', key: 'dateFin', type: 'date' },
-                {
-                  label: 'Statut :', key: 'abonnementStatut', type: 'select',
-                  // ✅ CORRIGÉ : inclus 'suspendu' dans les options
-                  opts: [
-                    { value: 'actif',    label: 'Actif'    },
-                    { value: 'expiré',   label: 'Expiré'   },
-                    { value: 'suspendu', label: 'Suspendu' },
-                  ]
-                },
-              ].map(({ label, key, type, opts }) => (
-                <div key={key}>
-                  <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>{label}</div>
-                  {type === 'select'
-                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>
-                        {opts.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
-                      </select>
-                    : <input style={inp} type={type} value={form[key]} onChange={e => set(key, e.target.value)} />
-                  }
-                </div>
-              ))}
+              {/* Type d'abonnement */}
+              <div>
+                <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Type d'abonnement :</div>
+                <select
+                  style={inp}
+                  value={form.type_id}
+                  onChange={e => handleTypeChange(e.target.value)}
+                >
+                  {typesAbonnement.map(t => (
+                    <option key={t.id} value={t.id}>{t.nom} — {t.prix} DA</option>
+                  ))}
+                </select>
+              </div>
 
-              {/* ✅ NOUVEAU : aperçu du statut actuel */}
+              {/* Date début */}
+              <div>
+                <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Date début :</div>
+                <input
+                  style={inp}
+                  type="date"
+                  value={form.dateDebut}
+                  onChange={e => handleDateDebutChange(e.target.value)}
+                />
+              </div>
+
+              {/* Date fin — calculée automatiquement */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                  <span style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>Date fin :</span>
+                  
+                </div>
+                <input
+                  style={{ ...inp, opacity: 0.6, cursor: 'not-allowed' }}
+                  type="date"
+                  value={form.dateFin}
+                  readOnly
+                  title="Calculée automatiquement selon le type d'abonnement et la date de début"
+                />
+              </div>
+
+              {/* Statut */}
+              <div>
+                <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Statut :</div>
+                <select
+                  style={inp}
+                  value={form.abonnementStatut}
+                  onChange={e => set('abonnementStatut', e.target.value)}
+                >
+                  <option value="actif">Actif</option>
+                  <option value="expiré">Expiré</option>
+                  <option value="suspendu">Suspendu</option>
+                </select>
+              </div>
+
+              {/* Aperçu statut actuel */}
               {form.idAbonnement && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid #3d3233' }}>
                   <span style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>Statut actuel :</span>
@@ -1042,6 +1092,7 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     </div>
   );
 }
+
 
 // ─── Composant : Toast ───────────────────────────────────────────────────────
 function Toast({ message, error }) {
@@ -1253,6 +1304,7 @@ export default function Adherent() {
               <span style={{ fontSize: '0.72rem', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 600 }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: '0.72rem', color: C.accent, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 600 }}>Adhérents</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '3rem', fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: 'uppercase', color: C.text }}>
               Gestion des adhérents
