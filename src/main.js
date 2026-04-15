@@ -1016,3 +1016,32 @@ ipcMain.handle('getActivites', async () => {
     );
   });
 });
+ipcMain.handle('addTransaction', async (event, data) => {
+  const { produit_id, type, quantite, prix } = data;
+
+  if (type === 'achat') {
+    await db.query(
+      "UPDATE Produit SET stock = stock + ? WHERE idProduit = ?",
+      [quantite, produit_id]
+    );
+
+    await db.query(
+      "INSERT INTO HistoriqueAchat (date, utilisateur_id, produit_id, quantite, prix_achat) VALUES (NOW(), 1, ?, ?, ?)",
+      [produit_id, quantite, prix]
+    );
+  }
+
+  if (type === 'vente') {
+    await db.query(
+      "UPDATE Produit SET stock = stock - ? WHERE idProduit = ?",
+      [quantite, produit_id]
+    );
+
+    await db.query(
+      "INSERT INTO HistoriqueVente (date, utilisateur_id, produit_id, quantite) VALUES (NOW(), 1, ?, ?)",
+      [produit_id, quantite]
+    );
+  }
+
+  return { success: true };
+});
