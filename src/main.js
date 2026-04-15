@@ -963,3 +963,56 @@ ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, 
     );
   });
 });
+// ══════════════════════════════════════════════
+//  SÉANCES
+// ══════════════════════════════════════════════
+
+ipcMain.handle('getSeancesSemaine', async (event, { dateDebut, dateFin }) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT s.*, 
+        a.nom AS activiteNom, a.couleur AS activiteCouleur,
+        u.nom AS coachNom, u.prenom AS coachPrenom,
+        COUNT(p.idPresence) AS presents
+       FROM Seance s
+       LEFT JOIN Activite a ON s.activite_id = a.idActivite
+       LEFT JOIN Utilisateur u ON s.coach_id = u.idUtilisateur
+       LEFT JOIN Presence p ON p.seance_id = s.idSeance
+       WHERE s.date BETWEEN ? AND ?
+       GROUP BY s.idSeance
+       ORDER BY s.date ASC, s.heureDebut ASC`,
+      [dateDebut, dateFin],
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
+
+ipcMain.handle('addSeance', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { date, heureDebut, heureFin, participantsMax, coach_id, activite_id } = data;
+    db.query(
+      'INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [date, heureDebut, heureFin, participantsMax || 15, coach_id || null, activite_id || null],
+      (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
+    );
+  });
+});
+
+ipcMain.handle('addPresence', async (event, { adherent_id, seance_id, date }) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `INSERT IGNORE INTO Presence (adherent_id, seance_id, date, heureEntree)
+       VALUES (?, ?, ?, CURTIME())`,
+      [adherent_id, seance_id, date],
+      (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
+    );
+  });
+});
+
+ipcMain.handle('getActivites', async () => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM Activite ORDER BY nom',
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});

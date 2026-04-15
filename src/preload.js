@@ -57,7 +57,10 @@ contextBridge.exposeInMainWorld('api', {
   getSeancesPlanning:         ()     => invoke('getSeancesPlanning'),
   addSeance:                  (data) => invoke('addSeance', data),
   deleteSeance:               (id)   => invoke('deleteSeance', id),
-
+  getSeancesSemaine: (params) => ipcRenderer.invoke('getSeancesSemaine', params),
+addSeance:         (data)   => ipcRenderer.invoke('addSeance', data),
+addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
+getActivites:      ()       => ipcRenderer.invoke('getActivites'),
   // ── Activités ──
   getActivites:               ()     => invoke('getActivites'),
   addActivite:                (data) => invoke('addActivite', data),

@@ -413,7 +413,7 @@ const Magasin = () => {
 
   const handleSearch = v => { setSearch(v); setCurrentPage(1); };
   const handleCat    = v => { setCatFilter(v); setCurrentPage(1); };
-
+const navigate = useNavigate(); 
   const handleSort = key => {
     if (sortKey === key) setSortDir(d => -d);
     else { setSortKey(key); setSortDir(1); }
