@@ -964,3 +964,19 @@ ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, 
     );
   });
 });
+ipcMain.handle('renew-abonnement', async (event, data) => {
+  const { idAbonnement, type_id, dateDebut, dateFin } = data;
+
+  return new Promise((resolve, reject) => {
+    const sql = `
+      UPDATE Abonnement
+      SET type_id = ?, dateDebut = ?, dateFin = ?, statut = 'actif'
+      WHERE idAbonnement = ?
+    `;
+
+    db.query(sql, [type_id, dateDebut, dateFin, idAbonnement], (err, res) => {
+      if (err) reject(err);
+      else resolve(res);
+    });
+  });
+});

@@ -8,7 +8,7 @@ import AddMemberModal from '../components/AddMemberModal';
 import GYM_BG from '../../images/background.png';
 import { useLocation, useNavigate } from "react-router-dom";
 import QuickActions from "../components/QuickActions";
-
+import RenewModal from '../components/RenewModal';
 
 // ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
@@ -20,13 +20,36 @@ const C = {
   green: '#22c55e', gold: '#f59e0b', blue: '#3b82f6',
   orange: '#f97316',
 };
+const styleModifier = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 6,
+  background: 'rgba(59,130,246,0.1)',
+  border: '1px solid rgba(59,130,246,0.3)',
+  color: '#3b82f6',
+  borderRadius: 8,
+  padding: '8px 12px',
+  fontSize: '0.8rem',
+  cursor: 'pointer',
+};
 
+const styleSupprimer = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'rgba(229,57,53,0.1)',
+  border: '1px solid rgba(229,57,53,0.3)',
+  color: '#e53935',
+  borderRadius: 8,
+  padding: '8px 10px',
+  cursor: 'pointer',
+};
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 // ✅ CORRIGÉ : Filtres incluant suspendu
 const FILTERS       = ['Tous', 'actif', 'expiré', 'suspendu'];
 const FILTER_LABELS = ['Tous', 'Actif', 'Expiré', 'Suspendu'];
-
 function planColor(typeNom) {
   const n = (typeNom || '').toLowerCase();
   if (n.includes('premium') || n.includes('annuel')) return C.gold;
@@ -65,7 +88,7 @@ function statusConfig(statut) {
 }
 
 // ─── Composant : MemberCard ──────────────────────────────────────────────────
-function MemberCard({ member, onEdit, onDelete }) {
+function MemberCard({ member, onEdit, onDelete, onRenew }) {
   const [hovered, setHovered] = useState(false);
 
   // ✅ CORRIGÉ : utilise statusConfig pour afficher le bon statut et la bonne couleur
@@ -146,21 +169,29 @@ function MemberCard({ member, onEdit, onDelete }) {
         <div style={{ height: 1, background: C.border, marginBottom: 14 }} />
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => onEdit(member)}
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, borderRadius: 8, padding: '8px 12px', fontFamily: "'Barlow', sans-serif", fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
-          >
-            <Edit2 size={13} /> Modifier
-          </button>
-          <button
-            onClick={() => onDelete(member.idAdherent)}
-            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(229,57,53,0.1)'; e.currentTarget.style.color = C.accent; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = C.muted; }}
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+  <button onClick={() => onEdit(member)} style={{ flex: 1, ...styleModifier }}>
+    <Edit2 size={13} /> Modifier
+  </button>
+
+  {/* Bouton Renouveler — visible si expiré ou suspendu */}
+  {(['expiré', 'suspendu'].includes((member.abonnementStatut || '').toLowerCase())) && (
+    <button
+      onClick={() => onRenew(member)}
+      style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+        color: '#22c55e', borderRadius: 8, padding: '8px 12px',
+        fontFamily: "'Barlow', sans-serif", fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+      }}
+    >
+      🔄 Renouveler
+    </button>
+  )}
+
+  <button onClick={() => onDelete(member.idAdherent)} style={{ ...styleSupprimer }}>
+    <Trash2 size={13} />
+  </button>
+</div>
       </div>
     </div>
   );
@@ -211,6 +242,13 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     computeAndSetDateFin(newDate, form.type_id);
   };
   // ─────────────────────────────────────────────────────────────────────────
+// const handleRenew = async () => {
+//   showToast('Abonnement renouvelé avec succès');
+//   setModal(null);
+//   setRenewTarget(null);
+//   setFilterIdx(0);
+//   await loadData();
+// };
 
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef(null);
@@ -444,6 +482,7 @@ function Toast({ message, error }) {
 
 // ─── PAGE PRINCIPALE ─────────────────────────────────────────────────────────
 export default function Adherent() {
+  const [renewTarget, setRenewTarget] = useState(null);
    const location = useLocation();
   const navigate = useNavigate();
   const [adherents, setAdherents]       = useState([]);
@@ -454,7 +493,21 @@ export default function Adherent() {
   const [modal, setModal]               = useState(null);
   const [editTarget, setEditTarget]     = useState(null);
   const [toast, setToast]               = useState({ msg: '', error: false });
+const handleRenew = async (data) => {
+  try {
+    await window.api.renewAbonnement(data);
 
+    showToast('Abonnement renouvelé avec succès');
+    setModal(null);
+    setRenewTarget(null);
+    setFilterIdx(0);
+
+    await loadData();
+  } catch (err) {
+    console.error(err);
+    showToast('Erreur lors du renouvellement', true);
+  }
+};
   const showToast = (msg, error = false) => {
     setToast({ msg, error });
     setTimeout(() => setToast({ msg: '', error: false }), 2800);
@@ -697,8 +750,13 @@ export default function Adherent() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 20 }}>
             {filtered.map(m => (
-              <MemberCard key={m.idAdherent} member={m} onEdit={handleEdit} onDelete={handleDelete} />
-            ))}
+<MemberCard
+  key={m.idAdherent}
+  member={m}
+  onEdit={handleEdit}
+  onDelete={handleDelete}
+  onRenew={(m) => { setRenewTarget(m); setModal('renew'); }}
+/>            ))}
           </div>
         )}
       </div>
@@ -719,6 +777,14 @@ export default function Adherent() {
           onClose={handleClose}
         />
       )}
+      {modal === 'renew' && renewTarget && (
+  <RenewModal
+    member={renewTarget}
+    typesAbonnement={typesAbo}
+    onSave={handleRenew}
+    onClose={handleClose}
+  />
+)}
 
       <Toast message={toast.msg} error={toast.error} />
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
