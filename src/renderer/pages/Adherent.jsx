@@ -543,53 +543,11 @@ export default function Adherent() {
   };
 
   // ── Ajouter un adhérent ───────────────────────────────────────────────────
-  const handleSaveAdd = async (data) => {
-    try {
-      const result = await window.api.addAdherent({
-        nom:           data.nom,
-        prenom:        data.prenom,
-        dateNaissance: data.dateNaissance || null,
-        numTelephone:  data.numTelephone,
-        email:         data.email || null,
-        sexe:          data.sexe,
-      });
-
-      const newId = result.insertId;
-
-      if (data.photo && newId) {
-        await window.api.updateAdherentPhoto({ idAdherent: newId, photo: data.photo });
-      }
-
-      let aboId = null;
-      if (data.type_id && data.dateDebut && newId) {
-        const aboResult = await window.api.addAbonnement({
-          adherent_id: newId,
-          type_id:     parseInt(data.type_id),
-          dateDebut:   data.dateDebut,
-          dateFin:     data.dateFin || null,
-          statut:      'actif',
-        });
-        aboId = aboResult?.insertId ?? null;
-      }
-
-      if (aboId && data.montant && data.montant > 0) {
-        await window.api.addPaiement({
-          abonnement_id: aboId,
-          montant:       data.montant,
-          datePaiement:  data.dateDebut,
-          modePaiement:  data.modePaiement || 'cash',
-        });
-      }
-
-      showToast('Adhérent ajouté avec succès');
-      handleClose();
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      showToast("Erreur lors de l'ajout", true);
-      throw err;
-    }
-  };
+ const handleSaveAdd = async () => {
+  showToast('Adhérent ajouté avec succès');
+  handleClose();
+  await loadData();
+};
 
   // ── Supprimer ─────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {

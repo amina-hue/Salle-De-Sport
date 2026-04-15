@@ -11,7 +11,7 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('api', {
 
   // ── Adhérents ──
-  createAdherentComplet: (data) =>invoke('createAdherentComplet', data),
+  ajouterPaiement: (data) => ipcRenderer.invoke('ajouterPaiement', data),
   getAdherents:               ()     => invoke('getAdherents'),
   getAdherentsAvecAbonnement: ()     => invoke('getAdherentsAvecAbonnement'),
   getAdherentsWithAbonnement: () => invoke('getAdherentsAvecAbonnement'),
@@ -89,4 +89,7 @@ contextBridge.exposeInMainWorld('api', {
   
 // Fréquentation par jour de la semaine
   getFrequentationSemaine: () => invoke('getFrequentationSemaine'),
+  createAdherentComplet:  (data) => ipcRenderer.invoke('createAdherentComplet', data),
+  //ajouterPaiement:        (data) => ipcRenderer.invoke('ajouterPaiement', data),
+  //getAbonnementsNonPaies: ()     => ipcRenderer.invoke('getAbonnementsNonPaies'),
 });

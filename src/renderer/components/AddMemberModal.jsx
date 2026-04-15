@@ -312,7 +312,14 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
 }
 
 // ── STEP 3 — Paiement ────────────────────────────────────────────────────────
+// ── STEP 3 — Confirmation (plus de champ verser) ─────────────────────────────
 function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, saving }) {
+  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+  const prixBase         = parseFloat(selectedType?.prix) || 0;
+  const remise           = parseFloat(form.remise) || 0;
+  const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
+  const total            = prixBase * (1 - remise / 100) + fraisInscription;
+
   const inp = {
     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(229,57,53,0.5)',
     borderRadius: 8, padding: '10px 14px', color: C.text,
@@ -320,22 +327,13 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
     outline: 'none', boxSizing: 'border-box', width: '100%',
   };
 
-  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
-  const prixBase         = parseFloat(selectedType?.prix) || 0;
-  const remise           = parseFloat(form.remise) || 0;
-  const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
-  const total            = prixBase * (1 - remise / 100) + fraisInscription;
-  const verser           = parseFloat(form.verser) || 0;
-  const manque           = Math.max(0, total - verser);
-  const estSolde         = verser >= total && total > 0;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
-        Paiement de l'abonnement
+        Récapitulatif & Paiement
       </div>
 
-      {/* Récapitulatif abonnement */}
+      {/* Récapitulatif */}
       <div style={{ background: 'rgba(229,57,53,0.07)', border: '1px solid rgba(229,57,53,0.2)', borderRadius: 12, padding: '16px 20px' }}>
         <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Récapitulatif</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
@@ -366,8 +364,6 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
             </div>
           )}
         </div>
-
-        {/* Ligne séparatrice + Total */}
         <div style={{ borderTop: '1px solid rgba(229,57,53,0.2)', marginTop: 14, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.85rem', color: C.muted, fontWeight: 600 }}>Total à payer</span>
           <span style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: C.text }}>
@@ -376,91 +372,65 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
         </div>
       </div>
 
-      {/* Mode de paiement */}
+      {/* Choix payer maintenant / plus tard */}
       <div>
-        <label style={labelStyle}>Mode de paiement <span style={{ color: C.accent }}>*</span></label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {MODES_PAIEMENT.map(m => {
-            const selected = (form.modePaiement || 'cash') === m.value;
+        <label style={labelStyle}>Statut du paiement</label>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {[
+            { value: false, label: 'Payer plus tard', icon: '⏳', desc: "L'abonnement sera marqué impayé" },
+            { value: true,  label: 'Payer maintenant', icon: '✅', desc: 'Le paiement sera enregistré' },
+          ].map(opt => {
+            const selected = (form.payerMaintenant === true) === opt.value;
             return (
               <button
-                key={m.value}
-                onClick={() => set('modePaiement', m.value)}
+                key={String(opt.value)}
+                onClick={() => set('payerMaintenant', opt.value)}
                 style={{
                   flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  padding: '12px 10px', borderRadius: 10, cursor: 'pointer',
-                  border: selected ? `2px solid ${C.accent}` : '1px solid rgba(255,255,255,0.12)',
-                  background: selected ? 'rgba(229,57,53,0.12)' : 'rgba(255,255,255,0.04)',
-                  color: selected ? C.accent : C.muted,
+                  padding: '14px 10px', borderRadius: 10, cursor: 'pointer',
+                  border: selected ? `2px solid ${opt.value ? C.green : C.gold}` : '1px solid rgba(255,255,255,0.12)',
+                  background: selected ? (opt.value ? 'rgba(67,160,71,0.1)' : 'rgba(255,193,7,0.08)') : 'rgba(255,255,255,0.04)',
+                  color: selected ? (opt.value ? C.green : C.gold) : C.muted,
                   fontFamily: "'Barlow', sans-serif", fontWeight: selected ? 700 : 400,
-                  fontSize: '0.8rem', transition: 'all 0.15s',
+                  fontSize: '0.85rem', transition: 'all 0.15s',
                 }}
               >
-                <span style={{ fontSize: '1.4rem' }}>{m.icon}</span>
-                {m.label}
+                <span style={{ fontSize: '1.6rem' }}>{opt.icon}</span>
+                <span>{opt.label}</span>
+                <span style={{ fontSize: '0.72rem', opacity: 0.7, textAlign: 'center' }}>{opt.desc}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Montant versé */}
-      <div>
-        <label style={labelStyle}>Montant versé <span style={{ color: C.accent }}>*</span></label>
-        <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}><IconMoney /></span>
-          <input
-            type="number"
-            min="0"
-            max={total}
-            step="0.01"
-            placeholder={`Max : ${total.toFixed(2)}`}
-            value={form.verser || ''}
-            onChange={e => set('verser', e.target.value)}
-            style={{ ...inp, paddingLeft: 40 }}
-          />
-        </div>
-        {/* Bouton "Payer en totalité" */}
-        <button
-          onClick={() => set('verser', total.toFixed(2))}
-          style={{ marginTop: 8, background: 'none', border: 'none', color: C.accent, fontSize: '0.78rem', cursor: 'pointer', fontFamily: "'Barlow', sans-serif", fontWeight: 600, textDecoration: 'underline', padding: 0 }}
-        >
-          Payer en totalité ({total.toFixed(2)} DA)
-        </button>
-      </div>
-
-      {/* Résumé versé / manquant */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>Versé</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: C.green }}>
-            {verser.toFixed(2)} <span style={{ fontSize: '0.85rem', color: C.muted }}>DA</span>
+      {/* Mode de paiement — seulement si payer maintenant */}
+      {form.payerMaintenant && (
+        <div>
+          <label style={labelStyle}>Mode de paiement <span style={{ color: C.accent }}>*</span></label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {MODES_PAIEMENT.map(m => {
+              const selected = (form.modePaiement || 'cash') === m.value;
+              return (
+                <button
+                  key={m.value}
+                  onClick={() => set('modePaiement', m.value)}
+                  style={{
+                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    padding: '12px 10px', borderRadius: 10, cursor: 'pointer',
+                    border: selected ? `2px solid ${C.accent}` : '1px solid rgba(255,255,255,0.12)',
+                    background: selected ? 'rgba(229,57,53,0.12)' : 'rgba(255,255,255,0.04)',
+                    color: selected ? C.accent : C.muted,
+                    fontFamily: "'Barlow', sans-serif", fontWeight: selected ? 700 : 400,
+                    fontSize: '0.8rem', transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ fontSize: '1.4rem' }}>{m.icon}</span>
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
-        </div>
-        <div style={{ background: manque > 0 ? 'rgba(229,57,53,0.07)' : 'rgba(67,160,71,0.07)', borderRadius: 10, padding: '14px 16px', border: `1px solid ${manque > 0 ? 'rgba(229,57,53,0.2)' : 'rgba(67,160,71,0.2)'}` }}>
-          <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
-            {manque > 0 ? 'Reste à payer' : 'Soldé ✓'}
-          </div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: manque > 0 ? C.accent : C.green }}>
-            {manque > 0 ? `${manque.toFixed(2)}` : '0.00'} <span style={{ fontSize: '0.85rem', color: C.muted }}>DA</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Badge statut paiement */}
-      {verser > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 16px', borderRadius: 10,
-          background: estSolde ? 'rgba(67,160,71,0.1)' : 'rgba(255,193,7,0.1)',
-          border: `1px solid ${estSolde ? 'rgba(67,160,71,0.3)' : 'rgba(255,193,7,0.3)'}`,
-        }}>
-          <span style={{ fontSize: '1.1rem' }}>{estSolde ? '✅' : '⚠️'}</span>
-          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: estSolde ? C.green : C.gold }}>
-            {estSolde
-              ? 'Paiement complet — l\'abonnement sera marqué comme payé.'
-              : `Paiement partiel — il restera ${manque.toFixed(2)} DA à régler.`}
-          </span>
         </div>
       )}
 
@@ -472,8 +442,15 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 22px', color: C.muted, fontFamily: "'Barlow', sans-serif", cursor: 'pointer' }}>Annuler</button>
           <button
             onClick={onSave}
-            disabled={saving}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: saving ? '#7a2020' : C.accent, border: 'none', borderRadius: 8, padding: '10px 24px', color: '#fff', fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}
+            disabled={saving || form.payerMaintenant === undefined}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: saving || form.payerMaintenant === undefined ? '#555' : C.accent,
+              border: 'none', borderRadius: 8, padding: '10px 24px', color: '#fff',
+              fontFamily: "'Barlow', sans-serif", fontWeight: 700,
+              cursor: saving || form.payerMaintenant === undefined ? 'not-allowed' : 'pointer',
+              opacity: form.payerMaintenant === undefined ? 0.5 : 1,
+            }}
           >
             {saving ? 'Création...' : <><IconCheck /> Créer l'adhérent</>}
           </button>
@@ -508,30 +485,43 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
   const STEP_LABELS = ['Informations personnelles', 'Abonnement', 'Paiement'];
 
   const handleSave = async () => {
-    if (!form.type_id)   { alert("Veuillez sélectionner un type d'abonnement."); return; }
-    if (!form.dateDebut) { alert("La date de début est requise."); return; }
+  if (!form.type_id)   { alert("Veuillez sélectionner un type d'abonnement."); return; }
+  if (!form.dateDebut) { alert("La date de début est requise."); return; }
+  if (form.payerMaintenant === undefined) { alert("Veuillez choisir un statut de paiement."); return; }
 
-    setSaving(true);
-    try {
-      await window.api.createAdherentComplet({
-          nom:            form.nom,
-          prenom:         form.prenom,
-          dateNaissance:  form.dateNaissance || null,
-          numTelephone:   form.numTelephone,
-          email:          form.email || null,
-          sexe:           form.sexe,
-          photo:          form.photo || null,
-          type_id:        parseInt(form.type_id),
-          dateDebut:      form.dateDebut,
-          dateFin:        form.dateFin || null,
-          montant:        parseFloat(form.verser) || 0,
-          modePaiement:   form.modePaiement || 'cash',
-        });
-        onClose();
-    } finally {
-      setSaving(false);
-    }
-  };
+  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+  const prixBase         = parseFloat(selectedType?.prix) || 0;
+  const remise           = parseFloat(form.remise) || 0;
+  const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
+  const total            = prixBase * (1 - remise / 100) + fraisInscription;
+
+  setSaving(true);
+  try {
+    await window.api.createAdherentComplet({
+      nom:           form.nom,
+      prenom:        form.prenom,
+      dateNaissance: form.dateNaissance || null,
+      numTelephone:  form.numTelephone,
+      email:         form.email || null,
+      sexe:          form.sexe,
+      photo:         form.photo || null,
+      type_id:       parseInt(form.type_id),
+      dateDebut:     form.dateDebut,
+      dateFin:       form.dateFin || null,
+      montantDu:     total,
+      // Paiement seulement si payerMaintenant = true
+      montant:       form.payerMaintenant ? total : 0,
+      modePaiement:  form.modePaiement || 'cash',
+    });
+    onSave?.();
+    onClose();
+  } catch (err) {
+    console.error(err);
+    alert("Erreur lors de la création de l'adhérent.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   return (
     <div

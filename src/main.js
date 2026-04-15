@@ -488,20 +488,23 @@ ipcMain.handle('getAbonnementsNonPaies', async () => {
     const sql = `
       SELECT 
         ad.nom, ad.prenom,
-        ab.idAbonnement, ab.dateDebut, ab.dateFin, ab.statut AS abonnementStatut,
+        ab.idAbonnement, ab.dateDebut, ab.dateFin,
+        ab.statut AS abonnementStatut,
         t.nom AS typeNom, t.prix AS typePrix,
-        IFNULL(SUM(p.montant), 0) AS totalPaye,
-        (t.prix - IFNULL(SUM(p.montant), 0)) AS resteAPayer -- Calcul du reste
+        COALESCE(ab.montantDu, t.prix) AS montantDu,
+        COALESCE(SUM(p.montant), 0) AS totalPaye
       FROM Abonnement ab
       JOIN Adherent ad ON ab.adherent_id = ad.idAdherent
       JOIN TypeAbonnement t ON ab.type_id = t.id
-      LEFT JOIN Paiement p ON ab.idAbonnement = p.abonnement_id
-      GROUP BY ab.idAbonnement
-      HAVING resteAPayer > 0
+      LEFT JOIN Paiement p ON p.abonnement_id = ab.idAbonnement
+      WHERE ab.statut = 'actif'
+      GROUP BY ab.idAbonnement, ad.nom, ad.prenom, ab.dateDebut, ab.dateFin, 
+               ab.statut, t.nom, t.prix, ab.montantDu
+      HAVING COALESCE(ab.montantDu, t.prix) > COALESCE(SUM(p.montant), 0)
       ORDER BY ad.nom ASC
     `;
     db.query(sql, (err, result) => {
-      if (err) { reject(err); }
+      if (err) reject(err);
       else resolve(result);
     });
   });
@@ -846,23 +849,23 @@ ipcMain.handle('getFrequentationSemaine', async () => {
 // ══════════════════════════════════════════════
 //  STATS MAGASIN 
 // ══════════════════════════════════════════════
-ipcMain.handle('getStatsMagasin', async () => {
-  return new Promise((resolve, reject) => {
-    const sql = `
-      SELECT 
-        (SELECT COUNT(*) FROM Produit) AS totalProduits,
-        (SELECT COUNT(*) FROM Produit WHERE stock < 5) AS alertesStock,
-        (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE date = CURDATE()) AS ventesAujourdhui,
-        (SELECT p.nom FROM HistoriqueVente h 
-         JOIN Produit p ON h.produit_id = p.idProduit 
-         GROUP BY h.produit_id ORDER BY SUM(h.quantite) DESC LIMIT 1) AS topProduit
-    `;
-    db.query(sql, (err, result) => {
-      if (err) reject(err);
-      else resolve(result[0]);
-    });
-  });
-});
+// ipcMain.handle('getStatsMagasin', async () => {
+//   return new Promise((resolve, reject) => {
+//     const sql = `
+//       SELECT 
+//         (SELECT COUNT(*) FROM Produit) AS totalProduits,
+//         (SELECT COUNT(*) FROM Produit WHERE stock < 5) AS alertesStock,
+//         (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE date = CURDATE()) AS ventesAujourdhui,
+//         (SELECT p.nom FROM HistoriqueVente h 
+//          JOIN Produit p ON h.produit_id = p.idProduit 
+//          GROUP BY h.produit_id ORDER BY SUM(h.quantite) DESC LIMIT 1) AS topProduit
+//     `;
+//     db.query(sql, (err, result) => {
+//       if (err) reject(err);
+//       else resolve(result[0]);
+//     });
+//   });
+// });
 
 ipcMain.handle('vendreProduit', async (event, { produit_id, utilisateur_id, quantite }) => {
   return new Promise((resolve, reject) => {
@@ -894,7 +897,7 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
     const {
       nom, prenom, dateNaissance, numTelephone, email, sexe, photo,
       type_id, dateDebut, dateFin,
-      montant, modePaiement
+      montant, modePaiement, montantDu
     } = data;
 
     // 1. Créer l'adhérent
@@ -907,8 +910,8 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
 
         // 2. Créer l'abonnement
         db.query(
-          'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut) VALUES (?, ?, ?, ?, ?)',
-          [adherent_id, type_id, dateDebut, dateFin || null, 'actif'],
+          'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut, montantDu) VALUES (?, ?, ?, ?, ?, ?)',
+  [adherent_id, type_id, dateDebut, dateFin || null, 'actif', montantDu || null],
           (err2, resAbo) => {
             if (err2) return reject(err2);
             const abonnement_id = resAbo.insertId;
@@ -923,13 +926,38 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
             if (modePaiement === 'virement') modeSQL = 'virement';
 
             db.query(
-              'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)',
-              [abonnement_id, montant, dateDebut, modeSQL],
+              'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement, statut) VALUES (?, ?, ?, ?, ?)',
+[abonnement_id, montant, dateDebut, modeSQL, 'Payé'],
+
               (err3) => {
                 if (err3) return reject(err3);
                 resolve({ success: true, adherent_id, abonnement_id });
               }
             );
+          }
+        );
+      }
+    );
+  });
+});
+// Dans main.js, remplace ajouterPaiement pour qu'il mette aussi à jour le statut
+ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, date }) => {
+  return new Promise((resolve, reject) => {
+    const modeMap = { 'Espèces': 'cash', 'Carte bancaire': 'carte', 'Virement': 'virement' };
+    const modeSQL = modeMap[mode] || mode || 'cash';
+
+    db.query(
+      'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement, statut) VALUES (?, ?, ?, ?, ?)',
+      [abonnement_id, montant, date, modeSQL, 'Payé'],
+      (err, result) => {
+        if (err) return reject(err);
+        // Marquer l'abonnement comme payé
+        db.query(
+          "UPDATE Abonnement SET statutPaiement = 'payé' WHERE idAbonnement = ?",
+          [abonnement_id],
+          (err2) => {
+            if (err2) return reject(err2);
+            resolve({ success: true, insertId: result.insertId });
           }
         );
       }
