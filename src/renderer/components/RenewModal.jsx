@@ -360,37 +360,46 @@ export default function RenewModal({ member, typesAbonnement, onSave, onClose })
 
     setSaving(true);
     try {
-      // 1. Mettre à jour ou créer l'abonnement avec statut 'actif'
+      let abonnementId = member.idAbonnement; // ← ID à utiliser pour le paiement
+
       if (member.idAbonnement) {
+        // Mise à jour de l'abonnement existant + montantDu
         await window.api.updateAbonnement({
           idAbonnement: member.idAbonnement,
           type_id:      parseInt(form.type_id),
           dateDebut:    form.dateDebut,
           dateFin:      form.dateFin,
           statut:       'actif',
+          montantDu:    total,  // ← ajouter si tu as la colonne
         });
       } else {
-        await window.api.addAbonnement({
+        // Nouvel abonnement → récupérer le nouvel ID
+        const result = await window.api.addAbonnement({
           adherent_id: member.idAdherent,
           type_id:     parseInt(form.type_id),
           dateDebut:   form.dateDebut,
           dateFin:     form.dateFin,
           statut:      'actif',
         });
+        abonnementId = result?.insertId; // ← utiliser le nouvel ID
       }
 
-      // 2. Enregistrer le paiement si payerMaintenant
-      if (form.payerMaintenant) {
+      if (form.payerMaintenant && abonnementId) {
         await window.api.addPaiement({
-          abonnement_id: member.idAbonnement,
-          adherent_id:   member.idAdherent,
+          abonnement_id: abonnementId,  // ← bon ID ici
           montant:       total,
           mode:          form.modePaiement,
-          date:          form.dateReglement,
+          date:          form.dateReglement || form.dateDebut,
         });
       }
 
-      onSave?.();
+      onSave?.({
+  idAbonnement: abonnementId,
+  type_id:      parseInt(form.type_id),
+  dateDebut:    form.dateDebut,
+  dateFin:      form.dateFin,
+  statut:       'actif',
+});
     } catch (err) {
       console.error(err);
       alert("Erreur lors du renouvellement.");

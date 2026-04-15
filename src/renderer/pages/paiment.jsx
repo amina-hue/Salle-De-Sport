@@ -198,8 +198,7 @@ const Paiement = () => {
                     <td style={{ padding: "15px 22px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 32, height: 32, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", color: avatarColors[i % avatarColors.length], fontWeight: 800, fontSize: '0.7rem' }}>
-                          {p.nom?.substring(0, 2).toUpperCase()}
-                        </div>
+                          {(p.nom || '??').substring(0, 2).toUpperCase()}                        </div>
                         <span style={{ fontSize: "0.875rem", fontWeight: 600, color: C.text }}>{p.nom}</span>
                       </div>
                     </td>

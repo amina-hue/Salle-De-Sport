@@ -90,7 +90,7 @@ contextBridge.exposeInMainWorld('api', {
 // Fréquentation par jour de la semaine
   getFrequentationSemaine: () => invoke('getFrequentationSemaine'),
   createAdherentComplet:  (data) => ipcRenderer.invoke('createAdherentComplet', data),
-  renewAbonnement: (data) => ipcRenderer.invoke('renew-abonnement', data),
+  //renewAbonnement: (data) => ipcRenderer.invoke('renew-abonnement', data),
   //ajouterPaiement:        (data) => ipcRenderer.invoke('ajouterPaiement', data),
   //getAbonnementsNonPaies: ()     => ipcRenderer.invoke('getAbonnementsNonPaies'),
 });

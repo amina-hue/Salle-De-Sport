@@ -495,13 +495,29 @@ export default function Adherent() {
   const [toast, setToast]               = useState({ msg: '', error: false });
 const handleRenew = async (data) => {
   try {
-    await window.api.renewAbonnement(data);
-
+    if (data.idAbonnement) {
+      await window.api.updateAbonnement({
+        idAbonnement: data.idAbonnement,
+        type_id:      data.type_id,
+        dateDebut:    data.dateDebut,
+        dateFin:      data.dateFin,
+        statut:       'actif',
+        montantDu:    data.montantDu,  // ← transmettre
+      });
+    } else {
+      await window.api.addAbonnement({
+        adherent_id:  renewTarget.idAdherent,
+        type_id:      data.type_id,
+        dateDebut:    data.dateDebut,
+        dateFin:      data.dateFin,
+        statut:       'actif',
+        montantDu:    data.montantDu,  // ← transmettre
+      });
+    }
     showToast('Abonnement renouvelé avec succès');
     setModal(null);
     setRenewTarget(null);
     setFilterIdx(0);
-
     await loadData();
   } catch (err) {
     console.error(err);

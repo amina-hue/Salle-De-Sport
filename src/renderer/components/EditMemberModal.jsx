@@ -54,87 +54,44 @@ function Row({ label, children }) {
 /* ══════════════════════════
    TAB 1 — ABONNEMENT
 ══════════════════════════ */
-function TabAbonnement({ member, onChange }) {
+function TabAbonnement({ member }) {
   const [history] = useState([
-    { type: 'Premium Annuel',    debut: '01/01/2024', fin: '01/01/2025', statut: 'Expiré' },
-    { type: 'Standard Mensuel',  debut: '01/02/2025', fin: '01/03/2025', statut: 'Expiré' },
-    { type: 'Premium Annuel',    debut: '01/04/2025', fin: '01/04/2026', statut: 'Actif'  },
+    { type: 'Premium Annuel',   debut: '01/01/2024', fin: '01/01/2025', statut: 'Expiré' },
+    { type: 'Standard Mensuel', debut: '01/02/2025', fin: '01/03/2025', statut: 'Expiré' },
+    { type: 'Premium Annuel',   debut: '01/04/2025', fin: '01/04/2026', statut: 'Actif'  },
   ]);
 
   return (
-    <div style={{ display: 'flex', gap: 24 }}>
-      {/* LEFT — form */}
-      <div style={{ flex: '0 0 220px' }}>
-        <Row label="Type d'abonnement :">
-          <select style={inputStyle} value={member.plan} onChange={e => onChange('plan', e.target.value)}>
-            <option>Premium Annuel</option>
-            <option>Standard Mensuel</option>
-            <option>Basic Trimestriel</option>
-          </select>
-        </Row>
-        <Row label="Prix :">
-          <input style={inputStyle} type="text" placeholder="ex: 3500 DA"
-            value={member.prix || ''} onChange={e => onChange('prix', e.target.value)} />
-        </Row>
-        <Row label="Date Debut :">
-          <input style={inputStyle} type="date"
-            value={member.dateDebut || ''} onChange={e => onChange('dateDebut', e.target.value)} />
-        </Row>
-        <Row label="Date Fin :">
-          <input style={inputStyle} type="date"
-            value={member.dateFin || ''} onChange={e => onChange('dateFin', e.target.value)} />
-        </Row>
-        <Row label="Statut :">
-          <select style={inputStyle} value={member.status} onChange={e => onChange('status', e.target.value)}>
-            <option>Actif</option>
-            <option>Expiré</option>
-          </select>
-        </Row>
-
-        <button style={{
-          marginTop: 8,
-          background: COLORS.accent,
-          border: 'none', borderRadius: 6,
-          padding: '8px 16px', color: '#fff',
-          fontFamily: 'inherit', fontSize: '0.8rem',
-          fontWeight: 600, cursor: 'pointer', width: '100%',
-        }}>
-          Ajouter un Abonnement
-        </button>
+    <div>
+      <div style={{ fontSize: '0.82rem', color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>
+        Historique de l'abonnement :
       </div>
-
-      {/* RIGHT — history table */}
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '0.82rem', color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>
-          Historique de l'abonnement :
-        </div>
-        <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-            <thead>
-              <tr style={{ background: COLORS.card }}>
-                {['Type', 'Début', 'Fin', 'Statut'].map(h => (
-                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: COLORS.muted, fontWeight: 600 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((row, i) => (
-                <tr key={i} style={{ borderTop: `1px solid ${COLORS.border}`, background: i % 2 === 0 ? COLORS.surface : 'transparent' }}>
-                  <td style={{ padding: '7px 10px', color: COLORS.text }}>{row.type}</td>
-                  <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.debut}</td>
-                  <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.fin}</td>
-                  <td style={{ padding: '7px 10px' }}>
-                    <span style={{
-                      background: row.statut === 'Actif' ? 'rgba(39,174,96,0.18)' : 'rgba(192,57,43,0.18)',
-                      color: row.statut === 'Actif' ? COLORS.green : COLORS.accent,
-                      borderRadius: 4, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700,
-                    }}>{row.statut}</span>
-                  </td>
-                </tr>
+      <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+          <thead>
+            <tr style={{ background: COLORS.card }}>
+              {['Type', 'Début', 'Fin', 'Statut'].map(h => (
+                <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: COLORS.muted, fontWeight: 600 }}>{h}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {history.map((row, i) => (
+              <tr key={i} style={{ borderTop: `1px solid ${COLORS.border}`, background: i % 2 === 0 ? COLORS.surface : 'transparent' }}>
+                <td style={{ padding: '7px 10px', color: COLORS.text }}>{row.type}</td>
+                <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.debut}</td>
+                <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.fin}</td>
+                <td style={{ padding: '7px 10px' }}>
+                  <span style={{
+                    background: row.statut === 'Actif' ? 'rgba(39,174,96,0.18)' : 'rgba(192,57,43,0.18)',
+                    color: row.statut === 'Actif' ? COLORS.green : COLORS.accent,
+                    borderRadius: 4, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700,
+                  }}>{row.statut}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -240,10 +197,25 @@ export default function EditMemberModal({ member, onSave, onClose }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const handleSave = () => {
-    if (!form.nom?.trim()) { alert('Le nom est requis.'); return; }
+  const handleSave = async () => {
+  if (!form.nom?.trim()) { alert('Le nom est requis.'); return; }
+
+  try {
+    await window.api.updateAdherent({
+      idAdherent:    form.idAdherent,
+      nom:           form.nom,
+      prenom:        form.prenom,
+      dateNaissance: form.dateNaissance || null,
+      numTelephone:  form.numTelephone  || form.phone || null,
+      email:         form.email         || null,
+      sexe:          form.sexe          || 'Homme',
+    });
     onSave(form);
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Erreur lors de la mise à jour.");
+  }
+};
 
   return (
     <div

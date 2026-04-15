@@ -89,12 +89,14 @@ ipcMain.handle('addAdherent', async (event, data) => {
   });
 });
 
-ipcMain.handle('updateAdherent', async (event, data) => {
+ipcMain.handle('updateAbonnement', async (event, data) => {
+  console.log('updateAbonnement reçu:', data); // ← ajouter cette ligne
   return new Promise((resolve, reject) => {
-    const { idAdherent, nom, prenom, dateNaissance, numTelephone, email, sexe } = data;
+    const { idAbonnement, type_id, dateDebut, dateFin, statut, montantDu } = data;
+    console.log('montantDu en BDD:', montantDu); // ← et celle-ci
     db.query(
-      'UPDATE Adherent SET nom=?, prenom=?, dateNaissance=?, numTelephone=?, email=?, sexe=? WHERE idAdherent=?',
-      [nom, prenom, dateNaissance, numTelephone, email, sexe, idAdherent],
+      'UPDATE Abonnement SET type_id=?, dateDebut=?, dateFin=?, statut=?, montantDu=? WHERE idAbonnement=?',
+      [type_id, dateDebut, dateFin, statut, montantDu ?? null, idAbonnement],
       (err, result) => { if (err) reject(err); else resolve(result); }
     );
   });
@@ -171,7 +173,16 @@ ipcMain.handle('getAdherentsAvecAbonnement', async () => {
     );
   });
 });
-
+ipcMain.handle('updateAdherent', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { idAdherent, nom, prenom, dateNaissance, numTelephone, email, sexe } = data;
+    db.query(
+      'UPDATE Adherent SET nom=?, prenom=?, dateNaissance=?, numTelephone=?, email=?, sexe=? WHERE idAdherent=?',
+      [nom, prenom, dateNaissance, numTelephone, email, sexe, idAdherent],
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
 ipcMain.handle('updateAdherentPhoto', async (event, { idAdherent, photo }) => {
   return new Promise((resolve, reject) => {
     db.query('UPDATE Adherent SET photo = ? WHERE idAdherent = ?', [photo, idAdherent],
@@ -388,16 +399,6 @@ ipcMain.handle('addAbonnement', async (event, data) => {
   });
 });
 
-ipcMain.handle('updateAbonnement', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    const { idAbonnement, type_id, dateDebut, dateFin, statut } = data;
-    db.query(
-      'UPDATE Abonnement SET type_id=?, dateDebut=?, dateFin=?, statut=? WHERE idAbonnement=?',
-      [type_id, dateDebut, dateFin, statut, idAbonnement],
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
-  });
-});
 
 ipcMain.handle('getTypesAbonnement', async () => {
   return new Promise((resolve, reject) => {
@@ -413,13 +414,12 @@ ipcMain.handle('getPaiements', async () => {
   return new Promise((resolve, reject) => {
     const sql = `
       SELECT 
-        p.idPaiement as id, 
-        p.montant, 
-        DATE_FORMAT(p.datePaiement, '%d/%m/%Y') as date,
-        p.modePaiement as mode,
-        a.nom, 
-        a.prenom,
-        'Payé' as statut
+        p.idPaiement AS id,
+        p.montant,
+        DATE_FORMAT(p.datePaiement, '%d/%m/%Y') AS date,
+        p.modePaiement AS mode,
+        CONCAT(a.prenom, ' ', a.nom) AS nom,   -- ← nom complet
+        'Payé' AS statut
       FROM Paiement p
       JOIN Abonnement ab ON p.abonnement_id = ab.idAbonnement
       JOIN Adherent a ON ab.adherent_id = a.idAdherent
@@ -430,7 +430,6 @@ ipcMain.handle('getPaiements', async () => {
       else resolve(results);
     });
   });
-
 });
 
 ipcMain.handle('addPaiement', async (event, data) => {
@@ -962,21 +961,5 @@ ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, 
         );
       }
     );
-  });
-});
-ipcMain.handle('renew-abonnement', async (event, data) => {
-  const { idAbonnement, type_id, dateDebut, dateFin } = data;
-
-  return new Promise((resolve, reject) => {
-    const sql = `
-      UPDATE Abonnement
-      SET type_id = ?, dateDebut = ?, dateFin = ?, statut = 'actif'
-      WHERE idAbonnement = ?
-    `;
-
-    db.query(sql, [type_id, dateDebut, dateFin, idAbonnement], (err, res) => {
-      if (err) reject(err);
-      else resolve(res);
-    });
   });
 });
