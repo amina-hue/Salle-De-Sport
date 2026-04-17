@@ -20,36 +20,24 @@ const C = {
   green: '#22c55e', gold: '#f59e0b', blue: '#3b82f6',
   orange: '#f97316',
 };
+
 const styleModifier = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-  background: 'rgba(59,130,246,0.1)',
-  border: '1px solid rgba(59,130,246,0.3)',
-  color: '#3b82f6',
-  borderRadius: 8,
-  padding: '8px 12px',
-  fontSize: '0.8rem',
-  cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+  background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+  color: '#3b82f6', borderRadius: 8, padding: '8px 12px',
+  fontSize: '0.8rem', cursor: 'pointer',
 };
 
 const styleSupprimer = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'rgba(229,57,53,0.1)',
-  border: '1px solid rgba(229,57,53,0.3)',
-  color: '#e53935',
-  borderRadius: 8,
-  padding: '8px 10px',
-  cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'rgba(229,57,53,0.1)', border: '1px solid rgba(229,57,53,0.3)',
+  color: '#e53935', borderRadius: 8, padding: '8px 10px', cursor: 'pointer',
 };
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
-// ✅ CORRIGÉ : Filtres incluant suspendu
+// ─── Helpers ────────────────────────────────────────────────────────────────
 const FILTERS       = ['Tous', 'actif', 'expiré', 'suspendu'];
 const FILTER_LABELS = ['Tous', 'Actif', 'Expiré', 'Suspendu'];
+
 function planColor(typeNom) {
   const n = (typeNom || '').toLowerCase();
   if (n.includes('premium') || n.includes('annuel')) return C.gold;
@@ -70,14 +58,38 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+
 function toInputDate(dateStr) {
   if (!dateStr) return '';
+
+  // ✅ Si c'est un objet Date
+  if (dateStr instanceof Date) {
+    const y = dateStr.getFullYear();
+    const m = String(dateStr.getMonth() + 1).padStart(2, '0');
+    const d = String(dateStr.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // ✅ Si ce n'est pas une string → on évite le crash
+  if (typeof dateStr !== 'string') return '';
+
+  // Si déjà YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  // Format ISO → couper le T
+  const iso = dateStr.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+
+  // Dernier recours
   const d = new Date(dateStr);
   if (isNaN(d)) return '';
-  return d.toISOString().split('T')[0];
-}
 
-// ✅ NOUVEAU : couleur et label selon le statut
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+
+  return `${y}-${m}-${day}`;
+}
 function statusConfig(statut) {
   switch ((statut || '').toLowerCase()) {
     case 'actif':    return { label: 'Actif',    bg: '#22c55e', shadow: 'rgba(34,197,94,0.4)'  };
@@ -90,10 +102,7 @@ function statusConfig(statut) {
 // ─── Composant : MemberCard ──────────────────────────────────────────────────
 function MemberCard({ member, onEdit, onDelete, onRenew }) {
   const [hovered, setHovered] = useState(false);
-
-  // ✅ CORRIGÉ : utilise statusConfig pour afficher le bon statut et la bonne couleur
   const sc = statusConfig(member.abonnementStatut);
-
   const photoSrc = member.photo
     || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.nom || '') + ' ' + (member.prenom || ''))}&background=1f2330&color=e53935&size=300`;
 
@@ -110,7 +119,6 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
         boxShadow: hovered ? '0 16px 40px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.2)',
       }}
     >
-      {/* Photo */}
       <div style={{ position: 'relative', height: 170, overflow: 'hidden' }}>
         <img
           src={photoSrc}
@@ -119,27 +127,23 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
           onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nom)}&background=1f2330&color=e53935&size=300`; }}
         />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, background: 'linear-gradient(transparent, rgba(14,15,17,0.9))' }} />
-        {/* ✅ CORRIGÉ : badge dynamique selon le statut réel */}
         <span style={{
           position: 'absolute', top: 10, right: 10,
           fontSize: '0.65rem', fontWeight: 700,
           fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1, textTransform: 'uppercase',
           padding: '4px 10px', borderRadius: 20,
-          background: sc.bg,
-          color: '#fff',
+          background: sc.bg, color: '#fff',
           boxShadow: `0 2px 8px ${sc.shadow}`,
         }}>
           {sc.label}
         </span>
       </div>
 
-      {/* Content */}
       <div style={{ padding: '14px 16px 16px' }}>
         <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem', fontWeight: 700, color: C.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {member.nom} {member.prenom}
         </div>
 
-        {/* Badge abonnement */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: planBg(member.typeNom), borderRadius: 6, padding: '3px 10px', marginBottom: 12 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: planColor(member.typeNom) }} />
           <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: planColor(member.typeNom) }}>
@@ -147,7 +151,6 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
           </span>
         </div>
 
-        {/* Email / Téléphone */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
           {[{ Icon: Mail, text: member.email }, { Icon: Phone, text: member.numTelephone }].map(({ Icon, text }) => (
             <div key={Icon.displayName} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -169,29 +172,28 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
         <div style={{ height: 1, background: C.border, marginBottom: 14 }} />
 
         <div style={{ display: 'flex', gap: 8 }}>
-  <button onClick={() => onEdit(member)} style={{ flex: 1, ...styleModifier }}>
-    <Edit2 size={13} /> Modifier
-  </button>
+          <button onClick={() => onEdit(member)} style={{ flex: 1, ...styleModifier }}>
+            <Edit2 size={13} /> Modifier
+          </button>
 
-  {/* Bouton Renouveler — visible si expiré ou suspendu */}
-  {(['expiré', 'suspendu'].includes((member.abonnementStatut || '').toLowerCase())) && (
-    <button
-      onClick={() => onRenew(member)}
-      style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-        color: '#22c55e', borderRadius: 8, padding: '8px 12px',
-        fontFamily: "'Barlow', sans-serif", fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
-      }}
-    >
-      🔄 Renouveler
-    </button>
-  )}
+          {(['expiré', 'suspendu'].includes((member.abonnementStatut || '').toLowerCase())) && (
+            <button
+              onClick={() => onRenew(member)}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                color: '#22c55e', borderRadius: 8, padding: '8px 12px',
+                fontFamily: "'Barlow', sans-serif", fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              🔄 Renouveler
+            </button>
+          )}
 
-  <button onClick={() => onDelete(member.idAdherent)} style={{ ...styleSupprimer }}>
-    <Trash2 size={13} />
-  </button>
-</div>
+          <button onClick={() => onDelete(member.idAdherent)} style={{ ...styleSupprimer }}>
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -199,38 +201,56 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
 
 // ─── Composant : EditMemberModal ─────────────────────────────────────────────
 function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
-  const [tab, setTab] = useState('adherent');
+  const [tab, setTab]     = useState('adherent');
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    idAdherent: member.idAdherent,
-    nom: member.nom || '',
-    prenom: member.prenom || '',
-    dateNaissance: toInputDate(member.dateNaissance),
-    numTelephone: member.numTelephone || '',
-    email: member.email || '',
-    sexe: member.sexe || 'Homme',
-    photo: member.photo || '',
-    idAbonnement: member.idAbonnement || null,
-    type_id: member.type_id || (typesAbonnement[0]?.id ?? ''),
-    dateDebut: toInputDate(member.dateDebut),
-    dateFin: toInputDate(member.dateFin),
-    abonnementStatut: member.abonnementStatut || 'actif',
+  const [form, setForm]   = useState({
+    idAdherent:        member.idAdherent,
+    nom:               member.nom || '',
+    prenom:            member.prenom || '',
+    dateNaissance:     toInputDate(member.dateNaissance),
+    numTelephone:      member.numTelephone || '',
+    email:             member.email || '',
+    sexe:              member.sexe || 'Homme',
+    photo:             member.photo || '',
+    idAbonnement:      member.idAbonnement || null,
+    type_id:           member.type_id || (typesAbonnement[0]?.id ?? ''),
+    dateDebut:         toInputDate(member.dateDebut),
+    dateFin:           toInputDate(member.dateFin),
+    abonnementStatut:  member.abonnementStatut || 'actif',
+    // Champs suspension
+    dureeSuspension:   member.dureeSuspension   || '',
+    causeSuspension:   member.causeSuspension   || '',
+    dateFinSuspension: member.dateFinSuspension || '',
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // ── Calcul automatique de la date de fin ──────────────────────────────────
-  // Appelé quand type_id ou dateDebut change
+  // ── Calcul automatique date fin abonnement ────────────────────────────────
+  // const computeAndSetDateFin = (dateDebut, typeId) => {
+  //   if (!dateDebut || !typeId) return;
+  //   const found = typesAbonnement.find(t => String(t.id) === String(typeId));
+  //   if (!found?.duree) return;
+  //   const d = new Date(dateDebut);
+  //   if (isNaN(d)) return;
+  //   d.setMonth(d.getMonth() + Number(found.duree));
+  //   set('dateFin', d.toISOString().split('T')[0]);
+  // };
+
   const computeAndSetDateFin = (dateDebut, typeId) => {
-    if (!dateDebut || !typeId) return;
-    const found = typesAbonnement.find(t => String(t.id) === String(typeId));
-    if (!found?.duree) return;
-    const d = new Date(dateDebut);
-    if (isNaN(d)) return;
-    d.setMonth(d.getMonth() + Number(found.duree));
-    const iso = d.toISOString().split('T')[0];
-    set('dateFin', iso);
-  };
+  if (!dateDebut || !typeId) return;
+  const found = typesAbonnement.find(t => String(t.id) === String(typeId));
+  if (!found?.duree) return;
+  
+  // ✅ Construire la date en LOCAL (pas UTC) pour éviter le décalage
+  const [y, m, d] = dateDebut.split('-').map(Number);
+  const date = new Date(y, m - 1, d); // new Date(year, month, day) = local
+  date.setMonth(date.getMonth() + Number(found.duree));
+  
+  const yy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  set('dateFin', `${yy}-${mm}-${dd}`);
+};
 
   const handleTypeChange = (newTypeId) => {
     set('type_id', newTypeId);
@@ -241,15 +261,46 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     set('dateDebut', newDate);
     computeAndSetDateFin(newDate, form.type_id);
   };
-  // ─────────────────────────────────────────────────────────────────────────
-// const handleRenew = async () => {
-//   showToast('Abonnement renouvelé avec succès');
-//   setModal(null);
-//   setRenewTarget(null);
-//   setFilterIdx(0);
-//   await loadData();
+
+  // ── Calcul automatique date fin suspension ────────────────────────────────
+// const handleDureeSuspensionChange = (val) => {
+//   set('dureeSuspension', val);
+
+//   if (val) {
+//     const d = new Date(); // ✅ aujourd’hui = début suspension
+//     d.setDate(d.getDate() + Number(val));
+//     set('dateFinSuspension', d.toISOString().split('T')[0]);
+//   } else {
+//     set('dateFinSuspension', '');
+//   }
 // };
 
+const handleDureeSuspensionChange = (val) => {
+  set('dureeSuspension', val);
+  if (val) {
+    const now = new Date();
+    now.setDate(now.getDate() + Number(val));
+    // ✅ Format local
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    set('dateFinSuspension', `${y}-${m}-${d}`);
+  } else {
+    set('dateFinSuspension', '');
+  }
+};
+
+  // ── Changement de statut : reset champs suspension si non suspendu ────────
+  const handleStatutChange = (newStatut) => {
+    set('abonnementStatut', newStatut);
+    if (newStatut !== 'suspendu') {
+      set('dureeSuspension', '');
+      set('causeSuspension', '');
+      set('dateFinSuspension', '');
+    }
+  };
+
+  // ── Caméra ────────────────────────────────────────────────────────────────
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef(null);
 
@@ -274,8 +325,18 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     setShowCamera(false);
   };
 
+  // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!form.nom.trim()) return alert('Le nom est requis.');
+
+    // 🔒 Validation suspension
+    if (form.abonnementStatut === 'suspendu') {
+      if (!form.dureeSuspension || !String(form.causeSuspension).trim()) {
+        alert('La durée et la cause de suspension sont obligatoires.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await onSave(form);
@@ -287,8 +348,10 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
   const inp = {
     background: '#312829', border: '1px solid #3d3233', borderRadius: 6,
     padding: '7px 10px', color: C.text, fontFamily: 'inherit',
-    fontSize: '0.83rem', outline: 'none', width: '100%',
+    fontSize: '0.83rem', outline: 'none', width: '100%', boxSizing: 'border-box',
   };
+
+  const isSuspendu = form.abonnementStatut === 'suspendu';
 
   return (
     <div
@@ -378,37 +441,23 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                 </div>
               )}
 
-              {/* Type d'abonnement */}
+              {/* Type d'abonnement (non modifiable) */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Type d'abonnement :</div>
-                <select
-                  style={inp}
-                  value={form.type_id}
-                  onChange={e => handleTypeChange(e.target.value)}
-                >
-                  {typesAbonnement.map(t => (
-                    <option key={t.id} value={t.id}>{t.nom} — {t.prix} DA</option>
-                  ))}
-                </select>
+                <div style={{ ...inp, opacity: 0.7, display: 'flex', alignItems: 'center' }}>
+                  {typesAbonnement.find(t => String(t.id) === String(form.type_id))?.nom || 'Aucun'}
+                </div>
               </div>
 
               {/* Date début */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Date début :</div>
-                <input
-                  style={inp}
-                  type="date"
-                  value={form.dateDebut}
-                  onChange={e => handleDateDebutChange(e.target.value)}
-                />
+                <input style={inp} type="date" value={form.dateDebut} onChange={e => handleDateDebutChange(e.target.value)} />
               </div>
 
-              {/* Date fin — calculée automatiquement */}
+              {/* Date fin (calculée) */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                  <span style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>Date fin :</span>
-                  
-                </div>
+                <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Date fin :</div>
                 <input
                   style={{ ...inp, opacity: 0.6, cursor: 'not-allowed' }}
                   type="date"
@@ -421,16 +470,93 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
               {/* Statut */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Statut :</div>
-                <select
-                  style={inp}
-                  value={form.abonnementStatut}
-                  onChange={e => set('abonnementStatut', e.target.value)}
-                >
+                <select style={inp} value={form.abonnementStatut} onChange={e => handleStatutChange(e.target.value)}>
                   <option value="actif">Actif</option>
                   <option value="expiré">Expiré</option>
                   <option value="suspendu">Suspendu</option>
                 </select>
               </div>
+
+              {/* ── Bloc suspension ── */}
+              {isSuspendu && (
+                <div style={{
+                  background: 'rgba(249,115,22,0.07)',
+                  border: '1px solid rgba(249,115,22,0.3)',
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}>
+                  <div style={{ fontSize: '0.75rem', color: C.gold, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    ⏸ Détails de la suspension
+                  </div>
+
+                  {/* Durée */}
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
+                      Durée de suspension (jours) <span style={{ color: C.accent }}>*</span>
+                    </div>
+                    <input
+                      style={{
+                        ...inp,
+                        borderColor: !form.dureeSuspension ? 'rgba(249,115,22,0.55)' : '#3d3233',
+                      }}
+                      type="number"
+                      min="1"
+                      max="365"
+                      placeholder="Ex : 30"
+                      value={form.dureeSuspension}
+                      onChange={e => handleDureeSuspensionChange(e.target.value)}
+                    />
+                    {!form.dureeSuspension && (
+                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>
+                        La durée est requise pour une suspension
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Date fin suspension (calculée auto) */}
+                  {form.dateFinSuspension && (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
+                        Reprise prévue le (calculée automatiquement)
+                      </div>
+                      <input
+                        style={{ ...inp, opacity: 0.6, cursor: 'not-allowed' }}
+                        type="date"
+                        value={form.dateFinSuspension}
+                        readOnly
+                        title="Date début + durée de suspension en jours"
+                      />
+                    </div>
+                  )}
+
+                  {/* Cause */}
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
+                      Cause de la suspension <span style={{ color: C.accent }}>*</span>
+                    </div>
+                    <textarea
+                      style={{
+                        ...inp,
+                        resize: 'vertical',
+                        minHeight: 72,
+                        lineHeight: '1.5',
+                        borderColor: !String(form.causeSuspension).trim() ? 'rgba(249,115,22,0.55)' : '#3d3233',
+                      }}
+                      placeholder="Ex : Blessure, voyage, raison médicale..."
+                      value={form.causeSuspension}
+                      onChange={e => set('causeSuspension', e.target.value)}
+                    />
+                    {!String(form.causeSuspension).trim() && (
+                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>
+                        La cause est requise pour une suspension
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Aperçu statut actuel */}
               {form.idAbonnement && (
@@ -469,7 +595,6 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
   );
 }
 
-
 // ─── Composant : Toast ───────────────────────────────────────────────────────
 function Toast({ message, error }) {
   if (!message) return null;
@@ -483,47 +608,17 @@ function Toast({ message, error }) {
 // ─── PAGE PRINCIPALE ─────────────────────────────────────────────────────────
 export default function Adherent() {
   const [renewTarget, setRenewTarget] = useState(null);
-   const location = useLocation();
-  const navigate = useNavigate();
-  const [adherents, setAdherents]       = useState([]);
-  const [typesAbo, setTypesAbo]         = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState('');
-  const [filterIdx, setFilterIdx]       = useState(0);
-  const [modal, setModal]               = useState(null);
-  const [editTarget, setEditTarget]     = useState(null);
-  const [toast, setToast]               = useState({ msg: '', error: false });
-const handleRenew = async (data) => {
-  try {
-    if (data.idAbonnement) {
-      await window.api.updateAbonnement({
-        idAbonnement: data.idAbonnement,
-        type_id:      data.type_id,
-        dateDebut:    data.dateDebut,
-        dateFin:      data.dateFin,
-        statut:       'actif',
-        montantDu:    data.montantDu,  // ← transmettre
-      });
-    } else {
-      await window.api.addAbonnement({
-        adherent_id:  renewTarget.idAdherent,
-        type_id:      data.type_id,
-        dateDebut:    data.dateDebut,
-        dateFin:      data.dateFin,
-        statut:       'actif',
-        montantDu:    data.montantDu,  // ← transmettre
-      });
-    }
-    showToast('Abonnement renouvelé avec succès');
-    setModal(null);
-    setRenewTarget(null);
-    setFilterIdx(0);
-    await loadData();
-  } catch (err) {
-    console.error(err);
-    showToast('Erreur lors du renouvellement', true);
-  }
-};
+  const location  = useLocation();
+  const navigate  = useNavigate();
+  const [adherents, setAdherents]   = useState([]);
+  const [typesAbo, setTypesAbo]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [filterIdx, setFilterIdx]   = useState(0);
+  const [modal, setModal]           = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [toast, setToast]           = useState({ msg: '', error: false });
+
   const showToast = (msg, error = false) => {
     setToast({ msg, error });
     setTimeout(() => setToast({ msg: '', error: false }), 2800);
@@ -533,7 +628,7 @@ const handleRenew = async (data) => {
     setLoading(true);
     try {
       const [data, types] = await Promise.all([
-        window.api.getAdherentsAvecAbonnement(), // ✅ auto-expire + récupère tous les statuts
+        window.api.getAdherentsAvecAbonnement(),
         window.api.getTypesAbonnement(),
       ]);
       setAdherents(data);
@@ -547,17 +642,54 @@ const handleRenew = async (data) => {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("openModal") === "true") {
       setModal("add");
-      // Nettoie l'URL sans recharger la page
       navigate("/adherents", { replace: true });
     }
   }, [location.search]);
 
   const handleClose = () => { setModal(null); setEditTarget(null); };
   const handleEdit  = (m) => { setEditTarget(m); setModal('edit'); };
+
+  // ── Renouveler ────────────────────────────────────────────────────────────
+  const handleRenew = async (data) => {
+    try {
+      if (data.idAbonnement) {
+        await window.api.updateAbonnement({
+          idAbonnement: data.idAbonnement,
+          type_id:      data.type_id,
+          dateDebut:    data.dateDebut,
+          dateFin:      data.dateFin,
+          statut:       'actif',
+          montantDu:    data.montantDu,
+          // Reset suspension lors d'un renouvellement
+          dureeSuspension:   null,
+          causeSuspension:   null,
+          dateFinSuspension: null,
+        });
+      } else {
+        await window.api.addAbonnement({
+          adherent_id:  renewTarget.idAdherent,
+          type_id:      data.type_id,
+          dateDebut:    data.dateDebut,
+          dateFin:      data.dateFin,
+          statut:       'actif',
+          montantDu:    data.montantDu,
+        });
+      }
+      showToast('Abonnement renouvelé avec succès');
+      setModal(null);
+      setRenewTarget(null);
+      setFilterIdx(0);
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Erreur lors du renouvellement', true);
+    }
+  };
 
   // ── Modifier un adhérent ──────────────────────────────────────────────────
   const handleSaveEdit = async (form) => {
@@ -579,30 +711,36 @@ const handleRenew = async (data) => {
         });
       }
 
-      // ✅ CORRIGÉ : mise à jour abonnement même si on change juste le statut
+      const isSuspendu = form.abonnementStatut === 'suspendu';
+
       if (form.idAbonnement) {
-        // Abonnement existant → on met toujours à jour (statut, type, dates)
         await window.api.updateAbonnement({
-          idAbonnement: form.idAbonnement,
-          type_id:      parseInt(form.type_id),
-          dateDebut:    form.dateDebut,
-          dateFin:      form.dateFin,
-          statut:       form.abonnementStatut,
+          idAbonnement:      form.idAbonnement,
+          type_id:           parseInt(form.type_id),
+          dateDebut:         form.dateDebut,
+          dateFin:           form.dateFin,
+          statut:            form.abonnementStatut,
+          // Champs suspension — null si statut ≠ suspendu
+          dureeSuspension:   isSuspendu ? form.dureeSuspension   : null,
+          causeSuspension:   isSuspendu ? form.causeSuspension   : null,
+          dateFinSuspension: isSuspendu ? form.dateFinSuspension : null,
         });
       } else if (form.dateDebut && form.dateFin && form.type_id) {
-        // Pas d'abonnement existant → on en crée un seulement si les dates sont remplies
         await window.api.addAbonnement({
-          adherent_id: form.idAdherent,
-          type_id:     parseInt(form.type_id),
-          dateDebut:   form.dateDebut,
-          dateFin:     form.dateFin,
-          statut:      form.abonnementStatut,
+          adherent_id:       form.idAdherent,
+          type_id:           parseInt(form.type_id),
+          dateDebut:         form.dateDebut,
+          dateFin:           form.dateFin,
+          statut:            form.abonnementStatut,
+          dureeSuspension:   isSuspendu ? form.dureeSuspension   : null,
+          causeSuspension:   isSuspendu ? form.causeSuspension   : null,
+          dateFinSuspension: isSuspendu ? form.dateFinSuspension : null,
         });
       }
 
       showToast('Adhérent modifié avec succès');
       handleClose();
-      setFilterIdx(0); // ✅ revenir sur "Tous" pour voir l'adhérent avec son nouveau statut
+      setFilterIdx(0);
       await loadData();
     } catch (err) {
       console.error(err);
@@ -612,11 +750,11 @@ const handleRenew = async (data) => {
   };
 
   // ── Ajouter un adhérent ───────────────────────────────────────────────────
- const handleSaveAdd = async () => {
-  showToast('Adhérent ajouté avec succès');
-  handleClose();
-  await loadData();
-};
+  const handleSaveAdd = async () => {
+    showToast('Adhérent ajouté avec succès');
+    handleClose();
+    await loadData();
+  };
 
   // ── Supprimer ─────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
@@ -640,16 +778,12 @@ const handleRenew = async (data) => {
       (a.email || '').toLowerCase().includes(q) ||
       (a.numTelephone || '').includes(q);
 
-    // ✅ CORRIGÉ : comparaison insensible à la casse + gère NULL (Sans abo)
     const statut = (a.abonnementStatut || '').toLowerCase();
-    const matchFilter =
-      filterIdx === 0 ||
-      statut === FILTERS[filterIdx];
+    const matchFilter = filterIdx === 0 || statut === FILTERS[filterIdx];
 
     return matchSearch && matchFilter;
   });
 
-  // ✅ CORRIGÉ : compteurs basés sur le vrai statut
   const actif    = adherents.filter(a => (a.abonnementStatut || '').toLowerCase() === 'actif').length;
   const expire   = adherents.filter(a => (a.abonnementStatut || '').toLowerCase() === 'expiré').length;
   const suspendu = adherents.filter(a => (a.abonnementStatut || '').toLowerCase() === 'suspendu').length;
@@ -675,13 +809,12 @@ const handleRenew = async (data) => {
               Gestion des adhérents
             </h1>
 
-            {/* ✅ CORRIGÉ : 4 compteurs avec les bons statuts */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
               {[
-                { count: adherents.length, label: 'au total',   color: C.muted   },
-                { count: actif,            label: 'actifs',     color: C.green   },
-                { count: expire,           label: 'expirés',    color: C.accent  },
-                { count: suspendu,         label: 'suspendus',  color: C.orange  },
+                { count: adherents.length, label: 'au total',  color: C.muted  },
+                { count: actif,            label: 'actifs',    color: C.green  },
+                { count: expire,           label: 'expirés',   color: C.accent },
+                { count: suspendu,         label: 'suspendus', color: C.orange },
               ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
@@ -733,7 +866,6 @@ const handleRenew = async (data) => {
           />
         </div>
 
-        {/* ✅ CORRIGÉ : 4 boutons de filtre */}
         <div style={{ display: 'flex', background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, overflow: 'hidden' }}>
           {FILTER_LABELS.map((f, i) => (
             <button
@@ -766,13 +898,14 @@ const handleRenew = async (data) => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 20 }}>
             {filtered.map(m => (
-<MemberCard
-  key={m.idAdherent}
-  member={m}
-  onEdit={handleEdit}
-  onDelete={handleDelete}
-  onRenew={(m) => { setRenewTarget(m); setModal('renew'); }}
-/>            ))}
+              <MemberCard
+                key={m.idAdherent}
+                member={m}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onRenew={(m) => { setRenewTarget(m); setModal('renew'); }}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -794,13 +927,13 @@ const handleRenew = async (data) => {
         />
       )}
       {modal === 'renew' && renewTarget && (
-  <RenewModal
-    member={renewTarget}
-    typesAbonnement={typesAbo}
-    onSave={handleRenew}
-    onClose={handleClose}
-  />
-)}
+        <RenewModal
+          member={renewTarget}
+          typesAbonnement={typesAbo}
+          onSave={handleRenew}
+          onClose={handleClose}
+        />
+      )}
 
       <Toast message={toast.msg} error={toast.error} />
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

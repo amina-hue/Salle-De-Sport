@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { ChevronRight, Search, Filter, Download, Plus, Check, Clock, AlertTriangle, Receipt } from "lucide-react";
+import { ChevronRight, Search, Plus, Check, Clock, AlertTriangle, Receipt } from "lucide-react";
 import gym from "../../images/gym.png";
 import NouveauPaiementModal from "../components/NouveauPaiementModal";
 import { useLocation, useNavigate } from "react-router-dom"; 
-import QuickActions from "../components/QuickActions";
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -55,7 +54,6 @@ const Paiement = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [openModal, setOpenModal] = useState(false);
 
-  // 1. Charger les données depuis Electron
   const fetchPaiements = async () => {
     if (window.api?.getPaiements) {
       const data = await window.api.getPaiements();
@@ -65,8 +63,6 @@ const Paiement = () => {
 
   useEffect(() => {
     fetchPaiements();
-    
-    // Gestion du paramètre URL pour ouvrir la modale
     const params = new URLSearchParams(location.search);
     if (params.get('openModal') === 'true') {
       setOpenModal(true);
@@ -74,22 +70,21 @@ const Paiement = () => {
     }
   }, [location.search]);
 
- const handleSaveNewPaiement = async (formData) => {
-  try {
-    const response = await window.api.addPaiement(formData);
-    if (response?.success) {
-      setOpenModal(false);
-      await fetchPaiements(); // recharger la liste
-    } else {
-      alert("Erreur lors de l'enregistrement : " + (response?.error || "inconnue"));
+  const handleSaveNewPaiement = async (formData) => {
+    try {
+      const response = await window.api.addPaiement(formData);
+      if (response?.success) {
+        setOpenModal(false);
+        await fetchPaiements();
+      } else {
+        alert("Erreur lors de l'enregistrement : " + (response?.error || "inconnue"));
+      }
+    } catch (err) {
+      console.error("Erreur:", err);
+      alert("Erreur de communication avec la base de données.");
     }
-  } catch (err) {
-    console.error("Erreur:", err);
-    alert("Erreur de communication avec la base de données.");
-  }
-};
+  };
 
-  // 3. Logique de filtrage et stats
   const filtered = listePaiements.filter(p => 
     p.nom?.toLowerCase().includes(search.toLowerCase()) || 
     p.id?.toString().includes(search)
@@ -119,7 +114,6 @@ const Paiement = () => {
               <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>Paiements</span>
-              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
               Gestion financière
@@ -128,7 +122,7 @@ const Paiement = () => {
               {[{ count: stats.paye.length, label: "payés", color: C.green },
                 { count: stats.attente.length, label: "en attente", color: C.gold },
                 { count: stats.retard.length, label: "en retard", color: C.accent }
-              ].map(({ count, label, color }, i) => (
+              ].map(({ count, label, color }) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
                   <span style={{ fontSize: "0.82rem", color: C.muted }}><strong style={{ color }}>{count}</strong> {label}</span>
@@ -143,28 +137,25 @@ const Paiement = () => {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 12, padding: "14px 36px", background: C.bg, borderBottom: `1px solid ${C.border}`, alignItems: "center" }}>
+      {/* Toolbar sans boutons Filtrer/Exporter */}
+      <div style={{ 
+        display: "flex", 
+        padding: "14px 36px", 
+        background: C.bg, 
+        borderBottom: `1px solid ${C.border}`, 
+        alignItems: "center" 
+      }}>
         <div style={{ position: "relative", flex: 1, maxWidth: 440 }}>
           <Search size={15} color={C.muted} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)" }} />
           <input type="text" placeholder="Rechercher un adhérent..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, padding: "10px 14px 10px 38px", color: C.text, outline: "none" }}
           />
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-           <button style={{ display: "flex", alignItems: "center", gap: 6, background: C.card, border: `1px solid ${C.border}`, color: C.muted, borderRadius: 9, padding: "9px 16px", fontSize: "0.82rem", cursor: "pointer" }}>
-            <Filter size={14} /> Filtrer
-          </button>
-          <button style={{ display: "flex", alignItems: "center", gap: 6, background: C.card, border: `1px solid ${C.border}`, color: C.muted, borderRadius: 9, padding: "9px 16px", fontSize: "0.82rem", cursor: "pointer" }}>
-            <Download size={14} /> Exporter
-          </button>
-        </div>
       </div>
 
       {/* Main Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px" }}>
         
-        {/* Stat cards dynamiques */}
         <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
           <StatCard title="Revenus encaissés" value={`${totalEncaisse.toLocaleString()} DA`} sub={`${stats.paye.length} paiements`} icon={Check}
             bg="linear-gradient(145deg,#1F2A25,#2F4F3E)" border="rgba(46,204,113,0.2)"
@@ -177,7 +168,6 @@ const Paiement = () => {
             color="#e53935" softBg="rgba(229,57,53,0.18)" softBorder="rgba(229,57,53,0.3)" />
         </div>
 
-        {/* Table */}
         <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -198,7 +188,8 @@ const Paiement = () => {
                     <td style={{ padding: "15px 22px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 32, height: 32, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", color: avatarColors[i % avatarColors.length], fontWeight: 800, fontSize: '0.7rem' }}>
-                          {(p.nom || '??').substring(0, 2).toUpperCase()}                        </div>
+                          {p.nom?.substring(0, 2).toUpperCase()}
+                        </div>
                         <span style={{ fontSize: "0.875rem", fontWeight: 600, color: C.text }}>{p.nom}</span>
                       </div>
                     </td>
