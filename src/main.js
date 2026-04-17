@@ -1045,3 +1045,19 @@ ipcMain.handle('addTransaction', async (event, data) => {
 
   return { success: true };
 });
+ipcMain.handle('addRole', async (event, { nom }) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'INSERT INTO Role (nom) VALUES (?)',
+      [nom.trim()],
+      (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
+    );
+  });
+});
+ipcMain.handle('deleteRole', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('DELETE FROM Role WHERE id=?', [id],
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});

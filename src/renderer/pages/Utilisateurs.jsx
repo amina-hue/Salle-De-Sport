@@ -184,8 +184,9 @@ const Utilisateur = () => {
    const navigate = useNavigate(); 
 
   // ── Charger données ──
-  useEffect(() => { loadData(); }, []);
+const location = useLocation(); // déjà importé !
 
+useEffect(() => { loadData(); }, [location.pathname]);
   const loadData = async () => {
     setLoading(true); setError("");
     try {

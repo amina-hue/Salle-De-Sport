@@ -3,10 +3,10 @@ import { IoFlash } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
 // Import your modals here (adjust paths as needed)
-// import AddMemberModal from "./AddMemberModal";
-// import NouvelAbonnementModal from "./NouvelAbonnementModal";
-// import NouveauPaiementModal from "./NouveauPaiementModal";
-// import NouvelSeanceModal from "./NouvelSeanceModal";
+import AddMemberModal from "./AddMemberModal";
+import NouvelAbonnementModal from "./NouvelAbonnementModal";
+import NouveauPaiementModal from "./NouveauPaiementModal";
+import NouvelSeanceModal from "./NouvelSeanceModal";
 
 export default function QuickActions({ typesAbonnement, handleSaveAdherent, handleSaveAbonnement, handleSavePaiement }) {
   const [showActions, setShowActions] = useState(false);

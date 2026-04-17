@@ -124,12 +124,17 @@ const loadRoles = async () => {
     setLoadingPerms(false);
   }
 };
-  const handleAddRole = () => {
-    if (newRoleName.trim()) {
-      setRoles([...roles, { id: roles.length + 1, name: newRoleName, users: 0 }]);
-      setNewRoleName(""); setShowAddRole(false);
-    }
-  };
+const handleAddRole = async () => {
+  if (!newRoleName.trim()) return;
+  try {
+    await window.electron.invoke("addRole", { nom: newRoleName.trim() });
+    setNewRoleName("");
+    setShowAddRole(false);
+    await loadRoles(); // recharge depuis BDD
+  } catch (err) {
+    alert("Erreur lors de l'ajout du rôle.");
+  }
+};
 
   const handleSave = async () => {
   try {

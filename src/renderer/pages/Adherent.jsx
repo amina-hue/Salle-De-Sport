@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import QuickActions from "../components/QuickActions";
 import RenewModal from '../components/RenewModal';
 
+
 // ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
   bg: '#0e0f11', card: '#1a1d24', cardHover: '#1f2330',
