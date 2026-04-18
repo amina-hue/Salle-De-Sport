@@ -1,3 +1,7 @@
+
+
+
+
 import React, { useState, useRef } from 'react';
 
 /* ══════════════════════════════════════════
@@ -20,6 +24,7 @@ const COLORS = {
   input:   '#312829',
   green:   '#27ae60',
   gold:    '#f39c12',
+  orange:  '#f97316',
 };
 
 /* ── shared input style ── */
@@ -54,45 +59,181 @@ function Row({ label, children }) {
 /* ══════════════════════════
    TAB 1 — ABONNEMENT
 ══════════════════════════ */
-function TabAbonnement({ member }) {
+function TabAbonnement({ member, onChange }) {
   const [history] = useState([
     { type: 'Premium Annuel',   debut: '01/01/2024', fin: '01/01/2025', statut: 'Expiré' },
     { type: 'Standard Mensuel', debut: '01/02/2025', fin: '01/03/2025', statut: 'Expiré' },
     { type: 'Premium Annuel',   debut: '01/04/2025', fin: '01/04/2026', statut: 'Actif'  },
   ]);
 
+  const inp = {
+    background: '#312829',
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 6,
+    padding: '7px 10px',
+    color: COLORS.text,
+    fontFamily: 'inherit',
+    fontSize: '0.83rem',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+  };
+
+  const isSuspendu = (member.abonnementStatut || '').toLowerCase() === 'suspendu';
+
+ const handleDureeSuspensionChange = (val) => {
+  set('dureeSuspension', val);
+  if (val) {
+    const now = new Date();
+    now.setDate(now.getDate() + Number(val));
+    // ✅ Format local
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    set('dateFinSuspension', `${y}-${m}-${d}`);
+  } else {
+    set('dateFinSuspension', '');
+  }
+};
+
   return (
-    <div>
-      <div style={{ fontSize: '0.82rem', color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>
-        Historique de l'abonnement :
-      </div>
-      <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-          <thead>
-            <tr style={{ background: COLORS.card }}>
-              {['Type', 'Début', 'Fin', 'Statut'].map(h => (
-                <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: COLORS.muted, fontWeight: 600 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((row, i) => (
-              <tr key={i} style={{ borderTop: `1px solid ${COLORS.border}`, background: i % 2 === 0 ? COLORS.surface : 'transparent' }}>
-                <td style={{ padding: '7px 10px', color: COLORS.text }}>{row.type}</td>
-                <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.debut}</td>
-                <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.fin}</td>
-                <td style={{ padding: '7px 10px' }}>
-                  <span style={{
-                    background: row.statut === 'Actif' ? 'rgba(39,174,96,0.18)' : 'rgba(192,57,43,0.18)',
-                    color: row.statut === 'Actif' ? COLORS.green : COLORS.accent,
-                    borderRadius: 4, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700,
-                  }}>{row.statut}</span>
-                </td>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+
+      {/* Historique */}
+      <div>
+        <div style={{ fontSize: '0.82rem', color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>
+          Historique de l'abonnement :
+        </div>
+        <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+            <thead>
+              <tr style={{ background: COLORS.card }}>
+                {['Type', 'Début', 'Fin', 'Statut'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: COLORS.muted, fontWeight: 600 }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {history.map((row, i) => (
+                <tr key={i} style={{ borderTop: `1px solid ${COLORS.border}`, background: i % 2 === 0 ? COLORS.surface : 'transparent' }}>
+                  <td style={{ padding: '7px 10px', color: COLORS.text }}>{row.type}</td>
+                  <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.debut}</td>
+                  <td style={{ padding: '7px 10px', color: COLORS.muted }}>{row.fin}</td>
+                  <td style={{ padding: '7px 10px' }}>
+                    <span style={{
+                      background: row.statut === 'Actif' ? 'rgba(39,174,96,0.18)' : 'rgba(192,57,43,0.18)',
+                      color: row.statut === 'Actif' ? COLORS.green : COLORS.accent,
+                      borderRadius: 4, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700,
+                    }}>{row.statut}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Statut */}
+      <div>
+        <div style={{ fontSize: '0.75rem', color: COLORS.muted, fontWeight: 600, marginBottom: 5 }}>Statut :</div>
+        <select
+          style={inp}
+          value={member.abonnementStatut || 'actif'}
+          onChange={e => {
+            onChange('abonnementStatut', e.target.value);
+            if (e.target.value !== 'suspendu') {
+              onChange('dureeSuspension', '');
+              onChange('causeSuspension', '');
+              onChange('dateFinSuspension', '');
+            }
+          }}
+        >
+          <option value="actif">Actif</option>
+          <option value="expiré">Expiré</option>
+          <option value="suspendu">Suspendu</option>
+        </select>
+      </div>
+
+      {/* ── Bloc suspension ── */}
+      {isSuspendu && (
+        <div style={{
+          background: 'rgba(249,115,22,0.07)',
+          border: '1px solid rgba(249,115,22,0.3)',
+          borderRadius: 10,
+          padding: '14px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}>
+          <div style={{ fontSize: '0.75rem', color: COLORS.gold, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+            ⏸ Détails de la suspension
+          </div>
+
+          {/* Durée */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: COLORS.muted, fontWeight: 600, marginBottom: 5 }}>
+              Durée de suspension (jours) <span style={{ color: COLORS.accent }}>*</span>
+            </div>
+            <input
+              style={{
+                ...inp,
+                borderColor: !member.dureeSuspension ? 'rgba(249,115,22,0.5)' : COLORS.border,
+              }}
+              type="number"
+              min="1"
+              max="365"
+              placeholder="Ex : 30"
+              value={member.dureeSuspension || ''}
+              onChange={e => handleDureeSuspensionChange(e.target.value)}
+            />
+            {!member.dureeSuspension && (
+              <div style={{ fontSize: '0.7rem', color: COLORS.orange, marginTop: 4 }}>
+                La durée est requise pour une suspension
+              </div>
+            )}
+          </div>
+
+          {/* Date fin suspension calculée */}
+          {member.dateFinSuspension && (
+            <div>
+              <div style={{ fontSize: '0.75rem', color: COLORS.muted, fontWeight: 600, marginBottom: 5 }}>
+                Date fin de suspension (calculée automatiquement)
+              </div>
+              <input
+                style={{ ...inp, opacity: 0.6, cursor: 'not-allowed' }}
+                type="date"
+                value={member.dateFinSuspension}
+                readOnly
+                title="Calculée automatiquement : date début + durée de suspension"
+              />
+            </div>
+          )}
+
+          {/* Cause */}
+          <div>
+            <div style={{ fontSize: '0.75rem', color: COLORS.muted, fontWeight: 600, marginBottom: 5 }}>
+              Cause de la suspension <span style={{ color: COLORS.accent }}>*</span>
+            </div>
+            <textarea
+              style={{
+                ...inp,
+                resize: 'vertical',
+                minHeight: 72,
+                lineHeight: '1.5',
+                borderColor: !(member.causeSuspension || '').trim() ? 'rgba(249,115,22,0.5)' : COLORS.border,
+              }}
+              placeholder="Ex : Blessure, voyage, raison médicale..."
+              value={member.causeSuspension || ''}
+              onChange={e => onChange('causeSuspension', e.target.value)}
+            />
+            {!(member.causeSuspension || '').trim() && (
+              <div style={{ fontSize: '0.7rem', color: COLORS.orange, marginTop: 4 }}>
+                La cause est requise pour une suspension
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -192,30 +333,58 @@ const btnSmall = {
    MODAL WRAPPER
 ══════════════════════════ */
 export default function EditMemberModal({ member, onSave, onClose }) {
-  const [tab, setTab]     = useState('abonnement'); // 'abonnement' | 'adherent'
-  const [form, setForm]   = useState({ ...member });
+  const [tab, setTab] = useState('abonnement');
+  const [form, setForm] = useState({
+    ...member,
+    dureeSuspension:   member.dureeSuspension   || '',
+    causeSuspension:   member.causeSuspension   || '',
+    dateFinSuspension: member.dateFinSuspension || '',
+  });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-  if (!form.nom?.trim()) { alert('Le nom est requis.'); return; }
+    if (!form.nom?.trim()) { alert('Le nom est requis.'); return; }
 
-  try {
-    await window.api.updateAdherent({
-      idAdherent:    form.idAdherent,
-      nom:           form.nom,
-      prenom:        form.prenom,
-      dateNaissance: form.dateNaissance || null,
-      numTelephone:  form.numTelephone  || form.phone || null,
-      email:         form.email         || null,
-      sexe:          form.sexe          || 'Homme',
-    });
-    onSave(form);
-  } catch (err) {
-    console.error(err);
-    alert("Erreur lors de la mise à jour.");
-  }
-};
+    // 🔒 Validation suspension
+    if ((form.abonnementStatut || '').toLowerCase() === 'suspendu') {
+      if (!form.dureeSuspension || !String(form.causeSuspension).trim()) {
+        alert('La durée et la cause de suspension sont obligatoires.');
+        return;
+      }
+    }
+
+    try {
+      await window.api.updateAdherent({
+        idAdherent:    form.idAdherent,
+        nom:           form.nom,
+        prenom:        form.prenom,
+        dateNaissance: form.dateNaissance || null,
+        numTelephone:  form.numTelephone  || form.phone || null,
+        email:         form.email         || null,
+        sexe:          form.sexe          || 'Homme',
+      });
+
+      if (form.idAbonnement) {
+        await window.api.updateAbonnement({
+          idAbonnement:      form.idAbonnement,
+          type_id:           form.type_id,
+          dateDebut:         form.dateDebut,
+          dateFin:           form.dateFin,
+          statut:            form.abonnementStatut,
+          // Champs suspension — null si statut différent
+          dureeSuspension:   form.abonnementStatut === 'suspendu' ? form.dureeSuspension   : null,
+          causeSuspension:   form.abonnementStatut === 'suspendu' ? form.causeSuspension   : null,
+          dateFinSuspension: form.abonnementStatut === 'suspendu' ? form.dateFinSuspension : null,
+        });
+      }
+
+      onSave(form);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la mise à jour.");
+    }
+  };
 
   return (
     <div
@@ -247,7 +416,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
           background: COLORS.surface,
           borderBottom: `1px solid ${COLORS.border}`,
         }}>
-          {/* Tabs */}
           <div style={{ display: 'flex', gap: 0 }}>
             {[
               { key: 'abonnement', label: 'Abonnement' },
@@ -271,7 +439,6 @@ export default function EditMemberModal({ member, onSave, onClose }) {
               </button>
             ))}
           </div>
-          {/* Close */}
           <button
             onClick={onClose}
             style={{
@@ -299,29 +466,27 @@ export default function EditMemberModal({ member, onSave, onClose }) {
         </div>
 
         {/* ── FOOTER ── */}
-        {tab === 'adherent' && (
-          <div style={{
-            display: 'flex', justifyContent: 'flex-end', gap: 10,
-            padding: '14px 24px',
-            borderTop: `1px solid ${COLORS.border}`,
-            background: COLORS.surface,
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: 10,
+          padding: '14px 24px',
+          borderTop: `1px solid ${COLORS.border}`,
+          background: COLORS.surface,
+        }}>
+          <button onClick={handleSave} style={{
+            background: COLORS.accent, border: 'none', borderRadius: 7,
+            padding: '9px 24px', color: '#fff',
+            fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
           }}>
-            <button onClick={handleSave} style={{
-              background: COLORS.accent, border: 'none', borderRadius: 7,
-              padding: '9px 24px', color: '#fff',
-              fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
-            }}>
-              Sauvegarder
-            </button>
-            <button onClick={onClose} style={{
-              background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 7,
-              padding: '9px 20px', color: COLORS.muted,
-              fontFamily: 'inherit', fontSize: '0.875rem', cursor: 'pointer',
-            }}>
-              Annuler
-            </button>
-          </div>
-        )}
+            Sauvegarder
+          </button>
+          <button onClick={onClose} style={{
+            background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 7,
+            padding: '9px 20px', color: COLORS.muted,
+            fontFamily: 'inherit', fontSize: '0.875rem', cursor: 'pointer',
+          }}>
+            Annuler
+          </button>
+        </div>
       </div>
     </div>
   );
