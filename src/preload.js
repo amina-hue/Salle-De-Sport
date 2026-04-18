@@ -58,7 +58,10 @@ deleteRole:                 (id)   => invoke('deleteRole', id),  // ← AJOUTER
   getSeancesPlanning:         ()     => invoke('getSeancesPlanning'),
   addSeance:                  (data) => invoke('addSeance', data),
   deleteSeance:               (id)   => invoke('deleteSeance', id),
+  
+   incrementPresents:          (id)     => ipcRenderer.invoke('incrementPresents', id),
   getSeancesSemaine: (params) => ipcRenderer.invoke('getSeancesSemaine', params),
+  getPresencesSeance: (seance_id) => ipcRenderer.invoke('getPresencesSeance', seance_id),
 addSeance:         (data)   => ipcRenderer.invoke('addSeance', data),
 addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
 getActivites:      ()       => ipcRenderer.invoke('getActivites'),
