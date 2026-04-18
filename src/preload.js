@@ -47,7 +47,9 @@ deleteRole:                 (id)   => invoke('deleteRole', id),  // ← AJOUTER
   addProduit:                 (data) => invoke('addProduit', data),
   updateProduit:              (data) => invoke('updateProduit', data),
   deleteProduit:              (id)   => invoke('deleteProduit', id),
-
+  addTransaction:             (data) => invoke('addTransaction', data),       // ← AJOUTER
+  getHistoriqueVentes:        ()     => invoke('getHistoriqueVentes'),         // ← AJOUTER
+  getHistoriqueAchats:        ()     => invoke('getHistoriqueAchats'),         // ← AJOUTER
   // Les nouvelles fonctions pour les stats et les ventes
   getStatsMagasin: () => ipcRenderer.invoke('getStatsMagasin'),
   vendreProduit: (data) => ipcRenderer.invoke('vendreProduit', data),
@@ -62,9 +64,7 @@ deleteRole:                 (id)   => invoke('deleteRole', id),  // ← AJOUTER
    incrementPresents:          (id)     => ipcRenderer.invoke('incrementPresents', id),
   getSeancesSemaine: (params) => ipcRenderer.invoke('getSeancesSemaine', params),
   getPresencesSeance: (seance_id) => ipcRenderer.invoke('getPresencesSeance', seance_id),
-addSeance:         (data)   => ipcRenderer.invoke('addSeance', data),
 addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
-getActivites:      ()       => ipcRenderer.invoke('getActivites'),
   // ── Activités ──
   getActivites:               ()     => invoke('getActivites'),
   addActivite:                (data) => invoke('addActivite', data),
@@ -100,4 +100,5 @@ getActivites:      ()       => ipcRenderer.invoke('getActivites'),
   //renewAbonnement: (data) => ipcRenderer.invoke('renew-abonnement', data),
   //ajouterPaiement:        (data) => ipcRenderer.invoke('ajouterPaiement', data),
   //getAbonnementsNonPaies: ()     => ipcRenderer.invoke('getAbonnementsNonPaies'),
+  
 });

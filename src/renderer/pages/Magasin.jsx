@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Plus, Search, Package, ShoppingCart, TrendingUp, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronRight, Plus, Search, Package, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import gymBg from '../../images/gym1.png';
 import { useLocation, useNavigate } from "react-router-dom"; 
 import QuickActions from "../components/QuickActions";
@@ -624,8 +624,6 @@ const navigate = useNavigate();
               {[
                 { count: products.length, label: 'produits',  color: C.muted  },
                 { count: totalStock,      label: 'en stock',  color: C.green  },
-                { count: '304',           label: 'achats',    color: C.blue   },
-                { count: '503',           label: 'ventes',    color: C.gold   },
                 ...(lowStock > 0 ? [{ count: lowStock, label: 'stock faible', color: C.accent }] : []),
               ].map(({ count, label, color }, i, arr) => (
                 <React.Fragment key={label}>
@@ -661,8 +659,6 @@ const navigate = useNavigate();
         {/* Stat Cards */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 28 }}>
           <StatCard icon={Package}     label="Produits"  value={products.length} sub="articles au catalogue"  accent={C.accent} />
-          <StatCard icon={ShoppingCart} label="Achats"    value="304"             sub="achats enregistrés"     accent={C.blue}   />
-          <StatCard icon={TrendingUp}   label="Ventes"    value="503"             sub="ventes effectuées"      accent={C.green}  />
           {lowStock > 0 && (
             <StatCard icon={AlertTriangle} label="Alerte" value={lowStock} sub="articles en stock faible" accent={C.gold} />
           )}

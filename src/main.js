@@ -1052,34 +1052,73 @@ ipcMain.handle('deleteActivite', async (event, id) => {
     });
   });
 });
+// ══════════════════════════════════════════════
+//  REMPLACER l'ancien addTransaction dans main.js
+//  par ce handler corrigé
+// ══════════════════════════════════════════════
+
 ipcMain.handle('addTransaction', async (event, data) => {
   const { produit_id, type, quantite, prix } = data;
 
-  if (type === 'achat') {
-    await db.query(
-      "UPDATE Produit SET stock = stock + ? WHERE idProduit = ?",
-      [quantite, produit_id]
-    );
+  return new Promise((resolve, reject) => {
 
-    await db.query(
-      "INSERT INTO HistoriqueAchat (date, utilisateur_id, produit_id, quantite, prix_achat) VALUES (NOW(), 1, ?, ?, ?)",
-      [produit_id, quantite, prix]
-    );
-  }
+    if (type === 'achat') {
+      // 1. Mettre à jour le stock
+      db.query(
+        'UPDATE Produit SET stock = stock + ? WHERE idProduit = ?',
+        [quantite, produit_id],
+        (err) => {
+          if (err) return reject(err);
 
-  if (type === 'vente') {
-    await db.query(
-      "UPDATE Produit SET stock = stock - ? WHERE idProduit = ?",
-      [quantite, produit_id]
-    );
+          // 2. Insérer dans HistoriqueAchat
+          db.query(
+            'INSERT INTO HistoriqueAchat (date, utilisateur_id, produit_id, quantite, prix_achat) VALUES (NOW(), 1, ?, ?, ?)',
+            [produit_id, quantite, prix || 0],
+            (err2) => {
+              if (err2) return reject(err2);
+              resolve({ success: true });
+            }
+          );
+        }
+      );
+    }
 
-    await db.query(
-      "INSERT INTO HistoriqueVente (date, utilisateur_id, produit_id, quantite) VALUES (NOW(), 1, ?, ?)",
-      [produit_id, quantite]
-    );
-  }
+    else if (type === 'vente') {
+      // 1. Vérifier le stock avant de vendre
+      db.query(
+        'SELECT stock FROM Produit WHERE idProduit = ?',
+        [produit_id],
+        (err, rows) => {
+          if (err) return reject(err);
+          if (!rows || rows.length === 0) return reject(new Error('Produit introuvable'));
+          if (rows[0].stock < quantite) return reject(new Error('Stock insuffisant'));
 
-  return { success: true };
+          // 2. Déduire le stock
+          db.query(
+            'UPDATE Produit SET stock = stock - ? WHERE idProduit = ?',
+            [quantite, produit_id],
+            (err2) => {
+              if (err2) return reject(err2);
+
+              // 3. Insérer dans HistoriqueVente
+              db.query(
+                'INSERT INTO HistoriqueVente (date, utilisateur_id, produit_id, quantite) VALUES (NOW(), 1, ?, ?)',
+                [produit_id, quantite],
+                (err3) => {
+                  if (err3) return reject(err3);
+                  resolve({ success: true });
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+
+    else {
+      reject(new Error(`Type de transaction inconnu : ${type}`));
+    }
+  });
 });
 ipcMain.handle('addRole', async (event, { nom }) => {
   return new Promise((resolve, reject) => {
@@ -1106,6 +1145,59 @@ ipcMain.handle('deleteSeance', async (event, id) => {
       db.query('DELETE FROM Seance WHERE idSeance = ?', [id],
         (err2, result) => { if (err2) reject(err2); else resolve({ success: true }); }
       );
+    });
+  });
+});
+// ══════════════════════════════════════════════
+//  HISTORIQUE TRANSACTIONS (à ajouter dans main.js)
+// ══════════════════════════════════════════════
+
+// Récupérer l'historique des ventes
+ipcMain.handle('getHistoriqueVentes', async () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT 
+        hv.id,
+        hv.date,
+        hv.produit_id,
+        hv.quantite,
+        hv.utilisateur_id,
+        p.prix AS prix_vente,
+        p.nom AS produit_nom,
+        CONCAT(u.prenom, ' ', u.nom) AS utilisateur_nom
+      FROM HistoriqueVente hv
+      LEFT JOIN Produit p ON hv.produit_id = p.idProduit
+      LEFT JOIN Utilisateur u ON hv.utilisateur_id = u.idUtilisateur
+      ORDER BY hv.date DESC
+    `;
+    db.query(sql, (err, result) => {
+      if (err) { console.error('Erreur getHistoriqueVentes:', err); reject(err); }
+      else resolve(result);
+    });
+  });
+});
+
+// Récupérer l'historique des achats
+ipcMain.handle('getHistoriqueAchats', async () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT 
+        ha.id,
+        ha.date,
+        ha.produit_id,
+        ha.quantite,
+        ha.prix_achat,
+        ha.utilisateur_id,
+        p.nom AS produit_nom,
+        CONCAT(u.prenom, ' ', u.nom) AS utilisateur_nom
+      FROM HistoriqueAchat ha
+      LEFT JOIN Produit p ON ha.produit_id = p.idProduit
+      LEFT JOIN Utilisateur u ON ha.utilisateur_id = u.idUtilisateur
+      ORDER BY ha.date DESC
+    `;
+    db.query(sql, (err, result) => {
+      if (err) { console.error('Erreur getHistoriqueAchats:', err); reject(err); }
+      else resolve(result);
     });
   });
 });
