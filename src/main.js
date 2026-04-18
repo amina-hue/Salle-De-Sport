@@ -1,4 +1,5 @@
 
+
 const { app, BrowserWindow, session, ipcMain } = require('electron');
 const path = require('node:path');
 const db = require('./db');
@@ -52,6 +53,50 @@ const query = (sql, params = []) =>
   );
 
 // ══════════════════════════════════════════════
+//  AUTO-EXPIRE HELPER
+//  Gère 2 cas :
+//   1. Abonnement suspendu dont dateFinSuspension < CURDATE()
+//      → la dateFin a DÉJÀ été décalée lors de la suspension
+//      → on remet juste le statut à 'actif' (ou 'expiré' si dateFin aussi dépassée)
+//        et on efface les champs suspension
+//   2. Abonnement actif dont dateFin < CURDATE() → expiré
+// ══════════════════════════════════════════════
+const autoExpire = (cb) => {
+  // Étape 1 : reprendre automatiquement les suspensions dont la période est terminée.
+  //           dateFin a déjà été décalée lors de la suspension → on ne retouche pas dateFin.
+  //           On remet juste actif/expiré selon si dateFin est encore dans le futur ou non.
+  db.query(
+    `UPDATE Abonnement
+     SET
+       statut            = CASE
+                             WHEN dateFin < CURDATE() THEN 'expiré'
+                             ELSE 'actif'
+                           END,
+       dureeSuspension   = NULL,
+       causeSuspension   = NULL,
+       dateFinSuspension = NULL
+     WHERE statut = 'suspendu'
+       AND dateFinSuspension IS NOT NULL
+       AND dateFinSuspension < CURDATE()`,
+    (errSuspend) => {
+      if (errSuspend) console.error('Auto-reprise suspension error:', errSuspend);
+
+      // Étape 2 : expirer les abonnements actifs dont la dateFin est dépassée
+      db.query(
+        `UPDATE Abonnement
+         SET statut = 'expiré'
+         WHERE statut = 'actif'
+           AND dateFin < CURDATE()`,
+        (errExpire) => {
+          if (errExpire) console.error('Auto-expire error:', errExpire);
+          if (cb) cb();
+        }
+      );
+    }
+  );
+};
+
+// ══════════════════════════════════════════════
 //  LOGIN
 // ══════════════════════════════════════════════
 ipcMain.handle('login', async (event, data) => {
@@ -89,16 +134,69 @@ ipcMain.handle('addAdherent', async (event, data) => {
   });
 });
 
+// ✅ CORRIGÉ : si statut = 'suspendu', dateFin est décalée de dureeSuspension jours immédiatement
 ipcMain.handle('updateAbonnement', async (event, data) => {
-  console.log('updateAbonnement reçu:', data); // ← ajouter cette ligne
   return new Promise((resolve, reject) => {
-    const { idAbonnement, type_id, dateDebut, dateFin, statut, montantDu } = data;
-    console.log('montantDu en BDD:', montantDu); // ← et celle-ci
-    db.query(
-      'UPDATE Abonnement SET type_id=?, dateDebut=?, dateFin=?, statut=?, montantDu=? WHERE idAbonnement=?',
-      [type_id, dateDebut, dateFin, statut, montantDu ?? null, idAbonnement],
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
+    const {
+      idAbonnement, type_id, dateDebut, dateFin, statut, montantDu,
+      dureeSuspension, causeSuspension, dateFinSuspension,
+    } = data;
+
+    const isSuspension = statut === 'suspendu' && dureeSuspension;
+
+    // Si on suspend : on décale dateFin de dureeSuspension jours directement en SQL.
+    // La dateFin passée par le frontend est la dateFin ORIGINALE — on la décale ici.
+    const sql = isSuspension
+      ? `UPDATE Abonnement
+         SET type_id           = ?,
+             dateDebut         = ?,
+             dateFin           = DATE_ADD(?, INTERVAL ? DAY),
+             statut            = ?,
+             montantDu         = ?,
+             dureeSuspension   = ?,
+             causeSuspension   = ?,
+             dateFinSuspension = ?
+         WHERE idAbonnement = ?`
+      : `UPDATE Abonnement
+         SET type_id           = ?,
+             dateDebut         = ?,
+             dateFin           = ?,
+             statut            = ?,
+             montantDu         = ?,
+             dureeSuspension   = ?,
+             causeSuspension   = ?,
+             dateFinSuspension = ?
+         WHERE idAbonnement = ?`;
+
+    const params = isSuspension
+      ? [
+          type_id,
+          dateDebut,
+          dateFin,             // DATE_ADD(dateFin, INTERVAL dureeSuspension DAY)
+          dureeSuspension,
+          statut,
+          montantDu ?? null,
+          dureeSuspension,
+          causeSuspension   ?? null,
+          dateFinSuspension ?? null,
+          idAbonnement,
+        ]
+      : [
+          type_id,
+          dateDebut,
+          dateFin,
+          statut,
+          montantDu ?? null,
+          dureeSuspension   ?? null,
+          causeSuspension   ?? null,
+          dateFinSuspension ?? null,
+          idAbonnement,
+        ];
+
+    db.query(sql, params, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
   });
 });
 
@@ -109,70 +207,58 @@ ipcMain.handle('deleteAdherent', async (event, id) => {
   });
 });
 
-// ✅ CORRIGÉ : Récupère le dernier abonnement (quel que soit le statut) + auto-expire
+// ✅ CORRIGÉ : Auto-expire/reprise + récupère dureeSuspension, causeSuspension, dateFinSuspension
 ipcMain.handle('getAdherentDetail', async (event, id) => {
   return new Promise((resolve, reject) => {
-    db.query(
-      `UPDATE Abonnement SET statut = 'expiré'
-       WHERE statut = 'actif' AND dateFin < CURDATE()`,
-      (errUpdate) => {
-        if (errUpdate) console.error('Auto-expire error:', errUpdate);
-
-        db.query(
-          `SELECT ad.*, ab.idAbonnement, ab.type_id, ab.dateDebut, ab.dateFin,
-              ab.statut AS abonnementStatut,
-              t.nom AS typeNom, t.prix AS typePrix, t.duree
-           FROM Adherent ad
-           LEFT JOIN Abonnement ab ON ab.idAbonnement = (
-             SELECT idAbonnement FROM Abonnement
-             WHERE adherent_id = ad.idAdherent
-             ORDER BY dateDebut DESC LIMIT 1
-           )
-           LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
-           WHERE ad.idAdherent = ?`,
-          [id],
-          (err, result) => { if (err) reject(err); else resolve(result[0] || null); }
-        );
-      }
-    );
+    autoExpire(() => {
+      db.query(
+        `SELECT ad.*, ab.idAbonnement, ab.type_id, ab.dateDebut, ab.dateFin,
+            ab.statut AS abonnementStatut,
+            ab.dureeSuspension, ab.causeSuspension, ab.dateFinSuspension,
+            t.nom AS typeNom, t.prix AS typePrix, t.duree
+         FROM Adherent ad
+         LEFT JOIN Abonnement ab ON ab.idAbonnement = (
+           SELECT idAbonnement FROM Abonnement
+           WHERE adherent_id = ad.idAdherent
+           ORDER BY dateDebut DESC LIMIT 1
+         )
+         LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+         WHERE ad.idAdherent = ?`,
+        [id],
+        (err, result) => { if (err) reject(err); else resolve(result[0] || null); }
+      );
+    });
   });
 });
 
-// ✅ CORRIGÉ : Auto-expire + récupère le dernier abonnement sans filtrer sur statut='actif'
+// ✅ CORRIGÉ : Auto-expire/reprise + récupère les champs suspension
 ipcMain.handle('getAdherentsAvecAbonnement', async () => {
   return new Promise((resolve, reject) => {
-
-    // Étape 1 : mettre à jour automatiquement les abonnements expirés
-    db.query(
-      `UPDATE Abonnement SET statut = 'expiré'
-       WHERE statut = 'actif' AND dateFin < CURDATE()`,
-      (errUpdate) => {
-        if (errUpdate) console.error('Auto-expire error:', errUpdate);
-
-        // Étape 2 : récupérer tous les adhérents avec leur abonnement le plus récent
-        db.query(
-          `SELECT ad.*,
-              ab.idAbonnement, ab.type_id, ab.dateDebut, ab.dateFin,
-              ab.statut AS abonnementStatut,
-              t.nom AS typeNom, t.prix AS typePrix
-           FROM Adherent ad
-           LEFT JOIN Abonnement ab ON ab.idAbonnement = (
-             SELECT idAbonnement FROM Abonnement
-             WHERE adherent_id = ad.idAdherent
-             ORDER BY dateDebut DESC
-             LIMIT 1
-           )
-           LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
-           ORDER BY ad.dateCreation DESC`,
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          }
-        );
-      }
-    );
+    autoExpire(() => {
+      db.query(
+        `SELECT ad.*,
+            ab.idAbonnement, ab.type_id, ab.dateDebut, ab.dateFin,
+            ab.statut AS abonnementStatut,
+            ab.dureeSuspension, ab.causeSuspension, ab.dateFinSuspension,
+            t.nom AS typeNom, t.prix AS typePrix
+         FROM Adherent ad
+         LEFT JOIN Abonnement ab ON ab.idAbonnement = (
+           SELECT idAbonnement FROM Abonnement
+           WHERE adherent_id = ad.idAdherent
+           ORDER BY dateDebut DESC
+           LIMIT 1
+         )
+         LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+         ORDER BY ad.dateCreation DESC`,
+        (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        }
+      );
+    });
   });
 });
+
 ipcMain.handle('updateAdherent', async (event, data) => {
   return new Promise((resolve, reject) => {
     const { idAdherent, nom, prenom, dateNaissance, numTelephone, email, sexe } = data;
@@ -183,6 +269,7 @@ ipcMain.handle('updateAdherent', async (event, data) => {
     );
   });
 });
+
 ipcMain.handle('updateAdherentPhoto', async (event, { idAdherent, photo }) => {
   return new Promise((resolve, reject) => {
     db.query('UPDATE Adherent SET photo = ? WHERE idAdherent = ?', [photo, idAdherent],
@@ -219,7 +306,9 @@ ipcMain.handle('searchAdherents', async (event, query) => {
   return new Promise((resolve, reject) => {
     const q = `%${query}%`;
     db.query(
-      `SELECT ad.*, ab.statut AS abonnementStatut, t.nom AS typeNom
+      `SELECT ad.*, ab.statut AS abonnementStatut,
+              ab.dureeSuspension, ab.causeSuspension, ab.dateFinSuspension,
+              t.nom AS typeNom
        FROM Adherent ad
        LEFT JOIN Abonnement ab ON ab.idAbonnement = (
          SELECT idAbonnement FROM Abonnement
@@ -237,28 +326,23 @@ ipcMain.handle('searchAdherents', async (event, query) => {
 
 ipcMain.handle('getStatsAdherents', async () => {
   return new Promise((resolve, reject) => {
-    // Auto-expire d'abord
-    db.query(
-      `UPDATE Abonnement SET statut = 'expiré'
-       WHERE statut = 'actif' AND dateFin < CURDATE()`,
-      () => {
-        db.query(
-          `SELECT COUNT(DISTINCT ad.idAdherent) AS total,
-            SUM(CASE WHEN ab.statut = 'actif'    THEN 1 ELSE 0 END) AS actifs,
-            SUM(CASE WHEN ab.statut = 'expiré'   THEN 1 ELSE 0 END) AS expires,
-            SUM(CASE WHEN ab.statut = 'suspendu' THEN 1 ELSE 0 END) AS suspendus,
-            SUM(CASE WHEN ad.sexe = 'Homme'      THEN 1 ELSE 0 END) AS hommes,
-            SUM(CASE WHEN ad.sexe = 'Femme'      THEN 1 ELSE 0 END) AS femmes
-           FROM Adherent ad
-           LEFT JOIN Abonnement ab ON ab.idAbonnement = (
-             SELECT idAbonnement FROM Abonnement
-             WHERE adherent_id = ad.idAdherent
-             ORDER BY dateDebut DESC LIMIT 1
-           )`,
-          (err, result) => { if (err) reject(err); else resolve(result[0]); }
-        );
-      }
-    );
+    autoExpire(() => {
+      db.query(
+        `SELECT COUNT(DISTINCT ad.idAdherent) AS total,
+          SUM(CASE WHEN ab.statut = 'actif'    THEN 1 ELSE 0 END) AS actifs,
+          SUM(CASE WHEN ab.statut = 'expiré'   THEN 1 ELSE 0 END) AS expires,
+          SUM(CASE WHEN ab.statut = 'suspendu' THEN 1 ELSE 0 END) AS suspendus,
+          SUM(CASE WHEN ad.sexe = 'Homme'      THEN 1 ELSE 0 END) AS hommes,
+          SUM(CASE WHEN ad.sexe = 'Femme'      THEN 1 ELSE 0 END) AS femmes
+         FROM Adherent ad
+         LEFT JOIN Abonnement ab ON ab.idAbonnement = (
+           SELECT idAbonnement FROM Abonnement
+           WHERE adherent_id = ad.idAdherent
+           ORDER BY dateDebut DESC LIMIT 1
+         )`,
+        (err, result) => { if (err) reject(err); else resolve(result[0]); }
+      );
+    });
   });
 });
 
@@ -388,17 +472,28 @@ ipcMain.handle('getAbonnementsExpirant', async () => {
   });
 });
 
+// ✅ CORRIGÉ : inclut dureeSuspension, causeSuspension, dateFinSuspension
 ipcMain.handle('addAbonnement', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { adherent_id, type_id, dateDebut, dateFin, statut } = data;
+    const {
+      adherent_id, type_id, dateDebut, dateFin, statut,
+      dureeSuspension, causeSuspension, dateFinSuspension,
+    } = data;
     db.query(
-      'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut) VALUES (?, ?, ?, ?, ?)',
-      [adherent_id, type_id, dateDebut, dateFin, statut],
+      `INSERT INTO Abonnement
+         (adherent_id, type_id, dateDebut, dateFin, statut,
+          dureeSuspension, causeSuspension, dateFinSuspension)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        adherent_id, type_id, dateDebut, dateFin, statut,
+        dureeSuspension   ?? null,
+        causeSuspension   ?? null,
+        dateFinSuspension ?? null,
+      ],
       (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
     );
   });
 });
-
 
 ipcMain.handle('getTypesAbonnement', async () => {
   return new Promise((resolve, reject) => {
@@ -418,7 +513,7 @@ ipcMain.handle('getPaiements', async () => {
         p.montant,
         DATE_FORMAT(p.datePaiement, '%d/%m/%Y') AS date,
         p.modePaiement AS mode,
-        CONCAT(a.prenom, ' ', a.nom) AS nom,   -- ← nom complet
+        CONCAT(a.prenom, ' ', a.nom) AS nom,
         'Payé' AS statut
       FROM Paiement p
       JOIN Abonnement ab ON p.abonnement_id = ab.idAbonnement
@@ -436,14 +531,11 @@ ipcMain.handle('addPaiement', async (event, data) => {
   return new Promise((resolve, reject) => {
     const { abonnement_id, montant, date, mode } = data;
     
-    // 1. Mapping du mode de paiement pour correspondre à l'ENUM de ta BDD
-    // Ta BDD attend : 'cash', 'carte', 'virement'
     let modeSQL = 'cash'; 
     if (mode === 'Carte bancaire') modeSQL = 'carte';
     if (mode === 'Virement') modeSQL = 'virement';
     if (mode === 'Espèces') modeSQL = 'cash';
 
-    // 2. Requête SQL (Note : datePaiement et modePaiement selon ton script SQL)
     const sql = 'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)';
     
     db.query(
@@ -452,7 +544,6 @@ ipcMain.handle('addPaiement', async (event, data) => {
       (err, result) => {
         if (err) {
           console.error("❌ ERREUR SQL addPaiement:", err);
-          // On résout avec success: false pour que le catch de React ne se déclenche pas violemment
           resolve({ success: false, error: err.message });
         } else {
           resolve({ success: true, insertId: result.insertId });
@@ -468,6 +559,7 @@ ipcMain.handle('getAdherentsWithAbonnement', async () => {
       `SELECT ad.*,
         ab.idAbonnement, ab.type_id, ab.dateDebut, ab.dateFin,
         ab.statut AS abonnementStatut,
+        ab.dureeSuspension, ab.causeSuspension, ab.dateFinSuspension,
         t.nom AS typeNom, t.prix AS typePrix
        FROM Adherent ad
        INNER JOIN Abonnement ab ON ab.idAbonnement = (
@@ -482,6 +574,7 @@ ipcMain.handle('getAdherentsWithAbonnement', async () => {
     );
   });
 });
+
 ipcMain.handle('getAbonnementsNonPaies', async () => {
   return new Promise((resolve, reject) => {
     const sql = `
@@ -508,82 +601,53 @@ ipcMain.handle('getAbonnementsNonPaies', async () => {
     });
   });
 });
+
 // ══════════════════════════════════════════════
 //  PRODUITS
 // ══════════════════════════════════════════════
 
-//  PRODUITS (MAGASIN)
-// ─────────────────────────────────────────────────────────────────────────────
-
-// 1. Récupérer tous les produits
 ipcMain.handle('getProduits', async () => {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM Produit ORDER BY nom ASC';
     db.query(sql, (err, result) => {
-      if (err) {
-        console.error("Erreur SQL (getProduits):", err);
-        reject(err);
-      } else {
-        resolve(result);
-      }
+      if (err) { console.error("Erreur SQL (getProduits):", err); reject(err); }
+      else resolve(result);
     });
   });
 });
 
-// 2. Ajouter un produit
 ipcMain.handle('addProduit', async (event, data) => {
   return new Promise((resolve, reject) => {
     const { nom, reference, stock, prix, categorie } = data;
     const sql = 'INSERT INTO Produit (nom, reference, stock, prix, categorie) VALUES (?, ?, ?, ?, ?)';
-    
     db.query(sql, [nom, reference, stock, prix, categorie], (err, result) => {
-      if (err) {
-        console.error("Erreur SQL (addProduit):", err);
-        reject(err);
-      } else {
-        // Renvoie l'ID généré pour confirmer l'ajout
-        resolve({ idProduit: result.insertId, status: 'success' });
-      }
+      if (err) { console.error("Erreur SQL (addProduit):", err); reject(err); }
+      else resolve({ idProduit: result.insertId, status: 'success' });
     });
   });
 });
 
-// 3. Modifier un produit
 ipcMain.handle('updateProduit', async (event, data) => {
   return new Promise((resolve, reject) => {
-    // Note : on utilise idProduit qui vient de l'objet p de React
     const { idProduit, nom, reference, stock, prix, categorie } = data;
-    const sql = `
-      UPDATE Produit 
-      SET nom = ?, reference = ?, stock = ?, prix = ?, categorie = ? 
-      WHERE idProduit = ?
-    `;
-    
+    const sql = `UPDATE Produit SET nom = ?, reference = ?, stock = ?, prix = ?, categorie = ? WHERE idProduit = ?`;
     db.query(sql, [nom, reference, stock, prix, categorie, idProduit], (err, result) => {
-      if (err) {
-        console.error("Erreur SQL (updateProduit):", err);
-        reject(err);
-      } else {
-        resolve({ status: 'updated', affectedRows: result.affectedRows });
-      }
+      if (err) { console.error("Erreur SQL (updateProduit):", err); reject(err); }
+      else resolve({ status: 'updated', affectedRows: result.affectedRows });
     });
   });
 });
 
-// 4. Supprimer un produit
 ipcMain.handle('deleteProduit', async (event, id) => {
   return new Promise((resolve, reject) => {
     const sql = 'DELETE FROM Produit WHERE idProduit = ?';
     db.query(sql, [id], (err, result) => {
-      if (err) {
-        console.error("Erreur SQL (deleteProduit):", err);
-        reject(err);
-      } else {
-        resolve({ status: 'deleted' });
-      }
+      if (err) { console.error("Erreur SQL (deleteProduit):", err); reject(err); }
+      else resolve({ status: 'deleted' });
     });
   });
 });
+
 // ══════════════════════════════════════════════
 //  STATS MAGASIN (DYNAMIQUES)
 // ══════════════════════════════════════════════
@@ -600,17 +664,13 @@ ipcMain.handle('getStatsMagasin', async () => {
         (SELECT COUNT(*) FROM HistoriqueVente WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())) AS ventesCeMois,
         (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())) AS quantiteVendueCeMois
     `;
-    
     db.query(sql, (err, result) => {
-      if (err) {
-        console.error("Erreur SQL (getStatsMagasin):", err);
-        reject(err);
-      } else {
-        resolve(result[0]);
-      }
+      if (err) { console.error("Erreur SQL (getStatsMagasin):", err); reject(err); }
+      else resolve(result[0]);
     });
   });
 });
+
 // ══════════════════════════════════════════════
 //  UTILISATEURS
 // ══════════════════════════════════════════════
@@ -684,8 +744,7 @@ ipcMain.handle('getRolesAvecCount', async () => {
     );
   });
 });
-//permissions
-// Récupérer les permissions d'un rôle
+
 ipcMain.handle('getPermissions', async (event, role_id) => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -694,7 +753,6 @@ ipcMain.handle('getPermissions', async (event, role_id) => {
       (err, result) => {
         if (err) reject(err);
         else {
-          // Convertir en objet { page_key: statut }
           const perms = {};
           result.forEach(r => { perms[r.page_key] = r.statut; });
           resolve(perms);
@@ -730,17 +788,12 @@ ipcMain.handle('getStatsPageAdherent', async () => {
   });
 });
 
-// Sauvegarder les permissions d'un rôle
 ipcMain.handle('savePermissions', async (event, { role_id, permissions }) => {
   return new Promise((resolve, reject) => {
-    // Supprimer les anciennes permissions du rôle
     db.query('DELETE FROM Permissions WHERE role_id = ?', [role_id], (err) => {
       if (err) return reject(err);
-
       const entries = Object.entries(permissions);
       if (!entries.length) return resolve({ success: true });
-
-      // Insérer les nouvelles
       const values = entries.map(([key, statut]) => [role_id, key, statut]);
       db.query(
         'INSERT INTO Permissions (role_id, page_key, statut) VALUES ?',
@@ -753,6 +806,7 @@ ipcMain.handle('savePermissions', async (event, { role_id, permissions }) => {
     });
   });
 });
+
 ipcMain.handle('getStatsAbonnements', async () => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -810,7 +864,7 @@ ipcMain.handle('getFrequentationHebdo', async () => {
     );
   });
 });
-// Fréquentation par jour de la semaine
+
 ipcMain.handle('getFrequentationSemaine', async () => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -822,8 +876,6 @@ ipcMain.handle('getFrequentationSemaine', async () => {
        ORDER BY DAYOFWEEK(date)`,
       (err, result) => {
         if (err) return reject(err);
-
-        // DAYOFWEEK : 1=Dim, 2=Lun, 3=Mar, 4=Mer, 5=Jeu, 6=Ven, 7=Sam
         const jours = [
           { jourNum: 1, day: "Dim" },
           { jourNum: 2, day: "Lun" },
@@ -833,52 +885,26 @@ ipcMain.handle('getFrequentationSemaine', async () => {
           { jourNum: 6, day: "Ven" },
           { jourNum: 7, day: "Sam" },
         ];
-
-        // Fusionner — si un jour a 0 présences il apparaît quand même avec 0
         const data = jours.map(j => {
           const found = result.find(r => r.jourNum === j.jourNum);
           return { day: j.day, value: found ? found.total : 0 };
         });
-
         resolve(data);
       }
     );
   });
 });
-// ══════════════════════════════════════════════
-//  STATS MAGASIN 
-// ══════════════════════════════════════════════
-// ipcMain.handle('getStatsMagasin', async () => {
-//   return new Promise((resolve, reject) => {
-//     const sql = `
-//       SELECT 
-//         (SELECT COUNT(*) FROM Produit) AS totalProduits,
-//         (SELECT COUNT(*) FROM Produit WHERE stock < 5) AS alertesStock,
-//         (SELECT IFNULL(SUM(quantite), 0) FROM HistoriqueVente WHERE date = CURDATE()) AS ventesAujourdhui,
-//         (SELECT p.nom FROM HistoriqueVente h 
-//          JOIN Produit p ON h.produit_id = p.idProduit 
-//          GROUP BY h.produit_id ORDER BY SUM(h.quantite) DESC LIMIT 1) AS topProduit
-//     `;
-//     db.query(sql, (err, result) => {
-//       if (err) reject(err);
-//       else resolve(result[0]);
-//     });
-//   });
-// });
 
 ipcMain.handle('vendreProduit', async (event, { produit_id, utilisateur_id, quantite }) => {
   return new Promise((resolve, reject) => {
-    // 1. Vérifier et mettre à jour le stock
     db.query(
       'UPDATE Produit SET stock = stock - ? WHERE idProduit = ? AND stock >= ?',
       [quantite, produit_id, quantite],
       (err, result) => {
         if (err) return reject(err);
         if (result.affectedRows === 0) {
-            return resolve({ success: false, message: "Stock insuffisant ou produit inexistant" });
+          return resolve({ success: false, message: "Stock insuffisant ou produit inexistant" });
         }
-
-        // 2. Enregistrer dans l'historique
         db.query(
           'INSERT INTO HistoriqueVente (date, utilisateur_id, produit_id, quantite) VALUES (CURDATE(), ?, ?, ?)',
           [utilisateur_id, produit_id, quantite],
@@ -891,6 +917,7 @@ ipcMain.handle('vendreProduit', async (event, { produit_id, utilisateur_id, quan
     );
   });
 });
+
 ipcMain.handle('createAdherentComplet', async (event, data) => {
   return new Promise((resolve, reject) => {
     const {
@@ -899,7 +926,6 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
       montant, modePaiement, montantDu
     } = data;
 
-    // 1. Créer l'adhérent
     db.query(
       'INSERT INTO Adherent (nom, prenom, dateNaissance, numTelephone, email, sexe, photo) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [nom, prenom, dateNaissance || null, numTelephone, email || null, sexe, photo || null],
@@ -907,15 +933,13 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
         if (err) return reject(err);
         const adherent_id = resAdherent.insertId;
 
-        // 2. Créer l'abonnement
         db.query(
           'INSERT INTO Abonnement (adherent_id, type_id, dateDebut, dateFin, statut, montantDu) VALUES (?, ?, ?, ?, ?, ?)',
-  [adherent_id, type_id, dateDebut, dateFin || null, 'actif', montantDu || null],
+          [adherent_id, type_id, dateDebut, dateFin || null, 'actif', montantDu || null],
           (err2, resAbo) => {
             if (err2) return reject(err2);
             const abonnement_id = resAbo.insertId;
 
-            // 3. Créer le paiement seulement si montant > 0
             if (!montant || montant <= 0) {
               return resolve({ success: true, adherent_id, abonnement_id });
             }
@@ -926,8 +950,7 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
 
             db.query(
               'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement, statut) VALUES (?, ?, ?, ?, ?)',
-[abonnement_id, montant, dateDebut, modeSQL, 'Payé'],
-
+              [abonnement_id, montant, dateDebut, modeSQL, 'Payé'],
               (err3) => {
                 if (err3) return reject(err3);
                 resolve({ success: true, adherent_id, abonnement_id });
@@ -939,7 +962,7 @@ ipcMain.handle('createAdherentComplet', async (event, data) => {
     );
   });
 });
-// Dans main.js, remplace ajouterPaiement pour qu'il mette aussi à jour le statut
+
 ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, date }) => {
   return new Promise((resolve, reject) => {
     const modeMap = { 'Espèces': 'cash', 'Carte bancaire': 'carte', 'Virement': 'virement' };
@@ -950,7 +973,6 @@ ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, 
       [abonnement_id, montant, date, modeSQL, 'Payé'],
       (err, result) => {
         if (err) return reject(err);
-        // Marquer l'abonnement comme payé
         db.query(
           "UPDATE Abonnement SET statutPaiement = 'payé' WHERE idAbonnement = ?",
           [abonnement_id],
@@ -963,6 +985,7 @@ ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, 
     );
   });
 });
+
 // ══════════════════════════════════════════════
 //  SÉANCES
 // ══════════════════════════════════════════════

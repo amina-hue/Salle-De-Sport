@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ChevronRight, Search, Plus, Filter, Mail, Phone,
-  Edit2, Trash2, Users, Calendar, Loader2, AlertCircle, RefreshCw
+  Edit2, Trash2, Users, Calendar, Loader2, AlertCircle, RefreshCw, PauseCircle
 } from 'lucide-react';
 import AddMemberModal from '../components/AddMemberModal';
 import GYM_BG from '../../images/background.png';
@@ -59,38 +59,26 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-
 function toInputDate(dateStr) {
   if (!dateStr) return '';
-
-  // ✅ Si c'est un objet Date
   if (dateStr instanceof Date) {
     const y = dateStr.getFullYear();
     const m = String(dateStr.getMonth() + 1).padStart(2, '0');
     const d = String(dateStr.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
-
-  // ✅ Si ce n'est pas une string → on évite le crash
   if (typeof dateStr !== 'string') return '';
-
-  // Si déjà YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-
-  // Format ISO → couper le T
   const iso = dateStr.split('T')[0];
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-
-  // Dernier recours
   const d = new Date(dateStr);
   if (isNaN(d)) return '';
-
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-
   return `${y}-${m}-${day}`;
 }
+
 function statusConfig(statut) {
   switch ((statut || '').toLowerCase()) {
     case 'actif':    return { label: 'Actif',    bg: '#22c55e', shadow: 'rgba(34,197,94,0.4)'  };
@@ -106,6 +94,20 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
   const sc = statusConfig(member.abonnementStatut);
   const photoSrc = member.photo
     || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.nom || '') + ' ' + (member.prenom || ''))}&background=1f2330&color=e53935&size=300`;
+
+  const isSuspendu = (member.abonnementStatut || '').toLowerCase() === 'suspendu';
+
+  // ── Date de fin effective à afficher ──
+  // Si suspendu : on affiche la dateFin décalée (= dateFin actuelle en BDD après décalage)
+  // La date dans dateFin est déjà la date décalée une fois enregistrée
+  const datefinAffichee = member.dateFin
+    ? formatDate(member.dateFin)
+    : '—';
+
+  // Date de fin de suspension pour affichage "Suspendu jusqu'au..."
+  const dateFinSuspensionAffichee = member.dateFinSuspension
+    ? formatDate(member.dateFinSuspension)
+    : null;
 
   return (
     <div
@@ -145,14 +147,34 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
           {member.nom} {member.prenom}
         </div>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: planBg(member.typeNom), borderRadius: 6, padding: '3px 10px', marginBottom: 12 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: planBg(member.typeNom), borderRadius: 6, padding: '3px 10px', marginBottom: 10 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: planColor(member.typeNom) }} />
           <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: planColor(member.typeNom) }}>
             {member.typeNom || 'Aucun abonnement'}
           </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+        {/* ── Bloc suspension : affiché seulement si statut = suspendu ── */}
+        {isSuspendu && dateFinSuspensionAffichee && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'rgba(249,115,22,0.1)',
+            border: '1px solid rgba(249,115,22,0.3)',
+            borderRadius: 7, padding: '5px 9px', marginBottom: 8,
+          }}>
+            <PauseCircle size={12} color={C.orange} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.67rem', color: C.orange, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Suspendu {member.dureeSuspension ? `(${member.dureeSuspension}j)` : ''}
+              </span>
+              <span style={{ fontSize: '0.68rem', color: C.subtle }}>
+                Reprise le <strong style={{ color: C.orange }}>{dateFinSuspensionAffichee}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
           {[{ Icon: Mail, text: member.email }, { Icon: Phone, text: member.numTelephone }].map(({ Icon, text }) => (
             <div key={Icon.displayName} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -164,6 +186,19 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
             </div>
           ))}
         </div>
+
+        {/* Date fin abonnement */}
+        {member.dateFin && (
+          <div style={{ fontSize: '0.68rem', color: C.muted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Calendar size={11} />
+            <span>
+              {isSuspendu ? 'Fin (après reprise) :' : 'Expire le :'}{' '}
+              <strong style={{ color: isSuspendu ? C.orange : C.subtle, fontWeight: 500 }}>
+                {datefinAffichee}
+              </strong>
+            </span>
+          </div>
+        )}
 
         <div style={{ fontSize: '0.68rem', color: C.muted, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>
           <Calendar size={11} />
@@ -218,40 +253,25 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     dateDebut:         toInputDate(member.dateDebut),
     dateFin:           toInputDate(member.dateFin),
     abonnementStatut:  member.abonnementStatut || 'actif',
-    // Champs suspension
     dureeSuspension:   member.dureeSuspension   || '',
     causeSuspension:   member.causeSuspension   || '',
-    dateFinSuspension: member.dateFinSuspension || '',
+    dateFinSuspension: toInputDate(member.dateFinSuspension),
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // ── Calcul automatique date fin abonnement ────────────────────────────────
-  // const computeAndSetDateFin = (dateDebut, typeId) => {
-  //   if (!dateDebut || !typeId) return;
-  //   const found = typesAbonnement.find(t => String(t.id) === String(typeId));
-  //   if (!found?.duree) return;
-  //   const d = new Date(dateDebut);
-  //   if (isNaN(d)) return;
-  //   d.setMonth(d.getMonth() + Number(found.duree));
-  //   set('dateFin', d.toISOString().split('T')[0]);
-  // };
-
   const computeAndSetDateFin = (dateDebut, typeId) => {
-  if (!dateDebut || !typeId) return;
-  const found = typesAbonnement.find(t => String(t.id) === String(typeId));
-  if (!found?.duree) return;
-  
-  // ✅ Construire la date en LOCAL (pas UTC) pour éviter le décalage
-  const [y, m, d] = dateDebut.split('-').map(Number);
-  const date = new Date(y, m - 1, d); // new Date(year, month, day) = local
-  date.setMonth(date.getMonth() + Number(found.duree));
-  
-  const yy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  set('dateFin', `${yy}-${mm}-${dd}`);
-};
+    if (!dateDebut || !typeId) return;
+    const found = typesAbonnement.find(t => String(t.id) === String(typeId));
+    if (!found?.duree) return;
+    const [y, m, d] = dateDebut.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    date.setMonth(date.getMonth() + Number(found.duree));
+    const yy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    set('dateFin', `${yy}-${mm}-${dd}`);
+  };
 
   const handleTypeChange = (newTypeId) => {
     set('type_id', newTypeId);
@@ -263,35 +283,20 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     computeAndSetDateFin(newDate, form.type_id);
   };
 
-  // ── Calcul automatique date fin suspension ────────────────────────────────
-// const handleDureeSuspensionChange = (val) => {
-//   set('dureeSuspension', val);
+  const handleDureeSuspensionChange = (val) => {
+    set('dureeSuspension', val);
+    if (val) {
+      const now = new Date();
+      now.setDate(now.getDate() + Number(val));
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      set('dateFinSuspension', `${y}-${m}-${d}`);
+    } else {
+      set('dateFinSuspension', '');
+    }
+  };
 
-//   if (val) {
-//     const d = new Date(); // ✅ aujourd’hui = début suspension
-//     d.setDate(d.getDate() + Number(val));
-//     set('dateFinSuspension', d.toISOString().split('T')[0]);
-//   } else {
-//     set('dateFinSuspension', '');
-//   }
-// };
-
-const handleDureeSuspensionChange = (val) => {
-  set('dureeSuspension', val);
-  if (val) {
-    const now = new Date();
-    now.setDate(now.getDate() + Number(val));
-    // ✅ Format local
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    set('dateFinSuspension', `${y}-${m}-${d}`);
-  } else {
-    set('dateFinSuspension', '');
-  }
-};
-
-  // ── Changement de statut : reset champs suspension si non suspendu ────────
   const handleStatutChange = (newStatut) => {
     set('abonnementStatut', newStatut);
     if (newStatut !== 'suspendu') {
@@ -326,18 +331,14 @@ const handleDureeSuspensionChange = (val) => {
     setShowCamera(false);
   };
 
-  // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!form.nom.trim()) return alert('Le nom est requis.');
-
-    // 🔒 Validation suspension
     if (form.abonnementStatut === 'suspendu') {
       if (!form.dureeSuspension || !String(form.causeSuspension).trim()) {
         alert('La durée et la cause de suspension sont obligatoires.');
         return;
       }
     }
-
     setSaving(true);
     try {
       await onSave(form);
@@ -400,7 +401,6 @@ const handleDureeSuspensionChange = (val) => {
                 </div>
               </div>
 
-              {/* Caméra */}
               {showCamera && (
                 <div style={{ position: 'relative', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
                   <video ref={videoRef} autoPlay style={{ width: '100%', display: 'block' }} />
@@ -411,7 +411,6 @@ const handleDureeSuspensionChange = (val) => {
                 </div>
               )}
 
-              {/* Champs adhérent */}
               {[
                 { label: 'Nom :', key: 'nom', type: 'text' },
                 { label: 'Prénom :', key: 'prenom', type: 'text' },
@@ -456,15 +455,17 @@ const handleDureeSuspensionChange = (val) => {
                 <input style={inp} type="date" value={form.dateDebut} onChange={e => handleDateDebutChange(e.target.value)} />
               </div>
 
-              {/* Date fin (calculée) */}
+              {/* Date fin — si suspendu, on montre aussi la date décalée */}
               <div>
-                <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Date fin :</div>
+                <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
+                  Date fin {isSuspendu ? '(après reprise, décalée automatiquement) :' : '(calculée) :'}
+                </div>
                 <input
-                  style={{ ...inp, opacity: 0.6, cursor: 'not-allowed' }}
+                  style={{ ...inp, opacity: 0.6, cursor: 'not-allowed', color: isSuspendu ? C.orange : C.text }}
                   type="date"
                   value={form.dateFin}
                   readOnly
-                  title="Calculée automatiquement selon le type d'abonnement et la date de début"
+                  title={isSuspendu ? "La date de fin sera décalée automatiquement selon la durée de suspension" : "Calculée automatiquement selon le type d'abonnement et la date de début"}
                 />
               </div>
 
@@ -483,14 +484,16 @@ const handleDureeSuspensionChange = (val) => {
                 <div style={{
                   background: 'rgba(249,115,22,0.07)',
                   border: '1px solid rgba(249,115,22,0.3)',
-                  borderRadius: 10,
-                  padding: '14px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
+                  borderRadius: 10, padding: '14px 16px',
+                  display: 'flex', flexDirection: 'column', gap: 12,
                 }}>
                   <div style={{ fontSize: '0.75rem', color: C.gold, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                     ⏸ Détails de la suspension
+                  </div>
+
+                  {/* Explication */}
+                  <div style={{ fontSize: '0.72rem', color: C.subtle, background: 'rgba(249,115,22,0.06)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.6 }}>
+                    La date de fin actuelle (<strong style={{ color: C.orange }}>{formatDate(form.dateFin)}</strong>) sera automatiquement décalée de la durée de suspension lors de la reprise.
                   </div>
 
                   {/* Durée */}
@@ -499,36 +502,26 @@ const handleDureeSuspensionChange = (val) => {
                       Durée de suspension (jours) <span style={{ color: C.accent }}>*</span>
                     </div>
                     <input
-                      style={{
-                        ...inp,
-                        borderColor: !form.dureeSuspension ? 'rgba(249,115,22,0.55)' : '#3d3233',
-                      }}
-                      type="number"
-                      min="1"
-                      max="365"
-                      placeholder="Ex : 30"
+                      style={{ ...inp, borderColor: !form.dureeSuspension ? 'rgba(249,115,22,0.55)' : '#3d3233' }}
+                      type="number" min="1" max="365" placeholder="Ex : 30"
                       value={form.dureeSuspension}
                       onChange={e => handleDureeSuspensionChange(e.target.value)}
                     />
                     {!form.dureeSuspension && (
-                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>
-                        La durée est requise pour une suspension
-                      </div>
+                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>La durée est requise pour une suspension</div>
                     )}
                   </div>
 
-                  {/* Date fin suspension (calculée auto) */}
+                  {/* Date fin suspension calculée */}
                   {form.dateFinSuspension && (
                     <div>
                       <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
-                        Reprise prévue le (calculée automatiquement)
+                        Reprise prévue le <span style={{ color: C.orange }}>(calculée automatiquement)</span>
                       </div>
                       <input
-                        style={{ ...inp, opacity: 0.6, cursor: 'not-allowed' }}
-                        type="date"
-                        value={form.dateFinSuspension}
-                        readOnly
-                        title="Date début + durée de suspension en jours"
+                        style={{ ...inp, opacity: 0.6, cursor: 'not-allowed', color: C.orange }}
+                        type="date" value={form.dateFinSuspension} readOnly
+                        title="Date d'aujourd'hui + durée de suspension en jours"
                       />
                     </div>
                   )}
@@ -540,10 +533,7 @@ const handleDureeSuspensionChange = (val) => {
                     </div>
                     <textarea
                       style={{
-                        ...inp,
-                        resize: 'vertical',
-                        minHeight: 72,
-                        lineHeight: '1.5',
+                        ...inp, resize: 'vertical', minHeight: 72, lineHeight: '1.5',
                         borderColor: !String(form.causeSuspension).trim() ? 'rgba(249,115,22,0.55)' : '#3d3233',
                       }}
                       placeholder="Ex : Blessure, voyage, raison médicale..."
@@ -551,9 +541,7 @@ const handleDureeSuspensionChange = (val) => {
                       onChange={e => set('causeSuspension', e.target.value)}
                     />
                     {!String(form.causeSuspension).trim() && (
-                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>
-                        La cause est requise pour une suspension
-                      </div>
+                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>La cause est requise pour une suspension</div>
                     )}
                   </div>
                 </div>
@@ -566,8 +554,7 @@ const handleDureeSuspensionChange = (val) => {
                   <span style={{
                     fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8,
                     padding: '3px 10px', borderRadius: 20,
-                    background: statusConfig(form.abonnementStatut).bg,
-                    color: '#fff',
+                    background: statusConfig(form.abonnementStatut).bg, color: '#fff',
                   }}>
                     {statusConfig(form.abonnementStatut).label}
                   </span>
@@ -666,7 +653,7 @@ export default function Adherent() {
           dateFin:      data.dateFin,
           statut:       'actif',
           montantDu:    data.montantDu,
-          // Reset suspension lors d'un renouvellement
+          // Reset total suspension lors d'un renouvellement
           dureeSuspension:   null,
           causeSuspension:   null,
           dateFinSuspension: null,
