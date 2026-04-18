@@ -1011,9 +1011,33 @@ ipcMain.handle('addPresence', async (event, { adherent_id, seance_id, date }) =>
 
 ipcMain.handle('getActivites', async () => {
   return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Activite ORDER BY nom',
-      (err, result) => { if (err) reject(err); else resolve(result); }
+    db.query('SELECT * FROM Activite ORDER BY nom', (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+});
+
+ipcMain.handle('addActivite', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { nom, couleur } = data;
+    db.query(
+      'INSERT INTO Activite (nom, couleur) VALUES (?, ?)',
+      [nom, couleur],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve({ insertId: result.insertId });
+      }
     );
+  });
+});
+
+ipcMain.handle('deleteActivite', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('DELETE FROM Activite WHERE idActivite=?', [id], (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
   });
 });
 ipcMain.handle('addTransaction', async (event, data) => {
