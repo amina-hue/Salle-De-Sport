@@ -227,7 +227,7 @@ ipcMain.handle('searchAdherents', async (event, query) => {
          ORDER BY dateDebut DESC LIMIT 1
        )
        LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
-       WHERE ad.nom LIKE ? OR ad.prenom LIKE ? OR ad.email LIKE ? OR ad.numTelephone LIKE ?
+       WHERE (ad.nom LIKE ? OR ad.prenom LIKE ? OR ad.email LIKE ? OR ad.numTelephone LIKE ?)AND ab.statut = 'actif'
        ORDER BY ad.nom ASC`,
       [q, q, q, q],
       (err, result) => { if (err) reject(err); else resolve(result); }
@@ -997,14 +997,26 @@ ipcMain.handle('addSeance', async (event, data) => {
     );
   });
 });
-
+ipcMain.handle('getPresencesSeance', async (event, seance_id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'SELECT adherent_id FROM Presence WHERE seance_id = ?',
+      [seance_id],
+      (err, result) => { if (err) reject(err); else resolve(result.map(r => r.adherent_id)); }
+    );
+  });
+});
 ipcMain.handle('addPresence', async (event, { adherent_id, seance_id, date }) => {
   return new Promise((resolve, reject) => {
     db.query(
       `INSERT IGNORE INTO Presence (adherent_id, seance_id, date, heureEntree)
-       VALUES (?, ?, ?, CURTIME())`,
+       VALUES (?, ?, CURDATE(), CURTIME())`,
       [adherent_id, seance_id, date],
-      (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
+      (err, result) => {
+        if (err) return reject(err);
+        // affectedRows = 0 → déjà inscrit (IGNORE), 1 → ajouté
+        resolve({ insertId: result.insertId, alreadyExists: result.affectedRows === 0 });
+      }
     );
   });
 });
@@ -1083,5 +1095,17 @@ ipcMain.handle('deleteRole', async (event, id) => {
     db.query('DELETE FROM Role WHERE id=?', [id],
       (err, result) => { if (err) reject(err); else resolve(result); }
     );
+  });
+});
+
+ipcMain.handle('deleteSeance', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    // Supprimer d'abord les présences liées
+    db.query('DELETE FROM Presence WHERE seance_id = ?', [id], (err) => {
+      if (err) return reject(err);
+      db.query('DELETE FROM Seance WHERE idSeance = ?', [id],
+        (err2, result) => { if (err2) reject(err2); else resolve({ success: true }); }
+      );
+    });
   });
 });
