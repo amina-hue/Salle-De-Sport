@@ -7,6 +7,8 @@ import {
 import gymBg from '../../images/gym1.png';
 import { useNavigate } from 'react-router-dom';
 import QuickActions from '../components/QuickActions';
+import gym from "../../images/gym.png";
+import gym2 from "../../images/gym2.png";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, LineChart, Line
@@ -320,11 +322,23 @@ const HistoriqueTransactions = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: C.bg, fontFamily: "'Barlow', sans-serif" }}>
-
+   <div style={{
+            display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+            backgroundImage: `url(${gym2})`,
+            backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+            position: "relative"
+          }}>
+      
+            {/* ── Overlay sombre — sous tout le contenu ── */}
+            <div style={{
+              position: "fixed", inset: 0,
+              background: "rgba(14,15,17,0.62)",
+              pointerEvents: "none",
+              zIndex: -1
+            }} />
       {/* ── Hero Header ── */}
       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${gymBg})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${gym})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,12,14,0.96) 0%, rgba(11,12,14,0.80) 55%, rgba(59,130,246,0.06) 100%)' }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, width: '30%', height: 2, background: `linear-gradient(90deg, ${C.blue}, transparent)` }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: `linear-gradient(transparent, ${C.bg})` }} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ChevronRight, Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
-import gym from "../../images/gym.png";
+import gym2 from "../../images/gym2.png";
 import NouvelTypeAbonnementModal from "../components/NouvelTypeAbonnementModal";
 import { useLocation, useNavigate } from "react-router-dom";
 import QuickActions from "../components/QuickActions";
@@ -39,7 +39,6 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
         boxShadow: hovered ? `0 16px 40px ${accent}22` : "0 2px 8px rgba(0,0,0,0.2)",
       }}
     >
-      {/* Tier badge */}
       <div style={{ position: "absolute", top: 0, right: 0, background: isPremium ? "linear-gradient(135deg,#e53935,#c1121f)" : "linear-gradient(135deg,#3a7bd5,#1a56b0)", fontSize: "0.6rem", color: "#fff", padding: "3px 10px", borderBottomLeftRadius: 8, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Barlow', sans-serif" }}>
         {isPremium ? "Premium" : "Standard"}
       </div>
@@ -58,7 +57,6 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
         </div>
         <p style={{ color: C.muted, fontSize: "0.72rem", margin: "0 0 14px", fontFamily: "'Barlow', sans-serif" }}>{plan.per}</p>
 
-        {/* Features */}
         <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px", minHeight: 36 }}>
           {plan.features && plan.features.length > 0 ? (
             plan.features.map((f, i) => (
@@ -71,7 +69,6 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
           )}
         </ul>
 
-        {/* Footer — ✅ nombre_adherents réel */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
           <span style={{ fontSize: "0.72rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
             <span style={{ color: C.text, fontWeight: 600 }}>{plan.members}</span> adhérent{plan.members !== 1 ? 's' : ''} actif{plan.members !== 1 ? 's' : ''}
@@ -81,7 +78,6 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
           </span>
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
           <button onClick={onEdit} style={{ flex: 1, padding: "8px 0", fontSize: "0.78rem", background: `${accent}18`, color: accent, border: `1px solid ${accent}33`, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
             onMouseEnter={e => e.currentTarget.style.background = `${accent}30`}
@@ -101,15 +97,14 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
 
 /* ── Page ── */
 const AbonnementsPage = () => {
-    const location = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const [types, setTypes]                 = useState([]);
-  const [expirant, setExpirant]           = useState([]);   // ✅ vrais données
+  const [expirant, setExpirant]           = useState([]);
   const [modalTypeOpen, setModalTypeOpen] = useState(false);
   const [typeAEditer, setTypeAEditer]     = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // ── Chargement ──────────────────────────────────────────────────────────
   const fetchTypes = async () => {
     try {
       const data = await window.api.getTypeAbonnements();
@@ -132,7 +127,8 @@ const AbonnementsPage = () => {
     fetchTypes();
     fetchExpirant();
   }, []);
-   useEffect(() => {
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('openModal') === 'true') {
       setTypeAEditer(null);
@@ -141,7 +137,6 @@ const AbonnementsPage = () => {
     }
   }, [location.search]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSaveType = async () => {
     await fetchTypes();
     setModalTypeOpen(false);
@@ -155,23 +150,35 @@ const AbonnementsPage = () => {
     fetchTypes();
   };
 
-  // ── Statut badge expiration ──────────────────────────────────────────────
   const statusInfo = (jours) => {
     if (jours <= 3)  return { label: "Urgent",  color: C.accent };
     if (jours <= 10) return { label: "Bientôt", color: C.gold   };
-    return               { label: "OK",      color: C.green  };
+    return                   { label: "OK",      color: C.green  };
   };
 
   const nbExpirant = expirant.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+      backgroundImage: `url(${gym2})`,
+      backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+      position: "relative"
+    }}>
+
+      {/* ── Overlay sombre — sous tout le contenu ── */}
+      <div style={{
+              position: "fixed", inset: 0,
+              background: "rgba(14,15,17,0.62)",
+              pointerEvents: "none",
+              zIndex: -1
+            }} />
 
       {/* ── Hero Header ── */}
-      <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gym})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
+      <div style={{ position: "relative", zIndex: 1, overflow: "hidden", flexShrink: 0 }}>
+        {/* gradient hero uniquement — plus d'image dupliquée */}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, ${C.bg})` }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, rgba(14,15,17,0.01))` }} />
 
         <div style={{ position: "relative", padding: "32px 36px 36px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div>
@@ -213,9 +220,8 @@ const AbonnementsPage = () => {
       </div>
 
       {/* ── Content ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px 40px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px 40px", position: "relative", zIndex: 1 }}>
 
-        {/* Alert dynamique */}
         {nbExpirant > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: "14px 18px", marginBottom: 28 }}>
             <AlertCircle size={18} color={C.accent} />
@@ -228,7 +234,6 @@ const AbonnementsPage = () => {
           </div>
         )}
 
-        {/* Plans */}
         <div style={{ marginBottom: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.3rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, margin: 0, color: C.text }}>Plans disponibles</h2>
@@ -252,7 +257,7 @@ const AbonnementsPage = () => {
                     price:    `${Number(t.prix).toLocaleString()} DA`,
                     per:      `par ${t.duree} mois`,
                     features: t.features ?? [],
-                    members:  t.nombre_adherents ?? 0,   // ✅ depuis la BDD
+                    members:  t.nombre_adherents ?? 0,
                     tier:     t.nom.toLowerCase().includes("premium") ? "premium" : "standard",
                   }}
                   onEdit={() => { setTypeAEditer(t); setModalTypeOpen(true); }}
@@ -263,7 +268,6 @@ const AbonnementsPage = () => {
           )}
         </div>
 
-        {/* ✅ Tableau expiration — données réelles */}
         <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
           <div style={{ padding: "18px 24px 14px", borderBottom: `1px solid ${C.border}` }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: C.text }}>
@@ -298,8 +302,6 @@ const AbonnementsPage = () => {
                     <tr key={i} style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-
-                      {/* Adhérent */}
                       <td style={{ padding: "13px 22px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ width: 34, height: 34, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1.5px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "0.75rem", fontWeight: 700, color: avatarColors[i % avatarColors.length], flexShrink: 0 }}>
@@ -310,30 +312,14 @@ const AbonnementsPage = () => {
                           </span>
                         </div>
                       </td>
-
-                      {/* Type abonnement */}
-                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.subtle, fontFamily: "'Barlow', sans-serif" }}>
-                        {row.typeNom}
-                      </td>
-
-                      {/* Jours restants */}
-                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: color, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif" }}>
-                        {expireLabel}
-                      </td>
-
-                      {/* Date fin */}
-                      <td style={{ padding: "13px 22px", fontSize: "0.8rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
-                        {dateFin}
-                      </td>
-
-                      {/* Statut */}
+                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: C.subtle, fontFamily: "'Barlow', sans-serif" }}>{row.typeNom}</td>
+                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: color, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif" }}>{expireLabel}</td>
+                      <td style={{ padding: "13px 22px", fontSize: "0.8rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>{dateFin}</td>
                       <td style={{ padding: "13px 22px" }}>
                         <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "4px 10px", borderRadius: 20, fontFamily: "'Barlow', sans-serif", background: color + "22", color }}>
                           {label}
                         </span>
                       </td>
-
-                      {/* Actions */}
                       <td style={{ padding: "13px 22px" }}>
                         <div style={{ display: "flex", gap: 6 }}>
                           {row.numTelephone && (

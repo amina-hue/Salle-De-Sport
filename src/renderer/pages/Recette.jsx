@@ -3,6 +3,7 @@ import { ChevronRight, ChevronLeft, Filter, RotateCcw, Calendar } from "lucide-r
 import { useLocation, useNavigate } from "react-router-dom"; 
 import gymBg from "../../images/gym1.png";
 import QuickActions from "../components/QuickActions";
+import gym2 from "../../images/gym2.png";
 
 const PAGE_SIZE = 7;
 
@@ -96,12 +97,30 @@ const Recette = () => {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+      position: "relative"
+    }}>
+
+      {/* ── Image de fond + overlay — derrière tout le contenu ── */}
+      <div style={{
+        position: "fixed", inset: 0,
+        backgroundImage: `url(${gym2})`,
+        backgroundSize: "cover", backgroundPosition: "center 35%",
+        zIndex: -1,
+        pointerEvents: "none"
+      }} />
+      <div style={{
+        position: "fixed", inset: 0,
+        background: "rgba(14,15,17,0.62)",
+        zIndex: -1,
+        pointerEvents: "none"
+      }} />
 
       {/* ── Hero Header ── */}
       <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gymBg})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gym2})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.63) 0%, rgba(14,15,17,0.65) 60%, rgba(229,57,53,0.06) 100%)" }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, ${C.bg})` }} />
 
         <div style={{ position: "relative", padding: "32px 36px 36px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
