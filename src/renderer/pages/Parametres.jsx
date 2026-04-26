@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronRight, Plus, Trash2, Shield, Check } from "lucide-react";
 import gymBg from "../../images/Gymnastique.png";
+import gym2 from "../../images/gym2.png";
 import QuickActions from "../components/QuickActions";
 import { useLocation, useNavigate } from "react-router-dom"; 
 
@@ -153,7 +154,19 @@ const handleAddRole = async () => {
   const currentRolePerms = selectedRole ? (permissions[selectedRole.id] || {}) : {};
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
+     <div style={{
+        display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+        backgroundImage: `url(${gym2})`,
+        backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+        position: "relative"
+      }}>
+          {/* ── Overlay sombre — sous tout le contenu ── */}
+      <div style={{
+        position: "fixed", inset: 0,
+        background: "rgba(14,15,17,0.72)",
+        pointerEvents: "none",
+        zIndex: -1
+      }} />
 
       {/* Hero Header */}
       <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>

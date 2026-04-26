@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Search, Package, Edit2, Trash2, AlertTriangle } from 'lucide-react';
-import gymBg from '../../images/gym1.png';
+import gym2 from "../../images/gym2.png";
 import { useLocation, useNavigate } from "react-router-dom"; 
 import QuickActions from "../components/QuickActions";
+import gym from "../../images/gym.png";
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS
@@ -132,11 +133,11 @@ function NouveauProduitModal({ onSave, onClose, initialData }) {
       <div style={{ width: '100%', maxWidth: 560, borderRadius: 18, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.9)', fontFamily: "'Barlow', sans-serif" }}>
 
         {/* Hero */}
-        <div style={{ position: 'relative', background: 'linear-gradient(135deg, #1c0a0a 0%, #2a1010 50%, #160808 100%)', padding: '28px 28px 24px', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, rgba(229,57,53,0.04) 0, rgba(229,57,53,0.04) 1px, transparent 1px, transparent 20px)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: -50, right: -30, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(229,57,53,0.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -20, left: 60, width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(229,57,53,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+               <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${gym})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
+               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,12,14,0.96) 0%, rgba(11,12,14,0.80) 55%, rgba(59,130,246,0.06) 100%)' }} />
+               <div style={{ position: 'absolute', bottom: 0, left: 0, width: '30%', height: 2, background: `linear-gradient(90deg, ${C.blue}, transparent)` }} />
+               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: `linear-gradient(transparent, ${C.bg})` }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                 <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>FitManager</span>
@@ -256,7 +257,7 @@ function NouveauProduitModal({ onSave, onClose, initialData }) {
           </div>
         </div>
       </div>
-    </div>
+   
   );
 }
 function TransactionModal({ type, produit, onClose, onConfirm }) {
@@ -600,14 +601,27 @@ const navigate = useNavigate();
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: C.bg, fontFamily: "'Barlow', sans-serif" }}>
+    <div style={{
+               display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+               backgroundImage: `url(${gym2})`,
+               backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+               position: "relative"
+             }}>
+         
+               {/* ── Overlay sombre — sous tout le contenu ── */}
+               <div style={{
+                 position: "fixed", inset: 0,
+                 background: "rgba(14,15,17,0.62)",
+                 pointerEvents: "none",
+                 zIndex: -1
+               }} />
 
       {/* ── Hero Header ── */}
-      <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${gymBg})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,12,14,0.96) 0%, rgba(11,12,14,0.80) 55%, rgba(229,57,53,0.08) 100%)' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '30%', height: 2, background: `linear-gradient(90deg, ${C.accent}, transparent)` }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: `linear-gradient(transparent, ${C.bg})` }} />
+       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${gym})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,12,14,0.96) 0%, rgba(11,12,14,0.80) 55%, rgba(59,130,246,0.06) 100%)' }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '30%', height: 2, background: `linear-gradient(90deg, ${C.blue}, transparent)` }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: `linear-gradient(transparent, ${C.bg})` }} />
 
         <div style={{ position: 'relative', padding: '36px 40px 40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
           <div>

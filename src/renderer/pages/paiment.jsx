@@ -3,6 +3,7 @@ import { ChevronRight, Search, Plus, Check, Clock, AlertTriangle, Receipt } from
 import gym from "../../images/gym.png";
 import NouveauPaiementModal from "../components/NouveauPaiementModal";
 import { useLocation, useNavigate } from "react-router-dom"; 
+import gym2 from "../../images/gym2.png";
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -101,7 +102,19 @@ const Paiement = () => {
   const totalRetard = stats.retard.reduce((acc, p) => acc + Number(p.montant), 0);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
+        <div style={{
+           display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+           backgroundImage: `url(${gym2})`,
+           backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+           position: "relative"
+         }}>
+             {/* ── Overlay sombre — sous tout le contenu ── */}
+         <div style={{
+           position: "fixed", inset: 0,
+           background: "rgba(14,15,17,0.72)",
+           pointerEvents: "none",
+           zIndex: -1
+         }} />
 
       {/* Hero Header */}
       <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>

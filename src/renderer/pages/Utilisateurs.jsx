@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ChevronRight, Plus, Pencil, Trash2, Check, Clock, AlertCircle, Calendar, X, Users } from "lucide-react";
-import gymBg from "../../images/gym1.png";
+import gym from "../../images/gym.png";
+import gym2 from "../../images/gym2.png";
 import QuickActions from "../components/QuickActions";
 import { useLocation, useNavigate } from "react-router-dom"; 
 
@@ -229,11 +230,24 @@ useEffect(() => { loadData(); }, [location.pathname]);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: C.bg }}>
+       <div style={{
+         display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+         backgroundImage: `url(${gym2})`,
+         backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+         position: "relative"
+       }}>
+   
+         {/* ── Overlay sombre — sous tout le contenu ── */}
+         <div style={{
+           position: "fixed", inset: 0,
+           background: "rgba(14,15,17,0.62)",
+           pointerEvents: "none",
+           zIndex: -1
+         }} />
 
       {/* ── Hero Header ── */}
       <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gymBg})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${gym})`, backgroundSize: "cover", backgroundPosition: "center 35%" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, ${C.bg})` }} />
 
