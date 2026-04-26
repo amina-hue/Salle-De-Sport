@@ -11,8 +11,7 @@ const C = {
   text: "#f0f0f0", muted: "#6b7280", subtle: "#9ca3af", green: "#22c55e",
 };
 
-const HOURS = ["8:00","9:00","10:00","11:00","12:00","13:00","14:00"];
-const DAY_NAMES = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+const HOURS = ["8:00","9:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"];const DAY_NAMES = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
 const CELL_H = 80;
 
 // ── IDENTIQUE à la version originale qui marchait ─────────────────────────────
@@ -28,7 +27,10 @@ function getWeekBounds(offset = 0) {
 }
 
 function toYMD(date) {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function hourToIndex(heureDebut) {
@@ -634,11 +636,10 @@ export default function Planning() {
         <NouvelSeanceModal
           activites={activites}
           onClose={() => setOpenModal(false)}
-          onSave={async (data) => {
-            await window.api.addSeance(data);
-            setOpenModal(false);
-            load();
-          }}
+          onSave={async () => {
+  setOpenModal(false);
+  load();
+}}
         />
       )}
     </div>

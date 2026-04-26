@@ -57,9 +57,9 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
       setLoading(true);
       try {
         const [acts, utils] = await Promise.all([
-          window.electron.invoke('getActivites'),
-          window.electron.invoke('getCoachs'),
-        ]);
+  window.api.getActivites(),
+  window.api.getCoachs(),
+]);
         setActivites(acts);
         setCoachs(utils);
         // Pré-sélectionner le premier de chaque liste
@@ -90,14 +90,14 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
     setSaving(true);
     setError('');
     try {
-      const result = await window.electron.invoke('addSeance', {
-        date:            form.date,
-        heureDebut:      form.heureDebut,
-        heureFin:        form.heureFin,
-        participantsMax: parseInt(form.participantsMax),
-        coach_id:        parseInt(form.coach_id),
-        activite_id:     parseInt(form.activite_id),
-      });
+     const result = await window.api.addSeance({
+  date:            form.date,
+  heureDebut:      form.heureDebut,
+  heureFin:        form.heureFin,
+  participantsMax: parseInt(form.participantsMax),
+  coach_id:        parseInt(form.coach_id),
+  activite_id:     parseInt(form.activite_id),
+});
       onSave?.(result);
       onClose();
     } catch (err) {
