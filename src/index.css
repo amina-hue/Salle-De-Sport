@@ -1,17 +1,10 @@
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ── Reset complet pour Electron ── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html,
-body,
-#root {
+html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -24,21 +17,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar personnalisée */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: #1a1d24;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2a2d36;
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #e53935;
-} */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #1a1d24; }
+::-webkit-scrollbar-thumb { background: #2a2d36; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #e53935; }

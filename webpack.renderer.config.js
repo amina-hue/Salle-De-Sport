@@ -24,7 +24,7 @@ rules.push({
 
 module.exports = {
   entry: './src/renderer/index.jsx',
-
+  target: 'web',
   module: {
     rules,
   },
@@ -38,4 +38,15 @@ module.exports = {
       template: './src/index.html',
     }),
   ],
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+  resolve: {
+  extensions: ['.js', '.jsx'],
+  fallback: {
+    path: require.resolve('path-browserify'),
+    fs: false,
+  }
+},
 };
