@@ -1,52 +1,39 @@
-const rules = require('./webpack.rules');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
-// ✅ CSS
-rules.push({
-  test: /.css$/,
-  use: ['style-loader', 'css-loader'],
-});
-
-// ✅ Images
-rules.push({
-  test: /.(png|jpg|jpeg|gif|svg)$/,
-  type: 'asset/resource',
-});
-
-// ✅ 🔥 JSX (TRÈS IMPORTANT)
-rules.push({
-  test: /.(js|jsx)$/,
-  exclude: /node_modules/,
-  use: {
-    loader: 'babel-loader',
+// ✅ PAS de webpack.rules — on définit nos propres règles sans asset-relocator
+const rules = [
+  {
+    test: /\.css$/,
+    use: ['style-loader', 'css-loader'],
   },
-});
+  {
+    test: /\.(png|jpg|jpeg|gif|svg)$/,
+    type: 'asset/resource',
+  },
+  {
+    test: /\.(js|jsx)$/,
+    exclude: /node_modules/,
+    use: { loader: 'babel-loader' },
+  },
+];
 
 module.exports = {
-  entry: './src/renderer/index.jsx',
+  entry: './src/renderer.jsx',
   target: 'web',
-  module: {
-    rules,
-  },
-
+  module: { rules },
   resolve: {
     extensions: ['.js', '.jsx'],
+    fallback: {
+      path: require.resolve('path-browserify'),
+      fs: false,
+    },
   },
-
   plugins: [
-    new HtmlWebpackPlugin({
-      template: './src/index.html',
-    }),
+    new HtmlWebpackPlugin({ template: './src/index.html' }),
   ],
   node: {
     __dirname: false,
     __filename: false,
   },
-  resolve: {
-  extensions: ['.js', '.jsx'],
-  fallback: {
-    path: require.resolve('path-browserify'),
-    fs: false,
-  }
-},
 };
