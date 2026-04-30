@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ChevronRight, Search, Plus, Filter, Mail, Phone,
@@ -9,7 +8,7 @@ import GYM_BG from '../../images/background.png';
 import { useLocation, useNavigate } from "react-router-dom";
 import QuickActions from "../components/QuickActions";
 import RenewModal from '../components/RenewModal';
-
+import DeleteConfirm, { useDeleteConfirm } from '../components/DeleteConfirm';
 
 // ─── Palette ───────────────────────────────────────────────────────────────
 const C = {
@@ -96,18 +95,11 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
     || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.nom || '') + ' ' + (member.prenom || ''))}&background=1f2330&color=e53935&size=300`;
 
   const isSuspendu = (member.abonnementStatut || '').toLowerCase() === 'suspendu';
+  const isExpire   = (member.abonnementStatut || '').toLowerCase() === 'expiré';
 
-  // ── Date de fin effective à afficher ──
-  // Si suspendu : on affiche la dateFin décalée (= dateFin actuelle en BDD après décalage)
-  // La date dans dateFin est déjà la date décalée une fois enregistrée
-  const datefinAffichee = member.dateFin
-    ? formatDate(member.dateFin)
-    : '—';
-
-  // Date de fin de suspension pour affichage "Suspendu jusqu'au..."
+  const datefinAffichee = member.dateFin ? formatDate(member.dateFin) : '—';
   const dateFinSuspensionAffichee = member.dateFinSuspension
-    ? formatDate(member.dateFinSuspension)
-    : null;
+    ? formatDate(member.dateFinSuspension) : null;
 
   return (
     <div
@@ -154,7 +146,7 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
           </span>
         </div>
 
-        {/* ── Bloc suspension : affiché seulement si statut = suspendu ── */}
+        {/* Bloc suspension */}
         {isSuspendu && dateFinSuspensionAffichee && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -174,20 +166,38 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
           </div>
         )}
 
+        {/* Contact */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-          {[{ Icon: Mail, text: member.email }, { Icon: Phone, text: member.numTelephone }].map(({ Icon, text }) => (
-            <div key={Icon.displayName} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon size={11} color={C.muted} />
-              </div>
-              <span style={{ fontSize: '0.75rem', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {text || '—'}
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Mail size={11} color={C.muted} />
             </div>
-          ))}
+            {member.email
+              ? (
+                <a
+                  href={`mailto:${member.email}`}
+                  title="Ouvrir le client e-mail"
+                  style={{ fontSize: '0.75rem', color: C.blue, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                  onMouseLeave={e => e.target.style.textDecoration = 'none'}
+                >
+                  {member.email}
+                </a>
+              )
+              : <span style={{ fontSize: '0.75rem', color: C.muted }}>—</span>
+            }
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Phone size={11} color={C.muted} />
+            </div>
+            <span style={{ fontSize: '0.75rem', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {member.numTelephone || '—'}
+            </span>
+          </div>
         </div>
 
-        {/* Date fin abonnement */}
         {member.dateFin && (
           <div style={{ fontSize: '0.68rem', color: C.muted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
             <Calendar size={11} />
@@ -212,7 +222,7 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
             <Edit2 size={13} /> Modifier
           </button>
 
-          {(['expiré', 'suspendu'].includes((member.abonnementStatut || '').toLowerCase())) && (
+          {isExpire && (
             <button
               onClick={() => onRenew(member)}
               style={{
@@ -235,11 +245,94 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
   );
 }
 
+// ─── Composant : HistoriqueAbonnements ──────────────────────────────────────
+function HistoriqueAbonnements({ idAdherent }) {
+  const [rows, setRows]       = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!idAdherent) { setLoading(false); return; }
+    window.api.getHistoriqueAbonnements(idAdherent)
+      .then(data => setRows(Array.isArray(data) ? data : []))
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false));
+  }, [idAdherent]);
+
+  const statutStyle = (s) => {
+    const st = (s || '').toLowerCase();
+    if (st === 'actif')    return { color: C.green,  bg: 'rgba(34,197,94,0.15)'  };
+    if (st === 'suspendu') return { color: C.orange, bg: 'rgba(249,115,22,0.15)' };
+    return                        { color: C.accent, bg: 'rgba(229,57,53,0.15)'  };
+  };
+
+  const payStyle = (du, paye) => {
+    const reste = (parseFloat(du) || 0) - (parseFloat(paye) || 0);
+    if (reste <= 0) return { label: 'Soldé',   color: C.green,  bg: 'rgba(34,197,94,0.12)'  };
+    if (parseFloat(paye) > 0) return { label: 'Partiel', color: C.gold, bg: 'rgba(245,158,11,0.12)' };
+    return                 { label: 'Impayé',  color: C.accent, bg: 'rgba(229,57,53,0.12)'  };
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+        Historique des abonnements
+      </div>
+      <div style={{ border: '1px solid #3d3233', borderRadius: 8, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: 14, textAlign: 'center', color: C.muted, fontSize: '0.78rem' }}>Chargement…</div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: 14, textAlign: 'center', color: C.muted, fontSize: '0.78rem' }}>Aucun historique disponible</div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.73rem' }}>
+            <thead>
+              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+                {['Type', 'Début', 'Fin', 'Statut', 'Règlement'].map(h => (
+                  <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: C.muted, fontWeight: 600, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => {
+                const sc    = statutStyle(row.statut);
+                const reste = (parseFloat(row.montantDu) || 0) - (parseFloat(row.totalPaye) || 0);
+                const pc    = payStyle(row.montantDu, row.totalPaye);
+                return (
+                  <tr key={row.idAbonnement} style={{ borderTop: '1px solid #3d3233', background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
+                    <td style={{ padding: '7px 10px', color: C.text, fontWeight: 600 }}>{row.typeNom || '—'}</td>
+                    <td style={{ padding: '7px 10px', color: C.muted }}>{formatDate(row.dateDebut)}</td>
+                    <td style={{ padding: '7px 10px', color: C.muted }}>{formatDate(row.dateFin)}</td>
+                    <td style={{ padding: '7px 10px' }}>
+                      <span style={{ background: sc.bg, color: sc.color, borderRadius: 4, padding: '2px 8px', fontSize: '0.67rem', fontWeight: 700 }}>
+                        {row.statut || '—'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '7px 10px' }}>
+                      <span
+                        style={{ background: pc.bg, color: pc.color, borderRadius: 4, padding: '2px 8px', fontSize: '0.67rem', fontWeight: 700 }}
+                        title={reste > 0 ? `Reste : ${reste.toFixed(2)} DA` : 'Entièrement payé'}
+                      >
+                        {pc.label}
+                        {reste > 0 && <span style={{ opacity: 0.75, marginLeft: 3 }}>({reste.toFixed(0)} DA)</span>}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Composant : EditMemberModal ─────────────────────────────────────────────
 function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
-  const [tab, setTab]     = useState('adherent');
+  const [tab, setTab]       = useState('adherent');
   const [saving, setSaving] = useState(false);
-  const [form, setForm]   = useState({
+  const [form, setForm]     = useState({
     idAdherent:        member.idAdherent,
     nom:               member.nom || '',
     prenom:            member.prenom || '',
@@ -257,6 +350,9 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     causeSuspension:   member.causeSuspension   || '',
     dateFinSuspension: toInputDate(member.dateFinSuspension),
   });
+
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -306,7 +402,25 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     }
   };
 
-  // ── Caméra ────────────────────────────────────────────────────────────────
+  const handleEmailChange = (val) => {
+    set('email', val);
+    if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      setEmailError('Format invalide (ex: nom@domaine.com)');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handlePhoneChange = (val) => {
+    const clean = val.replace(/[^0-9\s\+\-\(\)]/g, '');
+    set('numTelephone', clean);
+    if (/[^0-9\s\+\-\(\)]/.test(val)) {
+      setPhoneError('Chiffres uniquement');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef(null);
 
@@ -323,7 +437,7 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
 
   const takePhoto = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
+    canvas.width  = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
     videoRef.current.srcObject.getTracks().forEach(t => t.stop());
@@ -333,6 +447,16 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
 
   const handleSave = async () => {
     if (!form.nom.trim()) return alert('Le nom est requis.');
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      alert("L'adresse e-mail n'est pas valide.");
+      setTab('adherent');
+      return;
+    }
+    if (form.numTelephone && /[^0-9\s\+\-\(\)]/.test(form.numTelephone)) {
+      alert('Le numéro de téléphone ne doit contenir que des chiffres.');
+      setTab('adherent');
+      return;
+    }
     if (form.abonnementStatut === 'suspendu') {
       if (!form.dureeSuspension || !String(form.causeSuspension).trim()) {
         alert('La durée et la cause de suspension sont obligatoires.');
@@ -353,6 +477,7 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     fontSize: '0.83rem', outline: 'none', width: '100%', boxSizing: 'border-box',
   };
 
+  const inpError = { ...inp, borderColor: 'rgba(229,57,53,0.8)', boxShadow: '0 0 0 2px rgba(229,57,53,0.12)' };
   const isSuspendu = form.abonnementStatut === 'suspendu';
 
   return (
@@ -360,13 +485,27 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div style={{ background: '#1a1516', border: '1px solid #3d3233', borderRadius: 14, width: 700, maxWidth: '96vw', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(0,0,0,0.7)', fontFamily: "'Barlow', sans-serif" }}>
-
-        {/* Tabs header */}
+      <div style={{
+        background: '#1a1516', border: '1px solid #3d3233', borderRadius: 14,
+        width: 700, maxWidth: '96vw', maxHeight: '92vh', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
+        fontFamily: "'Barlow', sans-serif",
+      }}>
+        {/* Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#231e1f', borderBottom: '1px solid #3d3233', padding: '0 16px' }}>
           <div style={{ display: 'flex' }}>
             {[{ key: 'adherent', label: 'Adhérent' }, { key: 'abonnement', label: 'Abonnement' }].map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{ background: tab === t.key ? C.accent : 'transparent', border: 'none', color: tab === t.key ? '#fff' : C.muted, padding: '11px 20px', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                style={{
+                  background: tab === t.key ? C.accent : 'transparent',
+                  border: 'none', color: tab === t.key ? '#fff' : C.muted,
+                  padding: '11px 20px', fontFamily: 'inherit', fontSize: '0.875rem',
+                  fontWeight: 600, cursor: 'pointer',
+                }}
+              >
                 {t.label}
               </button>
             ))}
@@ -374,12 +513,12 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, fontSize: '1.1rem', cursor: 'pointer', padding: 4 }}>✕</button>
         </div>
 
-        {/* Body */}
+        {/* Content */}
         <div style={{ padding: '20px 22px', overflowY: 'auto', flex: 1 }}>
 
-          {tab === 'adherent' ? (
+          {/* ─── ONGLET ADHÉRENT ─── */}
+          {tab === 'adherent' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-
               {/* Photo */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 8, padding: 15, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid #3d3233' }}>
                 <img
@@ -390,13 +529,21 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.88rem', color: '#fff', fontWeight: 600, marginBottom: 8 }}>Photo de l'adhérent</div>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <input type="file" id="fileEdit" hidden accept="image/*" onChange={e => {
-                      const reader = new FileReader();
-                      reader.onload = ev => set('photo', ev.target.result);
-                      reader.readAsDataURL(e.target.files[0]);
-                    }} />
-                    <button onClick={() => document.getElementById('fileEdit').click()} style={{ background: '#3d3233', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Importer</button>
-                    <button onClick={startCamera} style={{ background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, padding: '7px 14px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Prendre une photo</button>
+                    <input type="file" id="fileEdit" hidden accept="image/*"
+                      onChange={e => {
+                        const reader = new FileReader();
+                        reader.onload = ev => set('photo', ev.target.result);
+                        reader.readAsDataURL(e.target.files[0]);
+                      }}
+                    />
+                    <button onClick={() => document.getElementById('fileEdit').click()}
+                      style={{ background: '#3d3233', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>
+                      Importer
+                    </button>
+                    <button onClick={startCamera}
+                      style={{ background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent, padding: '7px 14px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>
+                      Prendre une photo
+                    </button>
                   </div>
                 </div>
               </div>
@@ -406,34 +553,56 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                   <video ref={videoRef} autoPlay style={{ width: '100%', display: 'block' }} />
                   <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10 }}>
                     <button onClick={takePhoto} style={{ background: C.green, color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Capturer</button>
-                    <button onClick={() => { videoRef.current?.srcObject?.getTracks().forEach(t => t.stop()); setShowCamera(false); }} style={{ background: '#555', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+                    <button onClick={() => { videoRef.current?.srcObject?.getTracks().forEach(t => t.stop()); setShowCamera(false); }}
+                      style={{ background: '#555', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
                   </div>
                 </div>
               )}
 
-              {[
-                { label: 'Nom :', key: 'nom', type: 'text' },
-                { label: 'Prénom :', key: 'prenom', type: 'text' },
-                { label: 'Sexe :', key: 'sexe', type: 'select', opts: ['Homme', 'Femme'] },
-                { label: 'Date de naissance :', key: 'dateNaissance', type: 'date' },
-                { label: 'Téléphone :', key: 'numTelephone', type: 'text' },
-                { label: 'E-Mail :', key: 'email', type: 'email' },
-              ].map(({ label, key, type, opts }) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600 }}>{label}</span>
-                  {type === 'select'
-                    ? <select style={inp} value={form[key]} onChange={e => set(key, e.target.value)}>
-                        {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    : <input style={inp} type={type} value={form[key]} onChange={e => set(key, e.target.value)} />
-                  }
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600 }}>Nom :</span>
+                <input style={inp} type="text" value={form.nom} onChange={e => set('nom', e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600 }}>Prénom :</span>
+                <input style={inp} type="text" value={form.prenom} onChange={e => set('prenom', e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600 }}>Sexe :</span>
+                <select style={inp} value={form.sexe} onChange={e => set('sexe', e.target.value)}>
+                  <option value="Homme">Homme</option>
+                  <option value="Femme">Femme</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600 }}>Date de naissance :</span>
+                <input style={inp} type="date" value={form.dateNaissance} onChange={e => set('dateNaissance', e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600, paddingTop: 7 }}>Téléphone :</span>
+                <div style={{ flex: 1 }}>
+                  <input style={phoneError ? inpError : inp} type="tel" inputMode="numeric" placeholder="0612345678"
+                    value={form.numTelephone} onChange={e => handlePhoneChange(e.target.value)} />
+                  {phoneError && <div style={{ fontSize: '0.7rem', color: C.accent, marginTop: 3 }}>{phoneError}</div>}
                 </div>
-              ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600, paddingTop: 7 }}>E-Mail :</span>
+                <div style={{ flex: 1 }}>
+                  <input style={emailError ? inpError : inp} type="email" placeholder="nom@domaine.com"
+                    value={form.email} onChange={e => handleEmailChange(e.target.value)} />
+                  {emailError && <div style={{ fontSize: '0.7rem', color: C.accent, marginTop: 3 }}>{emailError}</div>}
+                  {!emailError && form.email && <div style={{ fontSize: '0.7rem', color: C.green, marginTop: 3 }}>✓ Format valide</div>}
+                </div>
+              </div>
             </div>
+          )}
 
-          ) : (
-            /* ── Tab Abonnement ── */
+          {/* ─── ONGLET ABONNEMENT ─── */}
+          {tab === 'abonnement' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <HistoriqueAbonnements idAdherent={member.idAdherent} />
+              <div style={{ height: 1, background: '#3d3233', margin: '4px 0' }} />
 
               {!form.idAbonnement && (
                 <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: '0.8rem', color: C.gold }}>
@@ -441,35 +610,23 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                 </div>
               )}
 
-              {/* Type d'abonnement (non modifiable) */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Type d'abonnement :</div>
                 <div style={{ ...inp, opacity: 0.7, display: 'flex', alignItems: 'center' }}>
                   {typesAbonnement.find(t => String(t.id) === String(form.type_id))?.nom || 'Aucun'}
                 </div>
               </div>
-
-              {/* Date début */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Date début :</div>
                 <input style={inp} type="date" value={form.dateDebut} onChange={e => handleDateDebutChange(e.target.value)} />
               </div>
-
-              {/* Date fin — si suspendu, on montre aussi la date décalée */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
                   Date fin {isSuspendu ? '(après reprise, décalée automatiquement) :' : '(calculée) :'}
                 </div>
-                <input
-                  style={{ ...inp, opacity: 0.6, cursor: 'not-allowed', color: isSuspendu ? C.orange : C.text }}
-                  type="date"
-                  value={form.dateFin}
-                  readOnly
-                  title={isSuspendu ? "La date de fin sera décalée automatiquement selon la durée de suspension" : "Calculée automatiquement selon le type d'abonnement et la date de début"}
-                />
+                <input style={{ ...inp, opacity: 0.6, cursor: 'not-allowed', color: isSuspendu ? C.orange : C.text }}
+                  type="date" value={form.dateFin} readOnly />
               </div>
-
-              {/* Statut */}
               <div>
                 <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Statut :</div>
                 <select style={inp} value={form.abonnementStatut} onChange={e => handleStatutChange(e.target.value)}>
@@ -479,83 +636,47 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
                 </select>
               </div>
 
-              {/* ── Bloc suspension ── */}
               {isSuspendu && (
-                <div style={{
-                  background: 'rgba(249,115,22,0.07)',
-                  border: '1px solid rgba(249,115,22,0.3)',
-                  borderRadius: 10, padding: '14px 16px',
-                  display: 'flex', flexDirection: 'column', gap: 12,
-                }}>
-                  <div style={{ fontSize: '0.75rem', color: C.gold, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    ⏸ Détails de la suspension
-                  </div>
-
-                  {/* Explication */}
+                <div style={{ background: 'rgba(249,115,22,0.07)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: '0.75rem', color: C.gold, fontWeight: 700 }}>⏸ Détails de la suspension</div>
                   <div style={{ fontSize: '0.72rem', color: C.subtle, background: 'rgba(249,115,22,0.06)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.6 }}>
                     La date de fin actuelle (<strong style={{ color: C.orange }}>{formatDate(form.dateFin)}</strong>) sera automatiquement décalée de la durée de suspension lors de la reprise.
                   </div>
-
-                  {/* Durée */}
                   <div>
                     <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
                       Durée de suspension (jours) <span style={{ color: C.accent }}>*</span>
                     </div>
-                    <input
-                      style={{ ...inp, borderColor: !form.dureeSuspension ? 'rgba(249,115,22,0.55)' : '#3d3233' }}
+                    <input style={{ ...inp, borderColor: !form.dureeSuspension ? 'rgba(249,115,22,0.55)' : '#3d3233' }}
                       type="number" min="1" max="365" placeholder="Ex : 30"
-                      value={form.dureeSuspension}
-                      onChange={e => handleDureeSuspensionChange(e.target.value)}
-                    />
-                    {!form.dureeSuspension && (
-                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>La durée est requise pour une suspension</div>
-                    )}
+                      value={form.dureeSuspension} onChange={e => handleDureeSuspensionChange(e.target.value)} />
+                    {!form.dureeSuspension && <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>La durée est requise</div>}
                   </div>
-
-                  {/* Date fin suspension calculée */}
                   {form.dateFinSuspension && (
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
-                        Reprise prévue le <span style={{ color: C.orange }}>(calculée automatiquement)</span>
-                      </div>
-                      <input
-                        style={{ ...inp, opacity: 0.6, cursor: 'not-allowed', color: C.orange }}
-                        type="date" value={form.dateFinSuspension} readOnly
-                        title="Date d'aujourd'hui + durée de suspension en jours"
-                      />
+                      <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>Reprise prévue le</div>
+                      <input style={{ ...inp, opacity: 0.6, cursor: 'not-allowed', color: C.orange }}
+                        type="date" value={form.dateFinSuspension} readOnly />
                     </div>
                   )}
-
-                  {/* Cause */}
                   <div>
                     <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginBottom: 5 }}>
-                      Cause de la suspension <span style={{ color: C.accent }}>*</span>
+                      Cause <span style={{ color: C.accent }}>*</span>
                     </div>
                     <textarea
-                      style={{
-                        ...inp, resize: 'vertical', minHeight: 72, lineHeight: '1.5',
-                        borderColor: !String(form.causeSuspension).trim() ? 'rgba(249,115,22,0.55)' : '#3d3233',
-                      }}
-                      placeholder="Ex : Blessure, voyage, raison médicale..."
+                      style={{ ...inp, resize: 'vertical', minHeight: 72, lineHeight: '1.5', borderColor: !String(form.causeSuspension).trim() ? 'rgba(249,115,22,0.55)' : '#3d3233' }}
+                      placeholder="Ex : Blessure, voyage..."
                       value={form.causeSuspension}
                       onChange={e => set('causeSuspension', e.target.value)}
                     />
-                    {!String(form.causeSuspension).trim() && (
-                      <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>La cause est requise pour une suspension</div>
-                    )}
+                    {!String(form.causeSuspension).trim() && <div style={{ fontSize: '0.7rem', color: C.orange, marginTop: 4 }}>La cause est requise</div>}
                   </div>
                 </div>
               )}
 
-              {/* Aperçu statut actuel */}
               {form.idAbonnement && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid #3d3233' }}>
                   <span style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>Statut actuel :</span>
-                  <span style={{
-                    fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8,
-                    padding: '3px 10px', borderRadius: 20,
-                    background: statusConfig(form.abonnementStatut).bg, color: '#fff',
-                  }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, padding: '3px 10px', borderRadius: 20, background: statusConfig(form.abonnementStatut).bg, color: '#fff' }}>
                     {statusConfig(form.abonnementStatut).label}
                   </span>
                 </div>
@@ -566,15 +687,13 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
 
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 22px', borderTop: '1px solid #3d3233', background: '#231e1f' }}>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, background: saving ? '#7a2020' : C.accent, border: 'none', borderRadius: 7, padding: '9px 24px', color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}
-          >
+          <button onClick={handleSave} disabled={saving}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, background: saving ? '#7a2020' : C.accent, border: 'none', borderRadius: 7, padding: '9px 24px', color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
             {saving && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
             Enregistrer
           </button>
-          <button onClick={onClose} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 20px', color: C.muted, fontFamily: 'inherit', fontSize: '0.875rem', cursor: 'pointer' }}>
+          <button onClick={onClose}
+            style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: '9px 20px', color: C.muted, fontFamily: 'inherit', fontSize: '0.875rem', cursor: 'pointer' }}>
             Annuler
           </button>
         </div>
@@ -583,11 +702,18 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
   );
 }
 
-// ─── Composant : Toast ───────────────────────────────────────────────────────
+// ─── Toast ───────────────────────────────────────────────────────────────────
 function Toast({ message, error }) {
   if (!message) return null;
   return (
-    <div style={{ position: 'fixed', bottom: 28, right: 32, background: error ? C.accent : C.green, color: '#fff', borderRadius: 10, padding: '13px 22px', fontWeight: 600, fontSize: '0.875rem', zIndex: 1100, boxShadow: `0 6px 24px ${error ? 'rgba(229,57,53,0.35)' : 'rgba(34,197,94,0.35)'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{
+      position: 'fixed', bottom: 28, right: 32,
+      background: error ? C.accent : C.green, color: '#fff',
+      borderRadius: 10, padding: '13px 22px', fontWeight: 600,
+      fontSize: '0.875rem', zIndex: 1100,
+      boxShadow: `0 6px 24px ${error ? 'rgba(229,57,53,0.35)' : 'rgba(34,197,94,0.35)'}`,
+      display: 'flex', alignItems: 'center', gap: 8,
+    }}>
       {error ? <AlertCircle size={15} /> : '✓'} {message}
     </div>
   );
@@ -595,17 +721,18 @@ function Toast({ message, error }) {
 
 // ─── PAGE PRINCIPALE ─────────────────────────────────────────────────────────
 export default function Adherent() {
-  const [renewTarget, setRenewTarget] = useState(null);
-  const location  = useLocation();
-  const navigate  = useNavigate();
-  const [adherents, setAdherents]   = useState([]);
-  const [typesAbo, setTypesAbo]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState('');
-  const [filterIdx, setFilterIdx]   = useState(0);
-  const [modal, setModal]           = useState(null);
-  const [editTarget, setEditTarget] = useState(null);
-  const [toast, setToast]           = useState({ msg: '', error: false });
+  const [renewTarget, setRenewTarget]         = useState(null);
+  const location                              = useLocation();
+  const navigate                              = useNavigate();
+  const [adherents, setAdherents]             = useState([]);
+  const [typesAbo, setTypesAbo]               = useState([]);
+  const [loading, setLoading]                 = useState(true);
+  const [search, setSearch]                   = useState('');
+  const [filterIdx, setFilterIdx]             = useState(0);
+  const [modal, setModal]                     = useState(null);
+  const [editTarget, setEditTarget]           = useState(null);
+  const [toast, setToast]                     = useState({ msg: '', error: false });
+  const { confirmProps, askConfirm }          = useDeleteConfirm();
 
   const showToast = (msg, error = false) => {
     setToast({ msg, error });
@@ -645,15 +772,16 @@ export default function Adherent() {
   // ── Renouveler ────────────────────────────────────────────────────────────
   const handleRenew = async (data) => {
     try {
-      if (data.idAbonnement) {
+      const { payerMaintenant, montant, montantDu, modePaiement, ...aboData } = data;
+
+      if (renewTarget.idAbonnement) {
         await window.api.updateAbonnement({
-          idAbonnement: data.idAbonnement,
-          type_id:      data.type_id,
-          dateDebut:    data.dateDebut,
-          dateFin:      data.dateFin,
-          statut:       'actif',
-          montantDu:    data.montantDu,
-          // Reset total suspension lors d'un renouvellement
+          idAbonnement:      renewTarget.idAbonnement,
+          type_id:           aboData.type_id,
+          dateDebut:         aboData.dateDebut,
+          dateFin:           aboData.dateFin,
+          statut:            'actif',
+          montantDu:         montantDu,
           dureeSuspension:   null,
           causeSuspension:   null,
           dateFinSuspension: null,
@@ -661,13 +789,27 @@ export default function Adherent() {
       } else {
         await window.api.addAbonnement({
           adherent_id:  renewTarget.idAdherent,
-          type_id:      data.type_id,
-          dateDebut:    data.dateDebut,
-          dateFin:      data.dateFin,
+          type_id:      aboData.type_id,
+          dateDebut:    aboData.dateDebut,
+          dateFin:      aboData.dateFin,
           statut:       'actif',
-          montantDu:    data.montantDu,
+          montantDu:    montantDu,
         });
       }
+
+      if (payerMaintenant && montant > 0) {
+        const idAbo = renewTarget.idAbonnement
+          || (await window.api.getAdherentDetail?.(renewTarget.idAdherent))?.idAbonnement;
+        if (idAbo) {
+          await window.api.ajouterPaiement({
+            abonnement_id: idAbo,
+            montant:       montant,
+            mode:          modePaiement || 'Espèces',
+            date:          aboData.dateDebut,
+          });
+        }
+      }
+
       showToast('Abonnement renouvelé avec succès');
       setModal(null);
       setRenewTarget(null);
@@ -679,7 +821,7 @@ export default function Adherent() {
     }
   };
 
-  // ── Modifier un adhérent ──────────────────────────────────────────────────
+  // ── Modifier ──────────────────────────────────────────────────────────────
   const handleSaveEdit = async (form) => {
     try {
       await window.api.updateAdherent({
@@ -693,10 +835,7 @@ export default function Adherent() {
       });
 
       if (form.photo !== editTarget.photo) {
-        await window.api.updateAdherentPhoto({
-          idAdherent: form.idAdherent,
-          photo: form.photo,
-        });
+        await window.api.updateAdherentPhoto({ idAdherent: form.idAdherent, photo: form.photo });
       }
 
       const isSuspendu = form.abonnementStatut === 'suspendu';
@@ -708,7 +847,6 @@ export default function Adherent() {
           dateDebut:         form.dateDebut,
           dateFin:           form.dateFin,
           statut:            form.abonnementStatut,
-          // Champs suspension — null si statut ≠ suspendu
           dureeSuspension:   isSuspendu ? form.dureeSuspension   : null,
           causeSuspension:   isSuspendu ? form.causeSuspension   : null,
           dateFinSuspension: isSuspendu ? form.dateFinSuspension : null,
@@ -737,7 +875,7 @@ export default function Adherent() {
     }
   };
 
-  // ── Ajouter un adhérent ───────────────────────────────────────────────────
+  // ── Ajouter ───────────────────────────────────────────────────────────────
   const handleSaveAdd = async () => {
     showToast('Adhérent ajouté avec succès');
     handleClose();
@@ -746,7 +884,13 @@ export default function Adherent() {
 
   // ── Supprimer ─────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cet adhérent et toutes ses données liées ?')) return;
+    const ok = await askConfirm({
+      title:        "Supprimer l'adhérent",
+      message:      "Cet adhérent, ses abonnements et tous ses paiements seront supprimés définitivement. Cette action est irréversible.",
+      confirmLabel: 'Supprimer',
+      variant:      'danger',
+    });
+    if (!ok) return;
     try {
       await window.api.deleteAdherentComplet(id);
       showToast('Adhérent supprimé');
@@ -765,10 +909,8 @@ export default function Adherent() {
       (a.prenom || '').toLowerCase().includes(q) ||
       (a.email || '').toLowerCase().includes(q) ||
       (a.numTelephone || '').includes(q);
-
     const statut = (a.abonnementStatut || '').toLowerCase();
     const matchFilter = filterIdx === 0 || statut === FILTERS[filterIdx];
-
     return matchSearch && matchFilter;
   });
 
@@ -779,7 +921,7 @@ export default function Adherent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: C.bg }}>
 
-      {/* ── Hero Header ── */}
+      {/* Hero Header */}
       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${GYM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)' }} />
@@ -796,7 +938,6 @@ export default function Adherent() {
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '3rem', fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: 'uppercase', color: C.text }}>
               Gestion des adhérents
             </h1>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
               {[
                 { count: adherents.length, label: 'au total',  color: C.muted  },
@@ -818,36 +959,28 @@ export default function Adherent() {
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={loadData}
-              title="Rafraîchir"
+            <button onClick={loadData} title="Rafraîchir"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, background: 'rgba(255,255,255,0.07)', border: `1px solid ${C.border}`, borderRadius: 10, cursor: 'pointer', color: C.muted }}
               onMouseEnter={e => e.currentTarget.style.color = C.text}
-              onMouseLeave={e => e.currentTarget.style.color = C.muted}
-            >
+              onMouseLeave={e => e.currentTarget.style.color = C.muted}>
               <RefreshCw size={16} />
             </button>
-            <button
-              onClick={() => setModal('add')}
+            <button onClick={() => setModal('add')}
               style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 20px rgba(229,57,53,0.4)', transition: 'all 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(229,57,53,0.5)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(229,57,53,0.4)'; }}
-            >
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(229,57,53,0.4)'; }}>
               <Plus size={17} /> Ajouter un adhérent
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Toolbar ── */}
+      {/* Toolbar */}
       <div style={{ display: 'flex', gap: 12, padding: '14px 36px', background: C.bg, borderBottom: `1px solid ${C.border}`, flexShrink: 0, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: 440 }}>
           <Search size={15} color={C.muted} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-          <input
-            type="text"
-            placeholder="Rechercher par nom, email, téléphone..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Rechercher par nom, email, téléphone..."
+            value={search} onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, padding: '10px 14px 10px 38px', color: C.text, fontFamily: "'Barlow', sans-serif", fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
             onFocus={e => e.target.style.borderColor = 'rgba(229,57,53,0.4)'}
             onBlur={e => e.target.style.borderColor = C.border}
@@ -856,11 +989,16 @@ export default function Adherent() {
 
         <div style={{ display: 'flex', background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, overflow: 'hidden' }}>
           {FILTER_LABELS.map((f, i) => (
-            <button
-              key={f}
-              onClick={() => setFilterIdx(i)}
-              style={{ padding: '9px 18px', border: 'none', borderRight: i < FILTER_LABELS.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: filterIdx === i ? C.accent : 'transparent', color: filterIdx === i ? '#fff' : C.muted, fontFamily: "'Barlow', sans-serif", fontSize: '0.82rem', fontWeight: filterIdx === i ? 700 : 400 }}
-            >
+            <button key={f} onClick={() => setFilterIdx(i)}
+              style={{
+                padding: '9px 18px', border: 'none',
+                borderRight: i < FILTER_LABELS.length - 1 ? `1px solid ${C.border}` : 'none',
+                cursor: 'pointer',
+                background: filterIdx === i ? C.accent : 'transparent',
+                color: filterIdx === i ? '#fff' : C.muted,
+                fontFamily: "'Barlow', sans-serif", fontSize: '0.82rem',
+                fontWeight: filterIdx === i ? 700 : 400,
+              }}>
               {f}
             </button>
           ))}
@@ -871,7 +1009,7 @@ export default function Adherent() {
         </div>
       </div>
 
-      {/* ── Contenu principal ── */}
+      {/* Grille */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 36px 40px' }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 16, color: C.muted }}>
@@ -898,30 +1036,19 @@ export default function Adherent() {
         )}
       </div>
 
-      {/* ── Modals ── */}
+      {/* Modals */}
       {modal === 'edit' && editTarget && (
-        <EditMemberModal
-          member={editTarget}
-          typesAbonnement={typesAbo}
-          onSave={handleSaveEdit}
-          onClose={handleClose}
-        />
+        <EditMemberModal member={editTarget} typesAbonnement={typesAbo} onSave={handleSaveEdit} onClose={handleClose} />
       )}
       {modal === 'add' && (
-        <AddMemberModal
-          typesAbonnement={typesAbo}
-          onSave={handleSaveAdd}
-          onClose={handleClose}
-        />
+        <AddMemberModal typesAbonnement={typesAbo} onSave={handleSaveAdd} onClose={handleClose} />
       )}
       {modal === 'renew' && renewTarget && (
-        <RenewModal
-          member={renewTarget}
-          typesAbonnement={typesAbo}
-          onSave={handleRenew}
-          onClose={handleClose}
-        />
+        <RenewModal member={renewTarget} typesAbonnement={typesAbo} onSave={handleRenew} onClose={handleClose} />
       )}
+
+      {/* ── Confirmation suppression ── */}
+      <DeleteConfirm {...confirmProps} />
 
       <Toast message={toast.msg} error={toast.error} />
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

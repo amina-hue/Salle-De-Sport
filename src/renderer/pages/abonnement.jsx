@@ -71,7 +71,7 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
           )}
         </ul>
 
-        {/* Footer — ✅ nombre_adherents réel */}
+        {/* Footer */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
           <span style={{ fontSize: "0.72rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
             <span style={{ color: C.text, fontWeight: 600 }}>{plan.members}</span> adhérent{plan.members !== 1 ? 's' : ''} actif{plan.members !== 1 ? 's' : ''}
@@ -83,12 +83,14 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
 
         {/* Actions */}
         <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-          <button onClick={onEdit} style={{ flex: 1, padding: "8px 0", fontSize: "0.78rem", background: `${accent}18`, color: accent, border: `1px solid ${accent}33`, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+          <button onClick={onEdit}
+            style={{ flex: 1, padding: "8px 0", fontSize: "0.78rem", background: `${accent}18`, color: accent, border: `1px solid ${accent}33`, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
             onMouseEnter={e => e.currentTarget.style.background = `${accent}30`}
             onMouseLeave={e => e.currentTarget.style.background = `${accent}18`}>
             <Edit2 size={12} /> Modifier
           </button>
-          <button onClick={onDelete} style={{ padding: "8px 12px", fontSize: "0.78rem", background: C.accentDim, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center" }}
+          <button onClick={onDelete}
+            style={{ padding: "8px 12px", fontSize: "0.78rem", background: C.accentDim, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center" }}
             onMouseEnter={e => e.currentTarget.style.background = "rgba(229,57,53,0.25)"}
             onMouseLeave={e => e.currentTarget.style.background = C.accentDim}>
             <Trash2 size={12} />
@@ -101,15 +103,14 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
 
 /* ── Page ── */
 const AbonnementsPage = () => {
-    const location = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const [types, setTypes]                 = useState([]);
-  const [expirant, setExpirant]           = useState([]);   // ✅ vrais données
+  const [expirant, setExpirant]           = useState([]);
   const [modalTypeOpen, setModalTypeOpen] = useState(false);
   const [typeAEditer, setTypeAEditer]     = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // ── Chargement ──────────────────────────────────────────────────────────
   const fetchTypes = async () => {
     try {
       const data = await window.api.getTypeAbonnements();
@@ -132,7 +133,8 @@ const AbonnementsPage = () => {
     fetchTypes();
     fetchExpirant();
   }, []);
-   useEffect(() => {
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('openModal') === 'true') {
       setTypeAEditer(null);
@@ -141,7 +143,6 @@ const AbonnementsPage = () => {
     }
   }, [location.search]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSaveType = async () => {
     await fetchTypes();
     setModalTypeOpen(false);
@@ -155,11 +156,10 @@ const AbonnementsPage = () => {
     fetchTypes();
   };
 
-  // ── Statut badge expiration ──────────────────────────────────────────────
   const statusInfo = (jours) => {
     if (jours <= 3)  return { label: "Urgent",  color: C.accent };
     if (jours <= 10) return { label: "Bientôt", color: C.gold   };
-    return               { label: "OK",      color: C.green  };
+    return                  { label: "OK",      color: C.green  };
   };
 
   const nbExpirant = expirant.length;
@@ -252,7 +252,7 @@ const AbonnementsPage = () => {
                     price:    `${Number(t.prix).toLocaleString()} DA`,
                     per:      `par ${t.duree} mois`,
                     features: t.features ?? [],
-                    members:  t.nombre_adherents ?? 0,   // ✅ depuis la BDD
+                    members:  t.nombre_adherents ?? 0,
                     tier:     t.nom.toLowerCase().includes("premium") ? "premium" : "standard",
                   }}
                   onEdit={() => { setTypeAEditer(t); setModalTypeOpen(true); }}
@@ -263,7 +263,7 @@ const AbonnementsPage = () => {
           )}
         </div>
 
-        {/* ✅ Tableau expiration — données réelles */}
+        {/* Tableau expiration */}
         <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
           <div style={{ padding: "18px 24px 14px", borderBottom: `1px solid ${C.border}` }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: C.text }}>
@@ -292,10 +292,13 @@ const AbonnementsPage = () => {
                   const jours = Number(row.joursRestants);
                   const { label, color } = statusInfo(jours);
                   const expireLabel = jours === 0 ? "Aujourd'hui" : jours === 1 ? "Demain" : `${jours} jours`;
-                  const dateFin = row.dateFin ? new Date(row.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                  const dateFin = row.dateFin
+                    ? new Date(row.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '—';
 
                   return (
-                    <tr key={i} style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
+                    <tr key={i}
+                      style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
 
@@ -317,7 +320,7 @@ const AbonnementsPage = () => {
                       </td>
 
                       {/* Jours restants */}
-                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color: color, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif" }}>
+                      <td style={{ padding: "13px 22px", fontSize: "0.875rem", color, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif" }}>
                         {expireLabel}
                       </td>
 
@@ -333,16 +336,12 @@ const AbonnementsPage = () => {
                         </span>
                       </td>
 
-                      {/* Actions */}
+                      {/* Actions — bouton Email uniquement */}
                       <td style={{ padding: "13px 22px" }}>
                         <div style={{ display: "flex", gap: 6 }}>
-                          {row.numTelephone && (
-                            <a href={`tel:${row.numTelephone}`} style={{ fontSize: "0.78rem", color: C.blue, background: "rgba(58,123,213,0.12)", border: "1px solid rgba(58,123,213,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", textDecoration: "none", display: "inline-block" }}>
-                              📞 Appeler
-                            </a>
-                          )}
                           {row.email && (
-                            <a href={`mailto:${row.email}`} style={{ fontSize: "0.78rem", color: C.gold, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", textDecoration: "none", display: "inline-block" }}>
+                            <a href={`mailto:${row.email}`}
+                              style={{ fontSize: "0.78rem", color: C.gold, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", textDecoration: "none", display: "inline-block" }}>
                               ✉ Email
                             </a>
                           )}
@@ -363,7 +362,8 @@ const AbonnementsPage = () => {
       )}
 
       {deleteConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
           onClick={e => e.target === e.currentTarget && setDeleteConfirm(null)}>
           <div style={{ background: "#1a1d24", border: `1px solid ${C.accentBorder}`, borderRadius: 14, padding: "28px 32px", maxWidth: 380, width: "100%", margin: "0 20px", boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -376,8 +376,14 @@ const AbonnementsPage = () => {
               Cette action est irréversible. Les abonnements liés à ce type seront supprimés.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "9px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", cursor: "pointer" }}>Annuler</button>
-              <button onClick={confirmDelete} style={{ background: C.accent, border: "none", borderRadius: 8, padding: "9px 22px", color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", fontWeight: 700, cursor: "pointer" }}>Supprimer</button>
+              <button onClick={() => setDeleteConfirm(null)}
+                style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "9px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", cursor: "pointer" }}>
+                Annuler
+              </button>
+              <button onClick={confirmDelete}
+                style={{ background: C.accent, border: "none", borderRadius: 8, padding: "9px 22px", color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", fontWeight: 700, cursor: "pointer" }}>
+                Supprimer
+              </button>
             </div>
           </div>
         </div>

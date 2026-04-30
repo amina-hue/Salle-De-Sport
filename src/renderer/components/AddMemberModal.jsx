@@ -10,20 +10,20 @@ const C = {
 
 const DISCIPLINES = ['Musculation', 'Cardio', 'CrossFit', 'Yoga', 'Boxe', 'Natation'];
 const MODES_PAIEMENT = [
-  { value: 'cash', label: 'Espèces', icon: '💵' },
-  { value: 'carte', label: 'Carte bancaire', icon: '💳' },
-  { value: 'virement', label: 'Virement', icon: '🏦' },
+  { value: 'cash',     label: 'Espèces',       icon: '💵' },
+  { value: 'carte',    label: 'Carte bancaire', icon: '💳' },
+  { value: 'virement', label: 'Virement',       icon: '🏦' },
 ];
 
-const IconX = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IconUser = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const IconMail = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>;
-const IconPhone = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .98h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>;
-const IconUpload = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>;
-const IconCamera = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
-const IconCard = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
-const IconArrow = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
-const IconCheck = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
+const IconX       = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconUser    = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const IconMail    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>;
+const IconPhone   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .98h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>;
+const IconUpload  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>;
+const IconCamera  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
+const IconCard    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
+const IconArrow   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+const IconCheck   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
 
 const inputStyle = {
   width: '100%',
@@ -38,6 +38,17 @@ const inputStyle = {
   boxSizing: 'border-box',
 };
 
+const inputStyleNoIcon = {
+  ...inputStyle,
+  paddingLeft: 14,
+};
+
+const inputStyleError = {
+  ...inputStyle,
+  borderColor: 'rgba(229,57,53,0.9)',
+  boxShadow: '0 0 0 2px rgba(229,57,53,0.15)',
+};
+
 const labelStyle = {
   fontSize: '0.8rem',
   color: C.muted,
@@ -46,7 +57,28 @@ const labelStyle = {
   display: 'block',
 };
 
-function InputField({ label, icon: Icon, type = 'text', placeholder, value, onChange, required }) {
+/* ── Calcule l'âge à partir d'une date ISO ── */
+function calcAge(dateStr) {
+  if (!dateStr) return null;
+  const birth = new Date(dateStr);
+  const now   = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+/* ── Date max pour avoir au moins 7 ans ── */
+function maxBirthDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 7);
+  return d.toISOString().split('T')[0];
+}
+
+function InputField({ label, icon: Icon, type = 'text', placeholder, value, onChange, required, error, noIconPad }) {
+  const base = noIconPad ? { ...inputStyleNoIcon } : inputStyle;
+  const style = error ? { ...base, borderColor: 'rgba(229,57,53,0.9)', boxShadow: '0 0 0 2px rgba(229,57,53,0.15)', paddingLeft: noIconPad ? 14 : 40 } : base;
+
   return (
     <div style={{ position: 'relative' }}>
       <label style={labelStyle}>
@@ -54,23 +86,36 @@ function InputField({ label, icon: Icon, type = 'text', placeholder, value, onCh
         {required && <span style={{ color: C.accent }}> *</span>}
       </label>
       <div style={{ position: 'relative' }}>
-        {Icon && (
+        {Icon && !noIconPad && (
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}>
             <Icon />
           </span>
         )}
-        <input type={type} placeholder={placeholder} value={value} onChange={onChange} required={required} style={inputStyle} />
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          required={required}
+          style={style}
+          max={type === 'date' && label.toLowerCase().includes('naissance') ? maxBirthDate() : undefined}
+        />
       </div>
+      {error && <div style={{ fontSize: '0.72rem', color: C.accent, marginTop: 3 }}>{error}</div>}
     </div>
   );
 }
 
+/* ══════════════════
+   STEP 1 — Personnel
+══════════════════ */
 function StepPersonnel({ form, set, onNext, onClose }) {
-  const fileRef = useRef();
+  const fileRef  = useRef();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [preview, setPreview] = useState(form.photo || null);
+  const [preview, setPreview]       = useState(form.photo || null);
+  const [errors, setErrors]         = useState({});
 
   const stopCamera = () => {
     if (videoRef.current?.srcObject) videoRef.current.srcObject.getTracks().forEach(t => t.stop());
@@ -90,9 +135,9 @@ function StepPersonnel({ form, set, onNext, onClose }) {
 
   const takePhoto = () => {
     const canvas = canvasRef.current;
-    const video = videoRef.current;
+    const video  = videoRef.current;
     if (!canvas || !video) return;
-    canvas.width = video.videoWidth;
+    canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
     const data = canvas.toDataURL('image/jpeg');
@@ -105,41 +150,96 @@ function StepPersonnel({ form, set, onNext, onClose }) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreview(reader.result);
-      set('photo', reader.result);
-    };
+    reader.onloadend = () => { setPreview(reader.result); set('photo', reader.result); };
     reader.readAsDataURL(file);
   };
 
+  /* 1. Téléphone : chiffres + séparateurs seulement */
+  const handlePhone = (e) => {
+    const raw    = e.target.value;
+    const clean  = raw.replace(/[^0-9\s\+\-\(\)]/g, '');
+    set('numTelephone', clean);
+    if (/[^0-9\s\+\-\(\)]/.test(raw)) {
+      setErrors(prev => ({ ...prev, phone: 'Chiffres uniquement.' }));
+    } else {
+      setErrors(prev => ({ ...prev, phone: '' }));
+    }
+  };
+
+  /* 2. Email : validation format */
+  const handleEmail = (e) => {
+    const val = e.target.value;
+    set('email', val);
+    if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      setErrors(prev => ({ ...prev, email: 'Format invalide (ex: nom@domaine.com)' }));
+    } else {
+      setErrors(prev => ({ ...prev, email: '' }));
+    }
+  };
+
+  /* 4. Age > 7 ans */
+  const handleDOB = (e) => {
+    const val = e.target.value;
+    set('dateNaissance', val);
+    if (val) {
+      const age = calcAge(val);
+      if (age < 7) {
+        setErrors(prev => ({ ...prev, dob: `L'adhérent doit avoir au moins 7 ans (âge actuel : ${age} an${age > 1 ? 's' : ''}).` }));
+      } else {
+        setErrors(prev => ({ ...prev, dob: '' }));
+      }
+    } else {
+      setErrors(prev => ({ ...prev, dob: '' }));
+    }
+  };
+
   const handleNext = () => {
-    if (!form.nom?.trim() || !form.prenom?.trim()) {
-      alert('Nom et prénom sont requis.');
+    const newErrors = {};
+
+    if (!form.nom?.trim())    newErrors.nom    = 'Le nom est requis.';
+    if (!form.prenom?.trim()) newErrors.prenom = 'Le prénom est requis.';
+    if (!form.numTelephone?.trim()) newErrors.phone = 'Le téléphone est requis.';
+
+    // Validation email
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = 'Format e-mail invalide.';
+    }
+
+    // Validation téléphone chiffres
+    if (form.numTelephone && /[^0-9\s\+\-\(\)]/.test(form.numTelephone)) {
+      newErrors.phone = 'Chiffres uniquement.';
+    }
+
+    // Validation âge >= 7 ans
+    if (form.dateNaissance) {
+      const age = calcAge(form.dateNaissance);
+      if (age < 7) newErrors.dob = `L'adhérent doit avoir au moins 7 ans (âge : ${age} an${age > 1 ? 's' : ''}).`;
+    }
+
+    if (Object.values(newErrors).some(Boolean)) {
+      setErrors(newErrors);
       return;
     }
-    if (!form.numTelephone?.trim()) {
-      alert('Le téléphone est requis.');
-      return;
-    }
+
     stopCamera();
     onNext();
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* Photo */}
       <div>
         <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text, marginBottom: 16, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
           Photo de profil
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <div style={{ width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: `2px solid ${showCamera ? C.accent : 'rgba(229,57,53,0.3)'}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {showCamera ? (
-              <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : preview ? (
-              <img src={preview} alt="profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <span style={{ color: C.muted, opacity: 0.5 }}><IconUser /></span>
-            )}
+            {showCamera
+              ? <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : preview
+                ? <img src={preview} alt="profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ color: C.muted, opacity: 0.5 }}><IconUser /></span>
+            }
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -153,18 +253,15 @@ function StepPersonnel({ form, set, onNext, onClose }) {
                   Capturer
                 </button>
               )}
-
               <button onClick={() => fileRef.current.click()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 7, padding: '9px 16px', color: C.text, fontFamily: "'Barlow', sans-serif", fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
                 <IconUpload /> Importer
               </button>
             </div>
-
             {showCamera && (
               <button onClick={stopCamera} style={{ background: 'none', border: 'none', color: C.muted, fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline' }}>
                 Annuler
               </button>
             )}
-
             <div style={{ fontSize: '0.72rem', color: C.muted }}>Prenez une photo ou téléchargez un fichier</div>
           </div>
 
@@ -173,18 +270,95 @@ function StepPersonnel({ form, set, onNext, onClose }) {
         </div>
       </div>
 
+      {/* Infos personnelles */}
       <div>
         <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text, marginBottom: 16, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
           Informations personnelles
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
-          <InputField label="Prénom" icon={IconUser} placeholder="Jean" value={form.prenom || ''} onChange={e => set('prenom', e.target.value)} required />
-          <InputField label="Nom" icon={IconUser} placeholder="Dupont" value={form.nom || ''} onChange={e => set('nom', e.target.value)} required />
-          <InputField label="Date de naissance" type="date" value={form.dateNaissance || ''} onChange={e => set('dateNaissance', e.target.value)} />
-          <InputField label="Téléphone" icon={IconPhone} placeholder="06 12 34 56 78" value={form.numTelephone || ''} onChange={e => set('numTelephone', e.target.value)} required />
-          <div style={{ gridColumn: '1 / -1' }}>
-            <InputField label="Email" icon={IconMail} type="email" placeholder="jean.dupont@email.com" value={form.email || ''} onChange={e => set('email', e.target.value)} />
+
+          {/* Prénom */}
+          <div style={{ position: 'relative' }}>
+            <label style={labelStyle}>Prénom <span style={{ color: C.accent }}>*</span></label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}><IconUser /></span>
+              <input
+                type="text" placeholder="Jean"
+                value={form.prenom || ''}
+                onChange={e => { set('prenom', e.target.value); setErrors(p => ({ ...p, prenom: '' })); }}
+                style={errors.prenom ? { ...inputStyle, borderColor: 'rgba(229,57,53,0.9)' } : inputStyle}
+              />
+            </div>
+            {errors.prenom && <div style={{ fontSize: '0.72rem', color: C.accent, marginTop: 3 }}>{errors.prenom}</div>}
           </div>
+
+          {/* Nom */}
+          <div style={{ position: 'relative' }}>
+            <label style={labelStyle}>Nom <span style={{ color: C.accent }}>*</span></label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}><IconUser /></span>
+              <input
+                type="text" placeholder="Dupont"
+                value={form.nom || ''}
+                onChange={e => { set('nom', e.target.value); setErrors(p => ({ ...p, nom: '' })); }}
+                style={errors.nom ? { ...inputStyle, borderColor: 'rgba(229,57,53,0.9)' } : inputStyle}
+              />
+            </div>
+            {errors.nom && <div style={{ fontSize: '0.72rem', color: C.accent, marginTop: 3 }}>{errors.nom}</div>}
+          </div>
+
+          {/* Date naissance — 4. âge > 7 ans */}
+          <div style={{ position: 'relative' }}>
+            <label style={labelStyle}>Date de naissance</label>
+            <input
+              type="date"
+              max={maxBirthDate()}
+              value={form.dateNaissance || ''}
+              onChange={handleDOB}
+              style={errors.dob ? { ...inputStyleNoIcon, borderColor: 'rgba(229,57,53,0.9)' } : inputStyleNoIcon}
+            />
+            {errors.dob && <div style={{ fontSize: '0.72rem', color: C.accent, marginTop: 3 }}>{errors.dob}</div>}
+            {form.dateNaissance && !errors.dob && (
+              <div style={{ fontSize: '0.72rem', color: C.muted, marginTop: 3 }}>
+                Âge : {calcAge(form.dateNaissance)} ans
+              </div>
+            )}
+          </div>
+
+          {/* Téléphone — 1. chiffres uniquement */}
+          <div style={{ position: 'relative' }}>
+            <label style={labelStyle}>Téléphone <span style={{ color: C.accent }}>*</span></label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}><IconPhone /></span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="06 12 34 56 78"
+                value={form.numTelephone || ''}
+                onChange={handlePhone}
+                style={errors.phone ? { ...inputStyle, borderColor: 'rgba(229,57,53,0.9)' } : inputStyle}
+              />
+            </div>
+            {errors.phone && <div style={{ fontSize: '0.72rem', color: C.accent, marginTop: 3 }}>{errors.phone}</div>}
+          </div>
+
+          {/* Email — 2. validation format */}
+          <div style={{ gridColumn: '1 / -1', position: 'relative' }}>
+            <label style={labelStyle}>Email</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex' }}><IconMail /></span>
+              <input
+                type="email"
+                placeholder="jean.dupont@email.com"
+                value={form.email || ''}
+                onChange={handleEmail}
+                style={errors.email ? { ...inputStyle, borderColor: 'rgba(229,57,53,0.9)' } : inputStyle}
+              />
+            </div>
+            {errors.email && <div style={{ fontSize: '0.72rem', color: C.accent, marginTop: 3 }}>{errors.email}</div>}
+          </div>
+
+          {/* Sexe */}
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Sexe <span style={{ color: C.accent }}>*</span></label>
             <div style={{ display: 'flex', gap: 24 }}>
@@ -211,6 +385,10 @@ function StepPersonnel({ form, set, onNext, onClose }) {
   );
 }
 
+/* ══════════════════
+   STEP 2 — Abonnement
+   5. Suppression du champ "nombre de séances"
+══════════════════ */
 function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose }) {
   const inp = {
     background: 'rgba(255,255,255,0.06)',
@@ -225,11 +403,11 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
   };
   const inpIcon = { ...inp, paddingLeft: 38 };
 
-  const selectedType = typesAbonnement.find(t => t.id === parseInt(form.type_id));
-  const prixBase = parseFloat(selectedType?.prix) || 0;
-  const remise = parseFloat(form.remise) || 0;
+  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+  const prixBase         = parseFloat(selectedType?.prix) || 0;
+  const remise           = parseFloat(form.remise) || 0;
   const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
-  const total = prixBase * (1 - remise / 100) + fraisInscription;
+  const total            = prixBase * (1 - remise / 100) + fraisInscription;
 
   const computeDateFin = (debut, typeId) => {
     const type = typesAbonnement.find(t => t.id === parseInt(typeId));
@@ -256,14 +434,8 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
   }, [total]);
 
   const handleNext = () => {
-    if (!form.type_id) {
-      alert("Veuillez sélectionner un type d'abonnement.");
-      return;
-    }
-    if (!form.dateDebut) {
-      alert("La date de début est requise.");
-      return;
-    }
+    if (!form.type_id) { alert("Veuillez sélectionner un type d'abonnement."); return; }
+    if (!form.dateDebut) { alert("La date de début est requise."); return; }
     onNext();
   };
 
@@ -274,6 +446,7 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* Type abonnement */}
         <div>
           <label style={labelStyle}>Type d'abonnement <span style={{ color: C.accent }}>*</span></label>
           <div style={{ position: 'relative' }}>
@@ -287,13 +460,15 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
           </div>
         </div>
 
+        {/* Date d'adhésion */}
         <div>
           <label style={labelStyle}>Date d'adhésion <span style={{ color: C.accent }}>*</span></label>
           <input type="date" value={form.dateDebut || new Date().toISOString().split('T')[0]} onChange={e => handleDebutChange(e.target.value)} style={{ ...inp, width: '100%' }} />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      {/* Discipline uniquement (nombre de séances supprimé — point 5) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
         <div>
           <label style={labelStyle}>Discipline</label>
           <div style={{ position: 'relative' }}>
@@ -304,13 +479,9 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
             </select>
           </div>
         </div>
-
-        <div>
-          <label style={labelStyle}>Nombre de fois / semaine</label>
-          <input type="number" min="1" max="7" placeholder="ex: 3" value={form.nombreFois || ''} onChange={e => set('nombreFois', e.target.value)} style={{ ...inp, width: '100%' }} />
-        </div>
       </div>
 
+      {/* Période + remise */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div>
@@ -333,6 +504,7 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
         </div>
       </div>
 
+      {/* Frais d'inscription + total */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
@@ -369,12 +541,16 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
   );
 }
 
+/* ══════════════════
+   STEP 3 — Paiement
+   3b. payer plus tard bien transmis
+══════════════════ */
 function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, saving }) {
-  const selectedType = typesAbonnement.find(t => t.id === parseInt(form.type_id));
-  const prixBase = parseFloat(selectedType?.prix) || 0;
-  const remise = parseFloat(form.remise) || 0;
+  const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+  const prixBase         = parseFloat(selectedType?.prix) || 0;
+  const remise           = parseFloat(form.remise) || 0;
   const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
-  const total = prixBase * (1 - remise / 100) + fraisInscription;
+  const total            = prixBase * (1 - remise / 100) + fraisInscription;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -382,6 +558,7 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
         Récapitulatif & Paiement
       </div>
 
+      {/* Récapitulatif */}
       <div style={{ background: 'rgba(229,57,53,0.07)', border: '1px solid rgba(229,57,53,0.2)', borderRadius: 12, padding: '16px 20px' }}>
         <div style={{ fontSize: '0.72rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
           Récapitulatif
@@ -425,33 +602,33 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
         </div>
       </div>
 
+      {/* Statut paiement — 3b. payer plus tard bien transmis */}
       <div>
         <label style={labelStyle}>Statut du paiement</label>
         <div style={{ display: 'flex', gap: 12 }}>
           {[
-            { value: false, label: 'Payer plus tard', icon: '⏳', desc: "L'abonnement sera marqué impayé" },
-            { value: true, label: 'Payer maintenant', icon: '✅', desc: 'Le paiement sera enregistré' },
+            { value: false, label: 'Payer plus tard', icon: '⏳', desc: "L'abonnement sera marqué impayé", color: C.gold },
+            { value: true,  label: 'Payer maintenant', icon: '✅', desc: 'Le paiement sera enregistré',   color: C.green },
           ].map(opt => {
-            const selected = (form.payerMaintenant === true) === opt.value;
+            const selected = form.payerMaintenant === opt.value;
             return (
               <button
                 key={String(opt.value)}
-                onClick={() => set('payerMaintenant', opt.value)}
+                onClick={() => {
+                  set('payerMaintenant', opt.value);
+                  // 3b. S'assurer que montant = 0 si payer plus tard
+                  set('montant', opt.value ? total : 0);
+                  set('montantDu', total);
+                }}
                 style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '14px 10px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  border: selected ? `2px solid ${opt.value ? C.green : C.gold}` : '1px solid rgba(255,255,255,0.12)',
-                  background: selected ? (opt.value ? 'rgba(67,160,71,0.1)' : 'rgba(255,193,7,0.08)') : 'rgba(255,255,255,0.04)',
-                  color: selected ? (opt.value ? C.green : C.gold) : C.muted,
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  padding: '14px 10px', borderRadius: 10, cursor: 'pointer',
+                  border: selected ? `2px solid ${opt.color}` : '1px solid rgba(255,255,255,0.12)',
+                  background: selected ? `${opt.color}18` : 'rgba(255,255,255,0.04)',
+                  color: selected ? opt.color : C.muted,
                   fontFamily: "'Barlow', sans-serif",
-                  fontWeight: selected ? 700 : 400,
-                  fontSize: '0.85rem',
+                  fontWeight: selected ? 700 : 400, fontSize: '0.85rem',
+                  transition: 'all 0.2s',
                 }}
               >
                 <span style={{ fontSize: '1.6rem' }}>{opt.icon}</span>
@@ -461,9 +638,20 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
             );
           })}
         </div>
+
+        {/* Indication montant */}
+        {form.payerMaintenant !== undefined && (
+          <div style={{ marginTop: 10, padding: '8px 14px', borderRadius: 8, background: form.payerMaintenant ? 'rgba(67,160,71,0.1)' : 'rgba(255,193,7,0.1)', border: `1px solid ${form.payerMaintenant ? 'rgba(67,160,71,0.3)' : 'rgba(255,193,7,0.3)'}`, fontSize: '0.8rem', color: form.payerMaintenant ? C.green : C.gold }}>
+            {form.payerMaintenant
+              ? `✅ Montant encaissé : ${total.toFixed(2)} DA`
+              : `⏳ Montant dû : ${total.toFixed(2)} DA — à régler ultérieurement`
+            }
+          </div>
+        )}
       </div>
 
-      {form.payerMaintenant && (
+      {/* Mode paiement — visible seulement si payer maintenant */}
+      {form.payerMaintenant === true && (
         <div>
           <label style={labelStyle}>Mode de paiement <span style={{ color: C.accent }}>*</span></label>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -474,20 +662,13 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
                   key={m.value}
                   onClick={() => set('modePaiement', m.value)}
                   style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '12px 10px',
-                    borderRadius: 10,
-                    cursor: 'pointer',
+                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    padding: '12px 10px', borderRadius: 10, cursor: 'pointer',
                     border: selected ? `2px solid ${C.accent}` : '1px solid rgba(255,255,255,0.12)',
                     background: selected ? 'rgba(229,57,53,0.12)' : 'rgba(255,255,255,0.04)',
                     color: selected ? C.accent : C.muted,
                     fontFamily: "'Barlow', sans-serif",
-                    fontWeight: selected ? 700 : 400,
-                    fontSize: '0.8rem',
+                    fontWeight: selected ? 700 : 400, fontSize: '0.8rem',
                   }}
                 >
                   <span style={{ fontSize: '1.4rem' }}>{m.icon}</span>
@@ -511,16 +692,10 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
             onClick={onSave}
             disabled={saving || form.payerMaintenant === undefined}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
+              display: 'flex', alignItems: 'center', gap: 8,
               background: saving || form.payerMaintenant === undefined ? '#555' : C.accent,
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 24px',
-              color: '#fff',
-              fontFamily: "'Barlow', sans-serif",
-              fontWeight: 700,
+              border: 'none', borderRadius: 8, padding: '10px 24px',
+              color: '#fff', fontFamily: "'Barlow', sans-serif", fontWeight: 700,
               cursor: saving || form.payerMaintenant === undefined ? 'not-allowed' : 'pointer',
               opacity: form.payerMaintenant === undefined ? 0.5 : 1,
             }}
@@ -533,13 +708,16 @@ function StepPaiement({ form, set, typesAbonnement, onPrev, onSave, onClose, sav
   );
 }
 
+/* ══════════════════
+   MODAL WRAPPER
+══════════════════ */
 export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = [], onSave, onClose }) {
-  const [step, setStep] = useState(1);
-  const [saving, setSaving] = useState(false);
+  const [step, setStep]                   = useState(1);
+  const [saving, setSaving]               = useState(false);
   const [typesAbonnement, setTypesAbonnement] = useState(typesAbonnementProp);
-  const [form, setForm] = useState({
-    sexe: 'Homme',
-    dateDebut: new Date().toISOString().split('T')[0],
+  const [form, setForm]                   = useState({
+    sexe:         'Homme',
+    dateDebut:    new Date().toISOString().split('T')[0],
     modePaiement: 'cash',
   });
 
@@ -556,41 +734,34 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
   const STEP_LABELS = ['Informations personnelles', 'Abonnement', 'Paiement'];
 
   const handleSave = async () => {
-    if (!form.type_id) {
-      alert("Veuillez sélectionner un type d'abonnement.");
-      return;
-    }
-    if (!form.dateDebut) {
-      alert("La date de début est requise.");
-      return;
-    }
-    if (form.payerMaintenant === undefined) {
-      alert("Veuillez choisir un statut de paiement.");
-      return;
-    }
+    if (!form.type_id)    { alert("Veuillez sélectionner un type d'abonnement."); return; }
+    if (!form.dateDebut)  { alert("La date de début est requise."); return; }
+    if (form.payerMaintenant === undefined) { alert("Veuillez choisir un statut de paiement."); return; }
 
-    const selectedType = typesAbonnement.find(t => t.id === parseInt(form.type_id));
-    const prixBase = parseFloat(selectedType?.prix) || 0;
-    const remise = parseFloat(form.remise) || 0;
+    const selectedType     = typesAbonnement.find(t => t.id === parseInt(form.type_id));
+    const prixBase         = parseFloat(selectedType?.prix) || 0;
+    const remise           = parseFloat(form.remise) || 0;
     const fraisInscription = form.fraisInscription ? (parseFloat(form.fraisInscriptionMontant) || 0) : 0;
-    const total = prixBase * (1 - remise / 100) + fraisInscription;
+    const total            = prixBase * (1 - remise / 100) + fraisInscription;
 
     setSaving(true);
     try {
       await window.api.createAdherentComplet({
-        nom: form.nom,
-        prenom: form.prenom,
+        nom:           form.nom,
+        prenom:        form.prenom,
         dateNaissance: form.dateNaissance || null,
-        numTelephone: form.numTelephone,
-        email: form.email || null,
-        sexe: form.sexe,
-        photo: form.photo || null,
-        type_id: parseInt(form.type_id),
-        dateDebut: form.dateDebut,
-        dateFin: form.dateFin || null,
-        montantDu: total,
-        montant: form.payerMaintenant ? total : 0,
-        modePaiement: form.modePaiement || 'cash',
+        numTelephone:  form.numTelephone,
+        email:         form.email || null,
+        sexe:          form.sexe,
+        photo:         form.photo || null,
+        type_id:       parseInt(form.type_id),
+        dateDebut:     form.dateDebut,
+        dateFin:       form.dateFin || null,
+        montantDu:     total,
+        // 3b. montant = 0 si payer plus tard, total si payer maintenant
+        montant:       form.payerMaintenant ? total : 0,
+        modePaiement:  form.payerMaintenant ? (form.modePaiement || 'cash') : null,
+        payerMaintenant: form.payerMaintenant,
       });
       onSave?.();
       onClose();
@@ -604,33 +775,17 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 999,
-        background: 'rgba(0,0,0,0.75)',
-      }}
+      style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, background: 'rgba(0,0,0,0.75)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 860,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          margin: '0 20px',
-          fontFamily: "'Barlow', sans-serif",
-          color: C.text,
-          borderRadius: 16,
-          overflowX: 'hidden',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.8)',
-        }}
-      >
-        {/* Header avec fond d'image */}
+      <div style={{
+        position: 'relative', width: '100%', maxWidth: 860, maxHeight: '90vh',
+        overflowY: 'auto', margin: '0 20px',
+        fontFamily: "'Barlow', sans-serif", color: C.text,
+        borderRadius: 16, overflowX: 'hidden',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.8)',
+      }}>
+        {/* Header */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${GYM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center 40%' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
@@ -647,13 +802,10 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
                   <React.Fragment key={s}>
                     <div style={{
                       width: s === step ? 28 : (s < step ? 22 : 8),
-                      height: 8,
-                      borderRadius: 4,
+                      height: 8, borderRadius: 4,
                       background: s < step ? C.green : s === step ? C.accent : 'rgba(255,255,255,0.3)',
                       transition: 'all 0.3s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       {s < step && <IconCheck />}
                     </div>
@@ -668,17 +820,11 @@ export default function AddMemberModal({ typesAbonnement: typesAbonnementProp = 
           </div>
         </div>
 
-        {/* Body avec background fixe et padding */}
+        {/* Body */}
         <div style={{ background: C.modalBg, padding: '28px 32px' }}>
-          {step === 1 && (
-            <StepPersonnel form={form} set={set} onNext={() => setStep(2)} onClose={onClose} />
-          )}
-          {step === 2 && (
-            <StepAbonnement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(1)} onNext={() => setStep(3)} onClose={onClose} />
-          )}
-          {step === 3 && (
-            <StepPaiement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(2)} onSave={handleSave} onClose={onClose} saving={saving} />
-          )}
+          {step === 1 && <StepPersonnel form={form} set={set} onNext={() => setStep(2)} onClose={onClose} />}
+          {step === 2 && <StepAbonnement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(1)} onNext={() => setStep(3)} onClose={onClose} />}
+          {step === 3 && <StepPaiement form={form} set={set} typesAbonnement={typesAbonnement} onPrev={() => setStep(2)} onSave={handleSave} onClose={onClose} saving={saving} />}
         </div>
       </div>
     </div>

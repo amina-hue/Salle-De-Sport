@@ -452,7 +452,31 @@ ipcMain.handle('getAbonnements', async () => {
     );
   });
 });
-
+ipcMain.handle('getHistoriqueAbonnements', async (event, adherent_id) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT
+         ab.idAbonnement,
+         t.nom        AS typeNom,
+         ab.dateDebut,
+         ab.dateFin,
+         ab.statut,
+         ab.montantDu,
+         COALESCE(SUM(p.montant), 0) AS totalPaye
+       FROM Abonnement ab
+       LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+       LEFT JOIN Paiement p ON p.abonnement_id = ab.idAbonnement
+       WHERE ab.adherent_id = ?
+       GROUP BY ab.idAbonnement, t.nom, ab.dateDebut, ab.dateFin, ab.statut, ab.montantDu
+       ORDER BY ab.dateDebut DESC`,
+      [adherent_id],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
 ipcMain.handle('getAbonnementsExpirant', async () => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -471,23 +495,25 @@ ipcMain.handle('getAbonnementsExpirant', async () => {
     );
   });
 });
-
-// ✅ CORRIGÉ : inclut dureeSuspension, causeSuspension, dateFinSuspension
+// REMPLACER le handler 'addAbonnement' par celui-ci :
 ipcMain.handle('addAbonnement', async (event, data) => {
   return new Promise((resolve, reject) => {
     const {
       adherent_id, type_id, dateDebut, dateFin, statut,
+      montantDu,
       dureeSuspension, causeSuspension, dateFinSuspension,
     } = data;
+
     db.query(
       `INSERT INTO Abonnement
-         (adherent_id, type_id, dateDebut, dateFin, statut,
+         (adherent_id, type_id, dateDebut, dateFin, statut, montantDu,
           dureeSuspension, causeSuspension, dateFinSuspension)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         adherent_id, type_id, dateDebut, dateFin, statut,
-        dureeSuspension   ?? null,
-        causeSuspension   ?? null,
+        montantDu        ?? null,
+        dureeSuspension  ?? null,
+        causeSuspension  ?? null,
         dateFinSuspension ?? null,
       ],
       (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
@@ -601,7 +627,65 @@ ipcMain.handle('getAbonnementsNonPaies', async () => {
     });
   });
 });
+// ══════════════════════════════════════════════
+//  PAIEMENTS + ABONNEMENTS EN ATTENTE DE PAIEMENT
+// ══════════════════════════════════════════════
+ipcMain.handle('getPaiementsEtAttentes', async () => {
+  return new Promise((resolve, reject) => {
+    // 1. Paiements réels déjà enregistrés
+    const sqlPaiements = `
+      SELECT 
+        CONCAT('P-', p.idPaiement) AS id,
+        p.idPaiement,
+        NULL AS idAbonnement,
+        p.montant,
+        DATE_FORMAT(p.datePaiement, '%d/%m/%Y') AS date,
+        p.modePaiement AS mode,
+        CONCAT(a.prenom, ' ', a.nom) AS nom,
+        a.idAdherent,
+        ab.idAbonnement AS abonnement_id,
+        'Payé' AS statut,
+        t.nom AS typeNom
+      FROM Paiement p
+      JOIN Abonnement ab ON p.abonnement_id = ab.idAbonnement
+      JOIN Adherent a ON ab.adherent_id = a.idAdherent
+      LEFT JOIN TypeAbonnement t ON ab.type_id = t.id
+      ORDER BY p.datePaiement DESC
+    `;
 
+    // 2. Abonnements avec solde restant (montantDu > totalPaye)
+    const sqlAttentes = `
+      SELECT 
+        CONCAT('A-', ab.idAbonnement) AS id,
+        NULL AS idPaiement,
+        ab.idAbonnement,
+        (COALESCE(ab.montantDu, t.prix) - COALESCE(SUM(p.montant), 0)) AS montant,
+        DATE_FORMAT(ab.dateDebut, '%d/%m/%Y') AS date,
+        NULL AS mode,
+        CONCAT(ad.prenom, ' ', ad.nom) AS nom,
+        ad.idAdherent,
+        ab.idAbonnement AS abonnement_id,
+        'En attente' AS statut,
+        t.nom AS typeNom
+      FROM Abonnement ab
+      JOIN Adherent ad ON ab.adherent_id = ad.idAdherent
+      JOIN TypeAbonnement t ON ab.type_id = t.id
+      LEFT JOIN Paiement p ON p.abonnement_id = ab.idAbonnement
+      GROUP BY ab.idAbonnement, ad.idAdherent, ad.prenom, ad.nom, 
+               ab.montantDu, t.prix, ab.dateDebut, t.nom
+      HAVING (COALESCE(ab.montantDu, t.prix) - COALESCE(SUM(p.montant), 0)) > 0
+      ORDER BY ab.dateDebut DESC
+    `;
+
+    db.query(sqlPaiements, (err1, paiements) => {
+      if (err1) return reject(err1);
+      db.query(sqlAttentes, (err2, attentes) => {
+        if (err2) return reject(err2);
+        resolve([...paiements, ...attentes]);
+      });
+    });
+  });
+});
 // ══════════════════════════════════════════════
 //  PRODUITS
 // ══════════════════════════════════════════════
