@@ -102,21 +102,32 @@ export default function NouvelTypeAbonnementModal({ type, onSave, onClose }) {
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = async () => {
-    if (!validate()) return;
-    const payload = {
-      nom:      form.nom.trim(),
-      duree:    Number(form.duree),
-      prix:     Number(form.prix),
-      features: selectedRules,
-    };
-    if (isEdit) {
-      await window.api.updateTypeAbonnement({ ...payload, id: type.id });
-    } else {
-      await window.api.addTypeAbonnement(payload);
-    }
-    onSave?.();
+const handleSave = async () => {
+  if (!validate()) return;
+  const payload = {
+    nom:      form.nom.trim(),
+    duree:    Number(form.duree),
+    prix:     Number(form.prix),
+    features: selectedRules,
   };
+  
+  try {
+    console.log('Payload envoyé:', payload);
+    
+    if (isEdit) {
+      const res = await window.api.updateTypeAbonnement({ ...payload, id: type.id });
+      console.log('Résultat update:', res);
+    } else {
+      const res = await window.api.addTypeAbonnement(payload);
+      console.log('Résultat add:', res);
+    }
+    
+    onSave?.();
+  } catch (err) {
+    console.error('Erreur handleSave:', err);
+    alert('Erreur : ' + err.message);
+  }
+};
 
   return (
     <div

@@ -15,7 +15,8 @@ import Parametres              from './renderer/pages/Parametres';
 import StatistiquesAdherent    from './renderer/pages/StatistiquesAdherent';
 import StatistiquesAbonnement  from './renderer/pages/StatistiquesAbonnement';
 import StatistiquesRevenue     from './renderer/pages/StatistiquesRevenue';
-import HistoriqueTransactions  from './renderer/pages/HistoriqueTransactions'; // ← AJOUTÉ
+import HistoriqueTransactions  from './renderer/pages/HistoriqueTransactions'; 
+import FideliteAdherents  from './renderer/pages/fideliteadherents'; // ← AJOUTÉ
 
 function App() {
   return (
@@ -36,7 +37,7 @@ function App() {
           <Route path="/planning"                    element={<Planning />} />
           <Route path="/recette"                     element={<Recette />} />
           <Route path="/magasin"                     element={<Magasin />} />
-          <Route path="/magasin/transactions"        element={<HistoriqueTransactions />} /> {/* ← AJOUTÉ */}
+          <Route path="/magasin/transactions"        element={<HistoriqueTransactions />} /> <Route path="/magasin/fideliteadherents" element={<FideliteAdherents />} />{/* ← AJOUTÉ */}
           <Route path="/utilisateurs"                element={<Utilisateurs />} />
           <Route path="/parametres"                  element={<Parametres />} />
           <Route path="/statistiques/adherents"      element={<StatistiquesAdherent />} />

@@ -100,5 +100,8 @@ addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
   //renewAbonnement: (data) => ipcRenderer.invoke('renew-abonnement', data),
   //ajouterPaiement:        (data) => ipcRenderer.invoke('ajouterPaiement', data),
   //getAbonnementsNonPaies: ()     => ipcRenderer.invoke('getAbonnementsNonPaies'),
+  getHistoriqueAchatsAdherent: (adherentId) => ipcRenderer.invoke('get-historique-adherent', adherentId),
+getPointsFidelite: () => ipcRenderer.invoke('getPointsFidelite'),
+getAdherentNiveau: (id) => ipcRenderer.invoke('getAdherentNiveau', id),
   
 });

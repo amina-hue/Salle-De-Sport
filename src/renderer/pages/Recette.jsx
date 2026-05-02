@@ -46,6 +46,7 @@ const Recette = () => {
   const [activeFilter, setActiveFilter] = useState({ debut: "", fin: "" });
   const [currentPage, setCurrentPage]   = useState(1);
   const navigate = useNavigate(); 
+  const [dateError, setDateError] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -63,8 +64,19 @@ const Recette = () => {
     finally { setLoading(false); }
   };
 
-  const handleFiltrer = () => { setActiveFilter({ debut: dateDebut, fin: dateFin }); setCurrentPage(1); };
-  const handleReset   = () => { setDateDebut(""); setDateFin(""); setActiveFilter({ debut: "", fin: "" }); setCurrentPage(1); };
+const handleFiltrer = () => {
+  if (dateDebut && dateFin && new Date(dateDebut) > new Date(dateFin)) {
+    setDateError("La date de début doit être antérieure à la date de fin.");
+    return;
+  }
+  setDateError("");
+  setActiveFilter({ debut: dateDebut, fin: dateFin });
+  setCurrentPage(1);
+};
+ const handleReset = () => {
+  setDateDebut(""); setDateFin(""); setDateError("");
+  setActiveFilter({ debut: "", fin: "" }); setCurrentPage(1);
+};
 
   const filtered = useMemo(() => recettes.filter(r => {
     if (!r.date) return true;
@@ -174,6 +186,14 @@ const Recette = () => {
                 </div>
               </div>
             ))}
+            {dateError && (
+  <p style={{
+    color: "#f87171", fontSize: "0.72rem", fontFamily: "'Barlow', sans-serif",
+    fontWeight: 600, margin: 0, lineHeight: 1.4
+  }}>
+    ⚠ {dateError}
+  </p>
+)}
             <button onClick={handleFiltrer} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 8, color: "#fff", fontSize: "0.875rem", fontWeight: 700, padding: "10px 0", cursor: "pointer", fontFamily: "'Barlow', sans-serif", boxShadow: "0 4px 12px rgba(229,57,53,0.35)" }}>
               <Filter size={14} /> Filtrer
             </button>
