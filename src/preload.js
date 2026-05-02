@@ -65,6 +65,8 @@ deleteRole:                 (id)   => invoke('deleteRole', id),  // ← AJOUTER
   getSeancesSemaine: (params) => ipcRenderer.invoke('getSeancesSemaine', params),
   getPresencesSeance: (seance_id) => ipcRenderer.invoke('getPresencesSeance', seance_id),
 addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
+
+
   // ── Activités ──
   getActivites:               ()     => invoke('getActivites'),
   addActivite:                (data) => invoke('addActivite', data),
@@ -96,9 +98,28 @@ addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
   
 // Fréquentation par jour de la semaine
   getFrequentationSemaine: () => invoke('getFrequentationSemaine'),
-  createAdherentComplet:  (data) => ipcRenderer.invoke('createAdherentComplet', data),
-  //renewAbonnement: (data) => ipcRenderer.invoke('renew-abonnement', data),
-  //ajouterPaiement:        (data) => ipcRenderer.invoke('ajouterPaiement', data),
-  //getAbonnementsNonPaies: ()     => ipcRenderer.invoke('getAbonnementsNonPaies'),
   
+  getSeancesParJour: () => invoke('getSeancesParJour'),
+  createAdherentComplet:  (data) => ipcRenderer.invoke('createAdherentComplet', data),
+
+
+
+
+
+  
+});
+
+  // Dans ton preload.js ou main process
+ipcMain.handle('update-paiement-status', async (event, { id, statut }) => {
+  try {
+    const result = await db.query(
+      'UPDATE paiements SET statut = ?, date_modification = NOW() WHERE id = ?',
+      [statut, id]
+    );
+    
+    return { success: result.affectedRows > 0 };
+  } catch (error) {
+    console.error('Erreur update paiement:', error);
+    return { success: false, error: error.message };
+  }
 });
