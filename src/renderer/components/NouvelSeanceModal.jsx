@@ -47,6 +47,7 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
     activite_id:    '',
     coach_id:       '',
     participantsMax: 10,
+    publicCible:     'Homme',
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -97,6 +98,7 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
   participantsMax: parseInt(form.participantsMax),
   coach_id:        parseInt(form.coach_id),
   activite_id:     parseInt(form.activite_id),
+  publicCible:     form.publicCible,
 });
       onSave?.(result);
       onClose();
@@ -232,6 +234,44 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
                   style={inp}
                 />
               </div>
+              {/* Public cible */}
+<div style={{ marginBottom: 14 }}>
+  <label style={lbl}>Public cible *</label>
+  <div style={{ display: 'flex', gap: 10 }}>
+    {[
+      { value: 'Homme', label: 'Hommes', icon: '♂' },
+      { value: 'Femme', label: 'Femmes', icon: '♀' },
+    ].map(opt => {
+      const selected = form.publicCible === opt.value;
+      return (
+        <button
+          key={opt.value}
+          onClick={() => set('publicCible', opt.value)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            padding: '10px 6px',
+            borderRadius: 9,
+            cursor: 'pointer',
+            border: selected ? `2px solid ${C.accent}` : '1px solid rgba(255,255,255,0.12)',
+            background: selected ? 'rgba(229,57,53,0.12)' : 'rgba(255,255,255,0.04)',
+            color: selected ? C.accent : C.muted,
+            fontFamily: "'Barlow', sans-serif",
+            fontWeight: selected ? 700 : 400,
+            fontSize: '0.8rem',
+            transition: 'all 0.2s',
+          }}
+        >
+          <span style={{ fontSize: '1.3rem' }}>{opt.icon}</span>
+          {opt.label}
+        </button>
+      );
+    })}
+  </div>
+</div>
             </>
           )}
 

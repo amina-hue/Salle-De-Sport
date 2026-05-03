@@ -1,9 +1,11 @@
+require('dotenv').config();
 
 
-const { app, BrowserWindow, session, ipcMain } = require('electron');
+const { app, BrowserWindow, session, ipcMain, dialog } = require('electron');
 const path = require('node:path');
+const fs   = require('fs');
+const os   = require('os');
 const db = require('./db');
-
 if (require('electron-squirrel-startup')) app.quit();
 
 // ══════════════════════════════════════════════
@@ -95,7 +97,47 @@ const autoExpire = (cb) => {
     }
   );
 };
+const nodemailer = require('nodemailer');
 
+const createTransporter = () => nodemailer.createTransport({
+  host: 'smtp.gmail.com',        // adapte selon ton fournisseur
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS, // mot de passe d'application recommandé
+  },
+});
+
+ipcMain.handle('sendEmail', async (event, { to, subject, html, text }) => {
+  try {
+    const transporter = createTransporter();
+    const info = await transporter.sendMail({
+      from: `"FitManager" <${process.env.EMAIL_USER}>`,
+      to: Array.isArray(to) ? to.join(', ') : to,
+      subject,
+      html,
+      text,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('Erreur sendEmail :', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('getEmailsAdherentsActifs', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT ad.email, ad.prenom, ad.nom
+       FROM Adherent ad
+       JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+       WHERE ab.statut = 'actif'
+         AND ad.email IS NOT NULL AND ad.email != ''`,
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
 // ══════════════════════════════════════════════
 //  LOGIN
 // ══════════════════════════════════════════════
@@ -990,32 +1032,17 @@ ipcMain.handle('ajouterPaiement', async (event, { abonnement_id, montant, mode, 
 //  SÉANCES
 // ══════════════════════════════════════════════
 
-ipcMain.handle('getSeancesSemaine', async (event, { dateDebut, dateFin }) => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT s.*, 
-        a.nom AS activiteNom, a.couleur AS activiteCouleur,
-        u.nom AS coachNom, u.prenom AS coachPrenom,
-        COUNT(p.idPresence) AS presents
-       FROM Seance s
-       LEFT JOIN Activite a ON s.activite_id = a.idActivite
-       LEFT JOIN Utilisateur u ON s.coach_id = u.idUtilisateur
-       LEFT JOIN Presence p ON p.seance_id = s.idSeance
-       WHERE s.date BETWEEN ? AND ?
-       GROUP BY s.idSeance
-       ORDER BY s.date ASC, s.heureDebut ASC`,
-      [dateDebut, dateFin],
-      (err, result) => { if (err) reject(err); else resolve(result); }
-    );
-  });
-});
+
 
 ipcMain.handle('addSeance', async (event, data) => {
   return new Promise((resolve, reject) => {
-    const { date, heureDebut, heureFin, participantsMax, coach_id, activite_id } = data;
+    const { date, heureDebut, heureFin, participantsMax, coach_id, activite_id, publicCible } = data;
+
+    console.log('publicCible reçu :', publicCible); // temporaire pour vérifier
+
     db.query(
-      'INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [date, heureDebut, heureFin, participantsMax || 15, coach_id || null, activite_id || null],
+      'INSERT INTO Seance (date, heureDebut, heureFin, participantsMax, coach_id, activite_id, publicCible) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [date, heureDebut, heureFin, participantsMax || 15, coach_id || null, activite_id || null, publicCible || 'Homme'],
       (err, result) => { if (err) reject(err); else resolve({ insertId: result.insertId }); }
     );
   });
@@ -1046,10 +1073,10 @@ ipcMain.handle('addPresence', async (event, { adherent_id, seance_id, date }) =>
 
 ipcMain.handle('getActivites', async () => {
   return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM Activite ORDER BY nom', (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
+    db.query(
+      'SELECT * FROM Activite WHERE deleted_at IS NULL ORDER BY nom',
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
   });
 });
 
@@ -1069,10 +1096,11 @@ ipcMain.handle('addActivite', async (event, data) => {
 
 ipcMain.handle('deleteActivite', async (event, id) => {
   return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Activite WHERE idActivite=?', [id], (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
+    db.query(
+      'UPDATE Activite SET deleted_at = NOW() WHERE idActivite = ?',
+      [id],
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
   });
 });
 // ══════════════════════════════════════════════
@@ -1223,4 +1251,151 @@ ipcMain.handle('getHistoriqueAchats', async () => {
       else resolve(result);
     });
   });
+});
+
+
+ipcMain.handle('exportPlanningPDF', async (event, { html, filename }) => {
+  const win = new BrowserWindow({ show: false });
+  await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+  const pdfData = await win.webContents.printToPDF({
+    printBackground: true,
+    landscape: true,
+    pageSize: 'A4',
+  });
+  win.destroy();
+
+  const { filePath } = await dialog.showSaveDialog({
+    defaultPath: filename || 'planning.pdf',
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  });
+
+  if (filePath) {
+    fs.writeFileSync(filePath, pdfData);
+    return { success: true, filePath };
+  }
+  return { success: false, cancelled: true };
+});
+
+ipcMain.handle('sendSpecialMessage', async (event, { type, customText, customSubject }) => {
+  const templates = {
+    aidkoum: {
+      subject: '🎉 Saha Aidkoum — FitManager',
+      html: `<div style="font-family:sans-serif;padding:24px">
+               <h2>🌙 Saha Aidkoum wa Saha Ftourkoum !</h2>
+               <p>Toute l'équipe FitManager vous souhaite une excellente fête de l'Aïd,
+                  pleine de joie et de bonheur.</p>
+               <p>À très bientôt au club !</p>
+             </div>`,
+    },
+    fermeture: {
+      subject: '⚠️ Fermeture exceptionnelle — FitManager',
+      html: `<div style="font-family:sans-serif;padding:24px">
+               <h2>⚠️ Fermeture exceptionnelle</h2>
+               <p>${customText || 'Le club sera fermé exceptionnellement. Merci de votre compréhension.'}</p>
+             </div>`,
+    },
+    custom: {
+      subject: customSubject || 'Message de FitManager',
+      html: `<div style="font-family:sans-serif;padding:24px"><p>${customText || ''}</p></div>`,
+    },
+  };
+
+  const tpl = templates[type] || templates.custom;
+
+  const adherents = await query(
+    `SELECT ad.email FROM Adherent ad
+     JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+     WHERE ab.statut = 'actif' AND ad.email IS NOT NULL AND ad.email != ''`
+  );
+  const emails = adherents.map(a => a.email);
+  if (!emails.length) return { success: false, message: 'Aucun email actif trouvé' };
+
+  const transporter = createTransporter();
+  try {
+    await transporter.sendMail({
+      from: `"FitManager" <${process.env.EMAIL_USER}>`,
+      to: emails.join(', '),
+      ...tpl,
+    });
+    return { success: true, count: emails.length };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+ipcMain.handle('getSeancesSemaine', async (event, { dateDebut, dateFin }) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT s.*,
+        a.nom AS activiteNom, a.couleur AS activiteCouleur,
+        u.nom AS coachNom, u.prenom AS coachPrenom,
+        COUNT(p.idPresence) AS presents,
+        SUM(CASE WHEN ad.sexe = 'Homme'  THEN 1 ELSE 0 END) AS nbHommes,
+        SUM(CASE WHEN ad.sexe = 'Femme'  THEN 1 ELSE 0 END) AS nbFemmes,
+        SUM(CASE WHEN ad.sexe = 'Enfant' THEN 1 ELSE 0 END) AS nbEnfants
+       FROM Seance s
+       LEFT JOIN Activite a  ON s.activite_id   = a.idActivite
+       LEFT JOIN Utilisateur u ON s.coach_id    = u.idUtilisateur
+       LEFT JOIN Presence p  ON p.seance_id     = s.idSeance
+       LEFT JOIN Adherent ad ON p.adherent_id   = ad.idAdherent
+       WHERE s.date BETWEEN ? AND ?
+       GROUP BY s.idSeance
+       ORDER BY s.date ASC, s.heureDebut ASC`,
+      [dateDebut, dateFin],
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+  });
+});
+ipcMain.handle('exportEtEnvoyerPlanningPDF', async (event, { html, filename, dateDebut, dateFin }) => {
+  // 1. Générer le PDF
+  const win = new BrowserWindow({ show: false });
+  await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  const pdfData = await win.webContents.printToPDF({
+    printBackground: true,
+    landscape: true,
+    pageSize: 'A4',
+  });
+  win.destroy();
+
+  // 2. Récupérer les emails des adhérents actifs
+  const adherents = await query(
+    `SELECT ad.email, ad.prenom FROM Adherent ad
+     JOIN Abonnement ab ON ab.adherent_id = ad.idAdherent
+     WHERE ab.statut = 'actif'
+       AND ad.email IS NOT NULL
+       AND ad.email != ''`
+  );
+  const emails = adherents.map(a => a.email);
+  if (!emails.length) return { success: false, message: 'Aucun email actif trouvé' };
+
+  // 3. Envoyer avec le PDF en pièce jointe
+  const transporter = createTransporter();
+  try {
+    await transporter.sendMail({
+      from: `"FitManager" <${process.env.EMAIL_USER}>`,
+      to: emails.join(', '),
+      subject: `📅 Planning mis à jour — ${dateDebut} au ${dateFin}`,
+      html: `
+        <div style="font-family:sans-serif;padding:24px">
+          <h2>📅 Le planning a été mis à jour</h2>
+          <p>Bonjour,</p>
+          <p>Le planning de la salle de sport vient d'être modifié.</p>
+          <p>Vous trouverez le nouveau planning en pièce jointe.</p>
+          <p>À bientôt !</p>
+          <p><em>L'équipe FitManager</em></p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: filename || 'planning.pdf',
+          content:  pdfData,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+    return { success: true, count: emails.length };
+  } catch (err) {
+    console.error('Erreur envoi PDF planning:', err);
+    return { success: false, error: err.message };
+  }
 });

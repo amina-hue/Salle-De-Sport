@@ -94,11 +94,16 @@ addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
   getPermissions:                (role_id)          => invoke('getPermissions', role_id),
   savePermissions:               (data)             => invoke('savePermissions', data),
   
+
+  sendEmail:                (data) => ipcRenderer.invoke('sendEmail', data),
+  getEmailsAdherentsActifs: ()     => ipcRenderer.invoke('getEmailsAdherentsActifs'),
 // Fréquentation par jour de la semaine
   getFrequentationSemaine: () => invoke('getFrequentationSemaine'),
   createAdherentComplet:  (data) => ipcRenderer.invoke('createAdherentComplet', data),
   //renewAbonnement: (data) => ipcRenderer.invoke('renew-abonnement', data),
   //ajouterPaiement:        (data) => ipcRenderer.invoke('ajouterPaiement', data),
   //getAbonnementsNonPaies: ()     => ipcRenderer.invoke('getAbonnementsNonPaies'),
-  
+  exportPlanningPDF: (data) => ipcRenderer.invoke('exportPlanningPDF', data),
+  sendSpecialMessage: (data) => ipcRenderer.invoke('sendSpecialMessage', data),
+  exportEtEnvoyerPlanningPDF: (data) => ipcRenderer.invoke('exportEtEnvoyerPlanningPDF', data),
 });
