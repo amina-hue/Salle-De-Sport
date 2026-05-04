@@ -544,48 +544,81 @@ ipcMain.handle('getTypesAbonnement', async () => {
   });
 });
 
-// ══════════════════════════════════════════════
-//  PAIEMENTS
-// ══════════════════════════════════════════════
+
+//  getPaiements 
+
+
 ipcMain.handle('getPaiements', async () => {
   return new Promise((resolve, reject) => {
     const sql = `
-      SELECT 
-        p.idPaiement AS id,
-        p.montant,
-        DATE_FORMAT(p.datePaiement, '%d/%m/%Y') AS date,
-        p.modePaiement AS mode,
-        CONCAT(a.prenom, ' ', a.nom) AS nom,
-        'Payé' AS statut
+      SELECT
+        p.idPaiement                          AS id,
+        p.montant                             AS montant,
+        ab.montantDu                          AS montantDu,
+        p.datePaiement                        AS datePaiementRaw,
+        p.modePaiement                        AS mode,
+        CONCAT(a.prenom, ' ', a.nom)          AS nom,
+        'Payé'                                AS statut
       FROM Paiement p
       JOIN Abonnement ab ON p.abonnement_id = ab.idAbonnement
+      JOIN Adherent a    ON ab.adherent_id  = a.idAdherent
+
+      UNION ALL
+
+      SELECT
+        ab.idAbonnement                       AS id,
+        0                                     AS montant,
+        ab.montantDu                          AS montantDu,
+        ab.dateDebut                          AS datePaiementRaw,
+        NULL                                  AS mode,
+        CONCAT(a.prenom, ' ', a.nom)          AS nom,
+        'En attente'                          AS statut
+      FROM Abonnement ab
       JOIN Adherent a ON ab.adherent_id = a.idAdherent
-      ORDER BY p.datePaiement DESC
+      WHERE ab.montantDu > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM Paiement p WHERE p.abonnement_id = ab.idAbonnement
+        )
+
+      ORDER BY datePaiementRaw DESC
     `;
+
     db.query(sql, (err, results) => {
-      if (err) { console.error("Erreur getPaiements:", err); reject(err); }
-      else resolve(results);
+      if (err) {
+        console.error('Erreur getPaiements:', err);
+        reject(err);
+      } else {
+        console.log('>>> getPaiements résultats:', results.length, 'lignes');
+        console.log('>>> En attente:', results.filter(r => r.statut === 'En attente').length);
+        resolve(results);
+      }
     });
   });
 });
+ 
+
+// REMPLACER ipcMain.handle('addPaiement') dans main.js par ceci :
 
 ipcMain.handle('addPaiement', async (event, data) => {
   return new Promise((resolve, reject) => {
     const { abonnement_id, montant, date, mode } = data;
-    
-    let modeSQL = 'cash'; 
-    if (mode === 'Carte bancaire') modeSQL = 'carte';
-    if (mode === 'Virement') modeSQL = 'virement';
-    if (mode === 'Espèces') modeSQL = 'cash';
 
-    const sql = 'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement) VALUES (?, ?, ?, ?)';
-    
+    const modeMap = {
+      'carte':          'carte',
+      'virement':       'virement',
+      'cash':           'cash',
+      'Carte bancaire': 'carte',
+      'Virement':       'virement',
+      'Espèces':        'cash',
+    };
+    const modeSQL = modeMap[mode] || 'cash';
+
     db.query(
-      sql,
-      [abonnement_id, montant, date, modeSQL],
+      'INSERT INTO Paiement (abonnement_id, montant, datePaiement, modePaiement, statut) VALUES (?, ?, ?, ?, ?)',
+      [abonnement_id, montant, date, modeSQL, 'Payé'],
       (err, result) => {
         if (err) {
-          console.error("❌ ERREUR SQL addPaiement:", err);
+          console.error('❌ ERREUR SQL addPaiement:', err);
           resolve({ success: false, error: err.message });
         } else {
           resolve({ success: true, insertId: result.insertId });
@@ -911,9 +944,43 @@ ipcMain.handle('getFrequentationSemaine', async () => {
   return new Promise((resolve, reject) => {
     db.query(
       `SELECT 
-        DAYOFWEEK(date) AS jourNum,
+        DAYOFWEEK(dateCreation) AS jourNum,
         COUNT(*) AS total
-       FROM Presence
+       FROM Adherent
+       GROUP BY DAYOFWEEK(dateCreation)
+       ORDER BY DAYOFWEEK(dateCreation)`,
+      (err, result) => {
+        if (err) return reject(err);
+        const jours = [
+          { jourNum: 1, day: "Dim" },
+          { jourNum: 2, day: "Lun" },
+          { jourNum: 3, day: "Mar" },
+          { jourNum: 4, day: "Mer" },
+          { jourNum: 5, day: "Jeu" },
+          { jourNum: 6, day: "Ven" },
+          { jourNum: 7, day: "Sam" },
+        ];
+        const data = jours.map(j => {
+          const found = result.find(r => r.jourNum === j.jourNum);
+          return { day: j.day, value: found ? found.total : 0 };
+        });
+        resolve(data);
+      }
+    );
+  });
+});
+// ══════════════════════════════════════════════
+//  AJOUTER CE BLOC dans main.js
+//  juste après le handler getFrequentationSemaine
+// ══════════════════════════════════════════════
+
+ipcMain.handle('getSeancesParJour', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `SELECT 
+        DAYOFWEEK(date) AS jourNum,
+        COUNT(*)        AS total
+       FROM Seance
        GROUP BY DAYOFWEEK(date)
        ORDER BY DAYOFWEEK(date)`,
       (err, result) => {
@@ -936,6 +1003,7 @@ ipcMain.handle('getFrequentationSemaine', async () => {
     );
   });
 });
+
 
 ipcMain.handle('vendreProduit', async (event, { produit_id, utilisateur_id, quantite }) => {
   return new Promise((resolve, reject) => {

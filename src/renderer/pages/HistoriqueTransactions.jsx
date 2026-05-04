@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronRight, Search, Download, TrendingUp, TrendingDown,
@@ -157,6 +159,7 @@ const HistoriqueTransactions = () => {
   const [ventes, setVentes]       = useState([]);
   const [produits, setProduits]   = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [exportingPDF, setExportingPDF] = useState(false);
   const [activeTab, setActiveTab] = useState('tous'); // 'tous' | 'achats' | 'ventes'
   const [search, setSearch]       = useState('');
   const [dateFrom, setDateFrom]   = useState('');
@@ -280,9 +283,172 @@ const HistoriqueTransactions = () => {
     URL.revokeObjectURL(url);
   };
 
-  /* ── Export PDF (simple print) ── */
-  const exportPDF = () => {
-    window.print();
+  /* ── Export PDF ── */
+  const exportPDF = async () => {
+    try {
+      setExportingPDF(true);
+      const { jsPDF } = await import('jspdf');
+      const { autoTable } = await import('jspdf-autotable');
+
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // ── Couleurs optimisées pour PDF (fond blanc, texte sombre) ──
+      const colors = {
+        headerBg:   [30, 30, 40],       // header tableau : fond très sombre
+        headerText: [255, 255, 255],     // header tableau : texte blanc
+        accent:     [229, 57, 53],       // rouge
+        blue:       [30, 90, 200],       // bleu lisible sur blanc
+        green:      [20, 150, 70],       // vert lisible sur blanc
+        text:       [30, 30, 30],        // texte principal : quasi-noir
+        muted:      [100, 100, 110],     // texte secondaire : gris moyen
+        altRow:     [245, 246, 250],     // rangées alternées : gris très clair
+        border:     [200, 200, 210],     // bordures : gris clair
+      };
+
+      // Header du PDF
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(...colors.text);
+      doc.text('Historique des Transactions', 20, 25);
+
+      // Sous-titre avec stats
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...colors.muted);
+      doc.text(
+        `Période: ${dateFrom || '*'} → ${dateTo || '*'} | Total: ${filtered.length} transactions | Achats: ${totalAchats} | Ventes: ${totalVentes}`,
+        20, 35
+      );
+
+      // Date et heure
+      const now = new Date().toLocaleString('fr-DZ');
+      doc.setFontSize(8);
+      doc.text(`Généré le: ${now}`, 20, 42);
+
+      // Préparation des données du tableau
+      const tableData = filtered.map(t => {
+        const prodNom = produits.find(p => p.idProduit === t.produit_id)?.nom || `#${t.produit_id}`;
+        const isVente = t.type === 'vente';
+        const prix = isVente ? t.prix_vente : t.prix_achat;
+        const total = (t.quantite || 0) * (prix || 0);
+
+        return [
+          fmtDate(t.date),
+          isVente ? 'VENTE' : 'ACHAT',
+          prodNom.substring(0, 25) + (prodNom.length > 25 ? '...' : ''),
+          t.quantite || 0,
+          prix ? `${fmt(prix)} DZD` : '—',
+          total ? `${fmt(total)} DZD` : '—',
+          t.utilisateur_nom || `User #${t.utilisateur_id || 1}`
+        ];
+      });
+
+      // Tableau avec autoTable
+      autoTable(doc, {
+        startY: 55,
+        head: [['Date', 'Type', 'Produit', 'Qté', 'Prix unitaire', 'Total', 'Utilisateur']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: colors.headerBg,
+          textColor: colors.headerText,
+          fontSize: 9,
+          fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
+          cellPadding: 4,
+          lineWidth: 0.5,
+          lineColor: colors.border,
+        },
+        bodyStyles: {
+          fontSize: 8,
+          cellPadding: 4,
+          lineWidth: 0.2,
+          lineColor: colors.border,
+          halign: 'left',
+          textColor: colors.text,       // ← texte sombre lisible sur fond blanc
+          fillColor: [255, 255, 255],   // ← fond blanc par défaut
+        },
+        alternateRowStyles: {
+          fillColor: colors.altRow,     // ← gris très clair, texte reste sombre
+          textColor: colors.text,
+        },
+        columnStyles: {
+          0: { cellWidth: 22, halign: 'center' },
+          1: { cellWidth: 18, halign: 'center' },
+          2: { cellWidth: 45 },
+          3: { cellWidth: 12, halign: 'center' },
+          4: { cellWidth: 25, halign: 'right' },
+          5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' },
+          6: { cellWidth: 25 }
+        },
+        // Colorier la colonne Type selon VENTE / ACHAT
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const val = data.cell.text[0];
+            if (val === 'VENTE') {
+              data.cell.styles.textColor = colors.green;
+              data.cell.styles.fontStyle = 'bold';
+            } else if (val === 'ACHAT') {
+              data.cell.styles.textColor = colors.blue;
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+          // Colonne Total en rouge pour les achats, vert pour les ventes
+          if (data.section === 'body' && data.column.index === 5) {
+            const typeCell = data.row.cells[1];
+            if (typeCell?.text[0] === 'VENTE') {
+              data.cell.styles.textColor = colors.green;
+            }
+          }
+        },
+        styles: {
+          overflow: 'linebreak',
+          font: 'helvetica'
+        },
+        margin: { top: 55, left: 20, right: 20 },
+        didDrawPage: (data) => {
+          const pageCount = doc.internal.getNumberOfPages();
+          doc.setFontSize(8);
+          doc.setTextColor(...colors.muted);
+          doc.text(
+            `Page ${data.pageNumber} sur ${pageCount} | FitManager - Magasin`,
+            20,
+            doc.internal.pageSize.height - 10
+          );
+        }
+      });
+
+      // Stats récapitulatives en bas
+      const finalY = doc.lastAutoTable.finalY + 15;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(...colors.accent);
+      doc.text('RÉCAPITULATIF', 20, finalY);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...colors.text);
+
+      const statsY = finalY + 10;
+      doc.text(`Total Achats: ${totalAchats} (${fmt(coutAchats)} DZD)`, 20, statsY);
+      doc.text(`Total Ventes: ${totalVentes} (${fmt(caVentes)} DZD)`, 20, statsY + 6);
+      doc.text(`Unités achetées: ${qtyAchats} | Unités vendues: ${qtyVentes}`, 20, statsY + 12);
+
+      // Sauvegarde
+      const filename = `transactions_${new Date().toISOString().slice(0, 10)}.pdf`;
+      doc.save(filename);
+
+    } catch (error) {
+      console.error('Erreur génération PDF:', error);
+      alert('Erreur lors de la génération du PDF. Vérifiez la console pour plus de détails.');
+    } finally {
+      setExportingPDF(false);
+    }
   };
 
   const clearFilters = () => {
@@ -328,7 +494,7 @@ const HistoriqueTransactions = () => {
             backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
             position: "relative"
           }}>
-      
+
             {/* ── Overlay sombre — sous tout le contenu ── */}
             <div style={{
               position: "fixed", inset: 0,
@@ -388,11 +554,39 @@ const HistoriqueTransactions = () => {
             </button>
             <button
               onClick={exportPDF}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.bgCard, border: `1px solid ${C.borderStrong}`, borderRadius: 10, padding: '11px 20px', color: C.accent, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', fontFamily: "'Barlow', sans-serif" }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = C.accentBorder; }}
-              onMouseLeave={e => { e.currentTarget.style.background = C.bgCard; e.currentTarget.style.borderColor = C.borderStrong; }}
+              disabled={exportingPDF}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: C.bgCard, border: `1px solid ${C.borderStrong}`,
+                borderRadius: 10, padding: '11px 20px',
+                color: exportingPDF ? C.muted : C.accent,
+                fontSize: '0.85rem', fontWeight: 700,
+                cursor: exportingPDF ? 'default' : 'pointer',
+                transition: 'all 0.2s', fontFamily: "'Barlow', sans-serif"
+              }}
+              onMouseEnter={e => {
+                if (!exportingPDF) {
+                  e.currentTarget.style.background = C.accentDim;
+                  e.currentTarget.style.borderColor = C.accentBorder;
+                }
+              }}
+              onMouseLeave={e => {
+                if (!exportingPDF) {
+                  e.currentTarget.style.background = C.bgCard;
+                  e.currentTarget.style.borderColor = C.borderStrong;
+                }
+              }}
             >
-              <FileText size={15} /> PDF
+              {exportingPDF ? (
+                <>
+                  <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <FileText size={15} /> PDF
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -526,7 +720,7 @@ const HistoriqueTransactions = () => {
               {hasFilters && (
                 <button
                   onClick={clearFilters}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', color: C.muted, fontSize: '0.75rem', cursor: 'pointer', fontFamily: "'Barlow', sans-serif' " }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', color: C.muted, fontSize: '0.75rem', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.accentBorder}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
                 >
@@ -758,6 +952,13 @@ const HistoriqueTransactions = () => {
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
