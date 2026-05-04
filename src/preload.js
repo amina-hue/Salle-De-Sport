@@ -42,6 +42,7 @@ deleteRole:                 (id)   => invoke('deleteRole', id),  // ← AJOUTER
   getPaiements:               ()     => invoke('getPaiements'),
   addPaiement:                (data) => invoke('addPaiement', data),
   getAbonnementsNonPaies: () => invoke('getAbonnementsNonPaies'),
+  getPaiementsEtAttentes: () => invoke('getPaiementsEtAttentes'),
   // ── Produits ──
   getProduits:                ()     => invoke('getProduits'),
   addProduit:                 (data) => invoke('addProduit', data),
@@ -92,6 +93,7 @@ addPresence:       (data)   => ipcRenderer.invoke('addPresence', data),
   getAbonnementsParType:         ()  => invoke('getAbonnementsParType'),
   getAbonnementsExpirantBientot: ()  => invoke('getAbonnementsExpirantBientot'),
   getFrequentationHebdo:         ()  => invoke('getFrequentationHebdo'),
+  getHistoriqueAbonnements: (id) => ipcRenderer.invoke('getHistoriqueAbonnements', id),
   // ── Permissions ──
   getPermissions:                (role_id)          => invoke('getPermissions', role_id),
   savePermissions:               (data)             => invoke('savePermissions', data),
