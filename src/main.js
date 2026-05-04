@@ -104,8 +104,8 @@ const createTransporter = () => nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // mot de passe d'application recommandé
+    user: 'tinhinanethequeen@gmail.com',
+    pass: 'gjgw vqfa qzkp wbfa', // mot de passe d'application recommandé
   },
 });
 
@@ -1768,4 +1768,22 @@ ipcMain.handle('exportEtEnvoyerPlanningPDF', async (event, { html, filename, dat
     console.error('Erreur envoi PDF planning:', err);
     return { success: false, error: err.message };
   }
+});
+// ipcMain handler
+ipcMain.handle('sendRenewalEmail', async (_, data) => {
+  const { prenom, nom, email, jours, type } = data;
+  const expireLabel = jours === 0 ? "aujourd'hui" : jours === 1 ? "demain" : `dans ${jours} jours`;
+  
+  await transporter.sendMail({
+    from: '"FitManager" <tonemail@gmail.com>',
+    to: email,
+    subject: `⚠️ Votre abonnement expire ${expireLabel}`,
+    html: `
+      <p>Bonjour <strong>${prenom} ${nom}</strong>,</p>
+      <p>Votre abonnement <strong>${type}</strong> expire <strong>${expireLabel}</strong>.</p>
+      <p>Souhaitez-vous le renouveler ? Contactez-nous directement.</p>
+      <p>Merci de votre fidélité 🏋️</p>
+    `
+  });
+  return { success: true };
 });

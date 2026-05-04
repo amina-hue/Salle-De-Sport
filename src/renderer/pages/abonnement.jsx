@@ -12,6 +12,7 @@ const C = {
   accentBorder: "rgba(229,57,53,0.3)",
   text: "#f0f0f0", muted: "#6b7280", subtle: "#9ca3af",
   green: "#22c55e", gold: "#f59e0b", blue: "#3a7bd5",
+  whatsapp: "#25D366",
 };
 
 const avatarColors = [C.accent, C.blue, C.gold, "#8b5cf6", C.green];
@@ -98,6 +99,37 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
   );
 };
 
+/* ── Toast notification simple ── */
+const Toast = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3500);
+    return () => clearTimeout(t);
+  }, []);
+
+  const bg = type === "success" ? "rgba(34,197,94,0.15)" : "rgba(229,57,53,0.15)";
+  const border = type === "success" ? "rgba(34,197,94,0.4)" : "rgba(229,57,53,0.4)";
+  const color = type === "success" ? C.green : C.accent;
+  const icon = type === "success" ? "✅" : "❌";
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 28, right: 28, zIndex: 9999,
+      background: C.card, border: `1px solid ${border}`,
+      borderRadius: 12, padding: "14px 20px",
+      display: "flex", alignItems: "center", gap: 10,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+      animation: "slideIn 0.25s ease",
+      minWidth: 280, maxWidth: 380,
+    }}>
+      <span style={{ fontSize: "1.1rem" }}>{icon}</span>
+      <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", color: C.text, flex: 1 }}>
+        {message}
+      </span>
+      <button onClick={onClose} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: "1rem", lineHeight: 1 }}>×</button>
+    </div>
+  );
+};
+
 /* ── Page ── */
 const AbonnementsPage = () => {
   const location = useLocation();
@@ -108,6 +140,12 @@ const AbonnementsPage = () => {
   const [typeAEditer, setTypeAEditer]     = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // États pour les actions Email / WhatsApp
+  const [sendingEmail, setSendingEmail]   = useState(null); // id abonnement en cours d'envoi
+  const [toast, setToast]                 = useState(null); // { message, type }
+
+  const showToast = (message, type = "success") => setToast({ message, type });
+
   const fetchTypes = async () => {
     try {
       const data = await window.api.getTypeAbonnements();
@@ -116,17 +154,16 @@ const AbonnementsPage = () => {
       console.error('getTypeAbonnements:', err);
     }
   };
-const handleSavePaiement = async (data) => {
-  try {
-    const response = await window.api.addPaiement(data);
 
-    if (!response?.success) {
-      alert("Erreur paiement");
+  const handleSavePaiement = async (data) => {
+    try {
+      const response = await window.api.addPaiement(data);
+      if (!response?.success) alert("Erreur paiement");
+    } catch (err) {
+      console.error(err);
     }
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
+
   const fetchExpirant = async () => {
     try {
       const data = await window.api.getAbonnementsExpirant();
@@ -163,6 +200,82 @@ const handleSavePaiement = async (data) => {
     fetchTypes();
   };
 
+  /* ── Envoi Email renouvellement (backend) ── */
+  const handleSendRenewalEmail = async (row) => {
+    const jours = Number(row.joursRestants);
+    setSendingEmail(row.idAbonnement);
+    try {
+      const expireLabel =
+        jours === 0 ? "aujourd'hui" :
+        jours === 1 ? "demain" :
+        `dans ${jours} jours`;
+
+      const result = await window.api.sendEmail({
+        to: row.email,
+        subject: `⚠️ Votre abonnement ${row.typeNom} expire ${expireLabel}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;background:#f9f9f9;border-radius:10px;overflow:hidden;">
+            <div style="background:#e53935;padding:24px 28px;">
+              <h1 style="color:#fff;margin:0;font-size:1.4rem;font-weight:800;letter-spacing:1px;">FitManager 🏋️</h1>
+            </div>
+            <div style="padding:28px;">
+              <p style="font-size:1rem;color:#222;">Bonjour <strong>${row.prenom} ${row.nom}</strong>,</p>
+              <p style="font-size:0.95rem;color:#444;line-height:1.7;">
+                Nous vous informons que votre abonnement <strong>${row.typeNom}</strong> arrive à expiration
+                <strong style="color:#e53935;"> ${expireLabel}</strong>.
+              </p>
+              <p style="font-size:0.95rem;color:#444;line-height:1.7;">
+                Souhaitez-vous le renouveler ? Contactez-nous directement ou passez au club — nous nous ferons un plaisir de vous accueillir.
+              </p>
+              <div style="text-align:center;margin:28px 0;">
+                
+              </div>
+              <p style="font-size:0.8rem;color:#999;margin-top:24px;">Merci de votre fidélité 🙏</p>
+            </div>
+          </div>
+        `,
+        text: `Bonjour ${row.prenom} ${row.nom},\n\nVotre abonnement ${row.typeNom} expire ${expireLabel}.\nSouhaitez-vous le renouveler ? Contactez-nous ou passez au club.\n\nMerci de votre fidélité.`,
+      });
+
+      if (result?.success) {
+        showToast(`Email envoyé à ${row.prenom} ${row.nom} ✉️`, "success");
+      } else {
+        showToast(`Échec de l'envoi : ${result?.error || "erreur inconnue"}`, "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Erreur lors de l'envoi de l'email", "error");
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  /* ── Ouvrir WhatsApp avec message pré-rempli ── */
+  const handleWhatsApp = (row) => {
+    const jours = Number(row.joursRestants);
+    const expireLabel =
+      jours === 0 ? "aujourd'hui" :
+      jours === 1 ? "demain" :
+      `dans ${jours} jours`;
+
+    // Formatage numéro algérien → international (0XXXXXXXXX → 213XXXXXXXXX)
+    let tel = (row.numTelephone || "").replace(/\s+/g, "").replace(/^0/, "213");
+    // Si déjà au format international sans +, on laisse tel quel
+    if (!tel.startsWith("213") && !tel.startsWith("+")) {
+      tel = "213" + tel;
+    }
+    tel = tel.replace(/^\+/, ""); // wa.me n'accepte pas le +
+
+    const message = encodeURIComponent(
+      `Bonjour ${row.prenom} ${row.nom} 👋\n\n` +
+      `Nous vous contactons depuis *FitManager* pour vous informer que votre abonnement *${row.typeNom}* expire *${expireLabel}*.\n\n` +
+      `Souhaitez-vous le renouveler ? N'hésitez pas à nous répondre ou à passer directement au club 🏋️\n\n` +
+      `Merci de votre fidélité ! 🙏`
+    );
+
+    window.open(`https://wa.me/${tel}?text=${message}`, "_blank");
+  };
+
   const statusInfo = (jours) => {
     if (jours <= 3)  return { label: "Urgent",  color: C.accent };
     if (jours <= 10) return { label: "Bientôt", color: C.gold   };
@@ -179,17 +292,25 @@ const handleSavePaiement = async (data) => {
       position: "relative"
     }}>
 
-      {/* ── Overlay sombre — sous tout le contenu ── */}
+      {/* ── Overlay sombre ── */}
       <div style={{
-              position: "fixed", inset: 0,
-              background: "rgba(14,15,17,0.62)",
-              pointerEvents: "none",
-              zIndex: -1
-            }} />
+        position: "fixed", inset: 0,
+        background: "rgba(14,15,17,0.62)",
+        pointerEvents: "none",
+        zIndex: -1
+      }} />
+
+      {/* ── Toast ── */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       {/* ── Hero Header ── */}
       <div style={{ position: "relative", zIndex: 99, overflow: "hidden", flexShrink: 0 }}>
-        {/* gradient hero uniquement — plus d'image dupliquée */}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, rgba(14,15,17,0.01))` }} />
 
@@ -247,6 +368,7 @@ const handleSavePaiement = async (data) => {
           </div>
         )}
 
+        {/* Plans disponibles */}
         <div style={{ marginBottom: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.3rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, margin: 0, color: C.text }}>Plans disponibles</h2>
@@ -281,7 +403,7 @@ const handleSavePaiement = async (data) => {
           )}
         </div>
 
-        {/* Tableau expiration */}
+        {/* ── Tableau expiration ── */}
         <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
           <div style={{ padding: "18px 24px 14px", borderBottom: `1px solid ${C.border}` }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: C.text }}>
@@ -313,12 +435,15 @@ const handleSavePaiement = async (data) => {
                   const dateFin = row.dateFin
                     ? new Date(row.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
                     : '—';
+                  const isLoading = sendingEmail === row.idAbonnement;
 
                   return (
                     <tr key={i}
                       style={{ borderTop: `1px solid ${C.border}`, transition: "background 0.15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+
+                      {/* Adhérent */}
                       <td style={{ padding: "13px 22px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ width: 34, height: 34, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1.5px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "0.75rem", fontWeight: 700, color: avatarColors[i % avatarColors.length], flexShrink: 0 }}>
@@ -352,14 +477,77 @@ const handleSavePaiement = async (data) => {
                         </span>
                       </td>
 
-                      {/* Actions — bouton Email uniquement */}
+                      {/* ── Actions ── */}
                       <td style={{ padding: "13px 22px" }}>
-                        <div style={{ display: "flex", gap: 6 }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
+
+                          {/* Bouton Email → envoi automatique via backend */}
                           {row.email && (
-                            <a href={`mailto:${row.email}`}
-                              style={{ fontSize: "0.78rem", color: C.gold, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow', sans-serif", textDecoration: "none", display: "inline-block" }}>
-                              ✉ Email
-                            </a>
+                            <button
+                              onClick={() => handleSendRenewalEmail(row)}
+                              disabled={isLoading}
+                              style={{
+                                fontSize: "0.75rem",
+                                color: isLoading ? C.muted : C.gold,
+                                background: isLoading ? "rgba(255,255,255,0.04)" : "rgba(245,158,11,0.12)",
+                                border: `1px solid ${isLoading ? C.border : "rgba(245,158,11,0.35)"}`,
+                                borderRadius: 8,
+                                padding: "6px 12px",
+                                cursor: isLoading ? "not-allowed" : "pointer",
+                                fontWeight: 600,
+                                fontFamily: "'Barlow', sans-serif",
+                                display: "flex", alignItems: "center", gap: 5,
+                                transition: "all 0.18s",
+                                whiteSpace: "nowrap",
+                              }}
+                              onMouseEnter={e => { if (!isLoading) e.currentTarget.style.background = "rgba(245,158,11,0.25)"; }}
+                              onMouseLeave={e => { if (!isLoading) e.currentTarget.style.background = "rgba(245,158,11,0.12)"; }}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <span style={{ display: "inline-block", width: 10, height: 10, border: `2px solid ${C.muted}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                                  Envoi…
+                                </>
+                              ) : (
+                                <>✉ Email</>
+                              )}
+                            </button>
+                          )}
+
+                          {/* Bouton WhatsApp → ouvre WhatsApp Web avec message pré-rempli */}
+                          {row.numTelephone && (
+                            <button
+                              onClick={() => handleWhatsApp(row)}
+                              style={{
+                                fontSize: "0.75rem",
+                                color: C.whatsapp,
+                                background: "rgba(37,211,102,0.10)",
+                                border: "1px solid rgba(37,211,102,0.32)",
+                                borderRadius: 8,
+                                padding: "6px 12px",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                                fontFamily: "'Barlow', sans-serif",
+                                display: "flex", alignItems: "center", gap: 5,
+                                transition: "all 0.18s",
+                                whiteSpace: "nowrap",
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = "rgba(37,211,102,0.22)"}
+                              onMouseLeave={e => e.currentTarget.style.background = "rgba(37,211,102,0.10)"}
+                            >
+                              {/* Icône WhatsApp SVG inline */}
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                              </svg>
+                              WhatsApp
+                            </button>
+                          )}
+
+                          {/* Aucune action disponible */}
+                          {!row.email && !row.numTelephone && (
+                            <span style={{ fontSize: "0.72rem", color: C.muted, fontFamily: "'Barlow', sans-serif", fontStyle: "italic" }}>
+                              —
+                            </span>
                           )}
                         </div>
                       </td>
@@ -372,7 +560,18 @@ const handleSavePaiement = async (data) => {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ── CSS animation spinner + slideIn ── */}
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {/* ── Modals ── */}
       {modalTypeOpen && (
         <NouvelTypeAbonnementModal type={typeAEditer} onSave={handleSaveType} onClose={() => setModalTypeOpen(false)} />
       )}
