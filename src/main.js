@@ -745,6 +745,207 @@ ipcMain.handle('getStatsMagasin', async () => {
     });
   });
 });
+// ══════════════════════════════════════════════
+//  SYSTÈME FIDÉLITÉ AVEC EXPIRATION
+// ══════════════════════════════════════════════
+
+const NIVEAUX_CONFIG = {
+  Bronze:  { min: 0,    remise: 0,  achatsMois: 0, depenseMois: 0    },
+  Silver:  { min: 500,  remise: 5,  achatsMois: 2, depenseMois: 1500 },
+  Gold:    { min: 1500, remise: 10, achatsMois: 3, depenseMois: 3000 },
+  Platine: { min: 3000, remise: 15, achatsMois: 3, depenseMois: 5000 },
+};
+
+// Vérifie et met à jour les niveaux expirés
+const checkNiveauxExpires = (cb) => {
+  db.query(
+    `SELECT 
+       a.idAdherent,
+       a.niveau,
+       a.niveau_expire,
+       COUNT(hv.id) AS achats_3mois,
+       COALESCE(SUM(hv.quantite * COALESCE(hv.prix_vente, p.prix)), 0) AS depense_3mois
+     FROM Adherent a
+     LEFT JOIN HistoriqueVente hv ON hv.adherent_id = a.idAdherent
+       AND hv.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+     LEFT JOIN Produit p ON p.idProduit = hv.produit_id
+     WHERE a.niveau_expire IS NOT NULL
+       AND a.niveau_expire <= CURDATE()
+       AND a.niveau != 'Bronze'
+     GROUP BY a.idAdherent`,
+    (err, adherents) => {
+      if (err) { console.error('checkNiveauxExpires error:', err); if (cb) cb(); return; }
+
+      if (!adherents.length) { if (cb) cb(); return; }
+
+      const ORDRE = ['Bronze', 'Silver', 'Gold', 'Platine'];
+
+      const updates = adherents.map(ad => {
+        const niveauActuel = ad.niveau;
+        const config = NIVEAUX_CONFIG[niveauActuel];
+        const idx = ORDRE.indexOf(niveauActuel);
+
+        // Vérifie si le client a été assez actif pour renouveler
+        const aRenouvele = 
+          ad.achats_3mois >= config.achatsMois &&
+          ad.depense_3mois >= config.depenseMois;
+
+        let nouveauNiveau;
+        if (aRenouvele) {
+          // Renouvelle le même niveau
+          nouveauNiveau = niveauActuel;
+        } else {
+          // Descend d'un niveau
+          nouveauNiveau = ORDRE[Math.max(0, idx - 1)];
+        }
+
+        const nouveauExpire = nouveauNiveau === 'Bronze' 
+          ? null 
+          : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        return new Promise((resolve) => {
+          db.query(
+            `UPDATE Adherent 
+             SET niveau = ?, niveau_depuis = CURDATE(), niveau_expire = ?
+             WHERE idAdherent = ?`,
+            [nouveauNiveau, nouveauExpire, ad.idAdherent],
+            (err2) => { resolve(); }
+          );
+        });
+      });
+
+      Promise.all(updates).then(() => { if (cb) cb(); });
+    }
+  );
+};
+
+// Met à jour les points ET le niveau d'un adhérent après un achat
+const updatePointsEtNiveau = (adherentId, cb) => {
+  db.query(
+    `SELECT 
+       FLOOR(COALESCE(SUM(hv.quantite * COALESCE(hv.prix_vente, p.prix)), 0) / 100) AS points
+     FROM HistoriqueVente hv
+     LEFT JOIN Produit p ON p.idProduit = hv.produit_id
+     WHERE hv.adherent_id = ?`,
+    [adherentId],
+    (err, rows) => {
+      if (err) { if (cb) cb(err); return; }
+
+      const points = rows[0]?.points ?? 0;
+      const ORDRE = ['Bronze', 'Silver', 'Gold', 'Platine'];
+
+      // Détermine le niveau selon les points
+      let nouveauNiveau = 'Bronze';
+      if (points >= 3000) nouveauNiveau = 'Platine';
+      else if (points >= 1500) nouveauNiveau = 'Gold';
+      else if (points >= 500)  nouveauNiveau = 'Silver';
+
+      // Récupère le niveau actuel
+      db.query(
+        'SELECT niveau, niveau_expire FROM Adherent WHERE idAdherent = ?',
+        [adherentId],
+        (err2, adRows) => {
+          if (err2) { if (cb) cb(err2); return; }
+
+          const niveauActuel = adRows[0]?.niveau ?? 'Bronze';
+          const expireActuel = adRows[0]?.niveau_expire;
+          const ORDRE_IDX = ORDRE.indexOf(nouveauNiveau);
+          const ACTUEL_IDX = ORDRE.indexOf(niveauActuel);
+
+          // Monte de niveau → nouveau timer 3 mois
+          // Même niveau avec expire null → set le timer
+          // Descente → géré par checkNiveauxExpires
+          const doitMonter = ORDRE_IDX > ACTUEL_IDX;
+          const naPasDeTimer = !expireActuel && nouveauNiveau !== 'Bronze';
+
+          if (doitMonter || naPasDeTimer) {
+            const expire = nouveauNiveau === 'Bronze'
+              ? null
+              : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            db.query(
+              `UPDATE Adherent 
+               SET points = ?, niveau = ?, niveau_depuis = CURDATE(), niveau_expire = ?
+               WHERE idAdherent = ?`,
+              [points, nouveauNiveau, expire, adherentId],
+              (err3) => { if (cb) cb(err3); }
+            );
+          } else {
+            // Juste mettre à jour les points
+            db.query(
+              'UPDATE Adherent SET points = ? WHERE idAdherent = ?',
+              [points, adherentId],
+              (err3) => { if (cb) cb(err3); }
+            );
+          }
+        }
+      );
+    }
+  );
+};
+
+// Handler pour récupérer les points fidélité avec expiration
+ipcMain.handle('getPointsFidelite', async () => {
+  return new Promise((resolve, reject) => {
+    checkNiveauxExpires(() => {
+      console.log('checkNiveauxExpires terminé, lancement requête...');  // ← AJOUTER
+      db.query(
+        `SELECT 
+           a.idAdherent,
+           a.nom,
+           a.prenom,
+           a.niveau,
+           a.niveau_depuis,
+           a.niveau_expire,
+           COALESCE(SUM(hv.quantite * COALESCE(hv.prix_vente, p.prix)), 0) AS total_depense,
+           FLOOR(COALESCE(SUM(hv.quantite * COALESCE(hv.prix_vente, p.prix)), 0) / 100) AS points,
+           COUNT(hv.id) AS nb_achats,
+           MAX(hv.date) AS dernier_achat
+         FROM Adherent a
+         LEFT JOIN HistoriqueVente hv ON hv.adherent_id = a.idAdherent
+         LEFT JOIN Produit p ON p.idProduit = hv.produit_id
+         GROUP BY a.idAdherent, a.nom, a.prenom, a.niveau, a.niveau_depuis, a.niveau_expire
+         ORDER BY points DESC`,
+        (err, rows) => {
+          console.log('résultat:', err, rows?.length);  // ← AJOUTER
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  });
+});
+
+// Appeler après chaque vente pour mettre à jour le niveau
+ipcMain.handle('updateFideliteApresVente', async (event, adherentId) => {
+  return new Promise((resolve, reject) => {
+    if (!adherentId) return resolve({ success: true });
+    updatePointsEtNiveau(adherentId, (err) => {
+      if (err) reject(err);
+      else resolve({ success: true });
+    });
+  });
+});
+ipcMain.handle('get-historique-adherent', async (_, adherentId) => {
+  return new Promise((resolve, reject) => {
+    db.query(`
+      SELECT 
+        hv.id,
+        hv.date,
+        hv.quantite,
+        COALESCE(hv.prix_vente, p.prix) AS prix,
+        p.nom AS produit_nom
+      FROM HistoriqueVente hv
+      JOIN Produit p ON p.idProduit = hv.produit_id
+      WHERE hv.adherent_id = ?
+      ORDER BY hv.date DESC
+    `, [adherentId], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+});
+
 
 // ══════════════════════════════════════════════
 //  UTILISATEURS
@@ -1177,68 +1378,85 @@ ipcMain.handle('deleteActivite', async (event, id) => {
 // ══════════════════════════════════════════════
 
 ipcMain.handle('addTransaction', async (event, data) => {
-  const { produit_id, type, quantite, prix } = data;
+  const { produit_id, type, quantite, prix, adherent_id, client_externe } = data;
 
   return new Promise((resolve, reject) => {
 
     if (type === 'achat') {
-      // 1. Mettre à jour le stock
       db.query(
         'UPDATE Produit SET stock = stock + ? WHERE idProduit = ?',
         [quantite, produit_id],
         (err) => {
           if (err) return reject(err);
-
-          // 2. Insérer dans HistoriqueAchat
           db.query(
             'INSERT INTO HistoriqueAchat (date, utilisateur_id, produit_id, quantite, prix_achat) VALUES (NOW(), 1, ?, ?, ?)',
             [produit_id, quantite, prix || 0],
-            (err2) => {
-              if (err2) return reject(err2);
-              resolve({ success: true });
-            }
+            (err2) => { if (err2) reject(err2); else resolve({ success: true }); }
           );
         }
       );
     }
 
     else if (type === 'vente') {
-      // 1. Vérifier le stock avant de vendre
-      db.query(
-        'SELECT stock FROM Produit WHERE idProduit = ?',
-        [produit_id],
-        (err, rows) => {
-          if (err) return reject(err);
-          if (!rows || rows.length === 0) return reject(new Error('Produit introuvable'));
-          if (rows[0].stock < quantite) return reject(new Error('Stock insuffisant'));
+      db.query('SELECT stock, prix FROM Produit WHERE idProduit = ?', [produit_id], (err, rows) => {
+        if (err) return reject(err);
+        if (!rows?.length) return reject(new Error('Produit introuvable'));
+        if (rows[0].stock < quantite) return reject(new Error('Stock insuffisant'));
 
-          // 2. Déduire le stock
-          db.query(
-            'UPDATE Produit SET stock = stock - ? WHERE idProduit = ?',
-            [quantite, produit_id],
-            (err2) => {
-              if (err2) return reject(err2);
+      const prixVente = (data.prix_vente != null && data.prix_vente > 0)
+  ? data.prix_vente          // prix après remise envoyé par le frontend
+  : rows[0].prix;            // fallback : prix catalogue // toujours le prix catalogue
 
-              // 3. Insérer dans HistoriqueVente
-              db.query(
-                'INSERT INTO HistoriqueVente (date, utilisateur_id, produit_id, quantite) VALUES (NOW(), 1, ?, ?)',
-                [produit_id, quantite],
-                (err3) => {
-                  if (err3) return reject(err3);
-                  resolve({ success: true });
-                }
-              );
-            }
-          );
-        }
-      );
+        db.query(
+          'UPDATE Produit SET stock = stock - ? WHERE idProduit = ?',
+          [quantite, produit_id],
+          (err2) => {
+            if (err2) return reject(err2);
+
+            // adherent_id peut être null (client externe ou anonyme)
+            const adhId = adherent_id || null;
+            const clientExt = (!adherent_id && client_externe) ? client_externe.trim() : null;
+
+            db.query(
+              `INSERT INTO HistoriqueVente 
+                (date, utilisateur_id, produit_id, quantite, prix_vente, adherent_id, client_externe) 
+               VALUES (NOW(), 1, ?, ?, ?, ?, ?)`,
+              [produit_id, quantite, prixVente, adhId, clientExt],
+              (err3) => {
+  if (err3) return reject(err3);
+  // Met à jour points et niveau si c'est un adhérent
+  if (adhId) {
+    updatePointsEtNiveau(adhId, () => resolve({ success: true }));
+  } else {
+    resolve({ success: true });
+  }
+}
+            );
+          }
+        );
+      });
     }
 
     else {
-      reject(new Error(`Type de transaction inconnu : ${type}`));
+      reject(new Error(`Type inconnu : ${type}`));
     }
   });
 });
+ipcMain.handle('getAdherentNiveau', async (event, adherentId) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'SELECT niveau FROM Adherent WHERE idAdherent = ?',
+      [adherentId],
+      (err, rows) => {
+        if (err) return reject(err);
+        const niveau = rows[0]?.niveau ?? 'Bronze';
+        const REMISES = { Bronze: 0, Silver: 5, Gold: 10, Platine: 15 };
+        resolve({ niveau, remise: REMISES[niveau] ?? 0 });
+      }
+    );
+  });
+});
+
 ipcMain.handle('addRole', async (event, { nom }) => {
   return new Promise((resolve, reject) => {
     db.query(

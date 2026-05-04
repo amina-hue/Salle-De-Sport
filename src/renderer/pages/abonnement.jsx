@@ -113,7 +113,17 @@ const AbonnementsPage = () => {
       console.error('getTypeAbonnements:', err);
     }
   };
+const handleSavePaiement = async (data) => {
+  try {
+    const response = await window.api.addPaiement(data);
 
+    if (!response?.success) {
+      alert("Erreur paiement");
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
   const fetchExpirant = async () => {
     try {
       const data = await window.api.getAbonnementsExpirant();
@@ -175,7 +185,7 @@ const AbonnementsPage = () => {
             }} />
 
       {/* ── Hero Header ── */}
-      <div style={{ position: "relative", zIndex: 1, overflow: "hidden", flexShrink: 0 }}>
+      <div style={{ position: "relative", zIndex: 99, overflow: "hidden", flexShrink: 0 }}>
         {/* gradient hero uniquement — plus d'image dupliquée */}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)" }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(transparent, rgba(14,15,17,0.01))` }} />

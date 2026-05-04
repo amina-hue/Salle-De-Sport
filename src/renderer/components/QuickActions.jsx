@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 // Import your modals here (adjust paths as needed)
 import AddMemberModal from "./AddMemberModal";
-import NouvelAbonnementModal from "./NouvelAbonnementModal";
+import NouvelTypeAbonnementModal from "./NouvelTypeAbonnementModal";
 import NouveauPaiementModal from "./NouveauPaiementModal";
 import NouvelSeanceModal from "./NouvelSeanceModal";
 
@@ -135,18 +135,30 @@ export default function QuickActions({ typesAbonnement, handleSaveAdherent, hand
           onClose={close}
         />
       )}
-      {activeModal === "abonnement" && (
-        <NouvelAbonnementModal
-          onClose={close}
-          onSave={handleSaveAbonnement}
-          typesAbonnement={typesAbonnement}
-        />
-      )}
+    {activeModal === "abonnement" && (
+  <NouvelTypeAbonnementModal
+    onClose={close}
+    onSave={async () => {
+      close();
+    }}
+  />
+)}
+
       {activeModal === "paiement" && (
-        <NouveauPaiementModal
-          onClose={close}
-          onSave={handleSavePaiement}
-        />
+       <NouveauPaiementModal
+  onClose={close}
+  onSave={async (data) => {
+    try {
+      const res = await window.api.addPaiement(data);
+      console.log("Paiement ajouté :", res);
+      close();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur paiement");
+    }
+  }}
+/>
+         
       )}
       {activeModal === "seance" && (
         <NouvelSeanceModal

@@ -30,6 +30,9 @@ const MENU = [
     children: [
       { name: 'Inventaire',    path: '/magasin'               },
       { name: 'Transactions',  path: '/magasin/transactions'  },
+            { name: 'Fidelite',  path: '/magasin/fideliteadherents'  },
+      
+
     ]
   },
   { name: 'Utilisateur', icon: User,     path: '/utilisateurs', permKey: 'utilisateur' },
