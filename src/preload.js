@@ -116,7 +116,8 @@ getAdherentNiveau: (id) => ipcRenderer.invoke('getAdherentNiveau', id),
   
   getSeancesParJour: () => invoke('getSeancesParJour'),
   createAdherentComplet:  (data) => ipcRenderer.invoke('createAdherentComplet', data),
-
+addSeanceLibre:  (data) => ipcRenderer.invoke('addSeanceLibre', data),
+getSeancesLibres: ()    => ipcRenderer.invoke('getSeancesLibres'),
 
 
 

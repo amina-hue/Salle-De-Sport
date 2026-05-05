@@ -17,7 +17,14 @@ const createWindow = () => {
     width: 1280, height: 800, minWidth: 1024, minHeight: 650, show: false,
     webPreferences: { preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY },
   });
-
+ const { shell } = require('electron');
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://wa.me')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -1258,7 +1265,30 @@ ipcMain.handle('getFrequentationSemaine', async () => {
 //  AJOUTER CE BLOC dans main.js
 //  juste après le handler getFrequentationSemaine
 // ══════════════════════════════════════════════
-
+ipcMain.handle('addSeanceLibre', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const { montant, date, modePaiement, note } = data;
+    db.query(
+      'INSERT INTO SeanceLibre (montant, date, modePaiement, note) VALUES (?, ?, ?, ?)',
+      [montant, date, modePaiement || 'cash', note || null],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve({ success: true, insertId: result.insertId });
+      }
+    );
+  });
+});
+ipcMain.handle('getSeancesLibres', async () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'SELECT * FROM SeanceLibre ORDER BY date DESC',
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+});
 ipcMain.handle('getSeancesParJour', async () => {
   return new Promise((resolve, reject) => {
     db.query(

@@ -1,13 +1,8 @@
-
-
-
-
 import React, { useState, useEffect } from "react";
 import { ChevronRight, Search, Plus, Check, Clock, Receipt, Users } from "lucide-react";
 import gym from "../../images/gym.png";
 import NouveauPaiementModal from "../components/NouveauPaiementModal";
-import { useLocation, useNavigate } from "react-router-dom"; 
-import gym2 from "../../images/gym2.png";
+import { useLocation, useNavigate } from "react-router-dom";
 import QuickActions from "../components/QuickActions";
 
 const C = {
@@ -16,7 +11,7 @@ const C = {
   accent: "#e53935", accentDim: "rgba(229,57,53,0.12)",
   accentBorder: "rgba(229,57,53,0.3)",
   text: "#f0f0f0", muted: "#6b7280", subtle: "#9ca3af",
-  green: "#22c55e", gold: "#f59e0b",
+  green: "#22c55e", gold: "#f59e0b", purple: "#a78bfa",
 };
 
 const avatarColors = ["#e53935", "#3a7bd5", "#f59e0b", "#8b5cf6", "#22c55e", "#06b6d4"];
@@ -33,17 +28,17 @@ const methodeConfig = {
 };
 
 const MODES = [
-  { value: "cash",     label: "Espèces",        icon: "💵" },
-  { value: "carte",    label: "Carte bancaire",  icon: "💳" },
-  { value: "virement", label: "Virement",        icon: "🏦" },
+  { value: "cash",     label: "Espèces",       icon: "💵" },
+  { value: "carte",    label: "Carte bancaire", icon: "💳" },
+  { value: "virement", label: "Virement",       icon: "🏦" },
 ];
 
-// ── Montant à afficher : montantDu si en attente, sinon montant ─────────────
 function getMontantAffiche(p) {
   if (p.statut === "En attente") return Number(p.montantDu || 0);
   return Number(p.montant || 0);
 }
 
+// ── Stat Card ────────────────────────────────────────────────────────────────
 const StatCard = ({ title, value, sub, icon: Icon, bg, border, color, softBg, softBorder }) => (
   <div style={{ flex: 1, background: bg, borderRadius: 14, padding: "20px 22px", border: `1px solid ${border}`, position: "relative", overflow: "hidden", transition: "transform .2s", cursor: "default" }}
     onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
@@ -62,7 +57,7 @@ const StatCard = ({ title, value, sub, icon: Icon, bg, border, color, softBg, so
   </div>
 );
 
-// ── Modal : choisir mode de paiement pour marquer comme payé ────────────────
+// ── Modal : Marquer comme payé ───────────────────────────────────────────────
 function MarquerPayeModal({ paiement, onClose, onConfirm }) {
   const [mode, setMode] = useState("cash");
   const [loading, setLoading] = useState(false);
@@ -78,43 +73,21 @@ function MarquerPayeModal({ paiement, onClose, onConfirm }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ background: "#1a1516", border: "1px solid #3d3233", borderRadius: 14, width: 420, padding: "28px 28px 24px", boxShadow: "0 24px 60px rgba(0,0,0,0.8)", fontFamily: "'Barlow', sans-serif" }}>
-
-        {/* Header */}
         <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.5rem", fontWeight: 800, color: C.text, margin: 0, textTransform: "uppercase" }}>
-            Marquer comme payé
-          </h2>
-          <p style={{ color: C.muted, fontSize: "0.82rem", marginTop: 6, marginBottom: 0 }}>
-            {paiement.nom}
-          </p>
+          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.5rem", fontWeight: 800, color: C.text, margin: 0, textTransform: "uppercase" }}>Marquer comme payé</h2>
+          <p style={{ color: C.muted, fontSize: "0.82rem", marginTop: 6, marginBottom: 0 }}>{paiement.nom}</p>
         </div>
-
-        {/* Montant */}
         <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "14px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: "0.8rem", color: C.muted, fontWeight: 600 }}>Montant à encaisser</span>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.6rem", fontWeight: 800, color: C.green }}>
-            {montant.toLocaleString("fr-DZ")} DA
-          </span>
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.6rem", fontWeight: 800, color: C.green }}>{montant.toLocaleString("fr-DZ")} DA</span>
         </div>
-
-        {/* Mode de paiement */}
         <div style={{ marginBottom: 22 }}>
-          <label style={{ fontSize: "0.78rem", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 10 }}>
-            Mode de paiement
-          </label>
+          <label style={{ fontSize: "0.78rem", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 10 }}>Mode de paiement</label>
           <div style={{ display: "flex", gap: 10 }}>
             {MODES.map(m => {
               const selected = mode === m.value;
               return (
-                <button key={m.value} onClick={() => setMode(m.value)} style={{
-                  flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                  padding: "12px 8px", borderRadius: 10, cursor: "pointer",
-                  border: selected ? `2px solid ${C.accent}` : "1px solid rgba(255,255,255,0.12)",
-                  background: selected ? "rgba(229,57,53,0.12)" : "rgba(255,255,255,0.04)",
-                  color: selected ? C.accent : C.muted,
-                  fontFamily: "'Barlow', sans-serif", fontWeight: selected ? 700 : 400, fontSize: "0.78rem",
-                  transition: "all 0.15s",
-                }}>
+                <button key={m.value} onClick={() => setMode(m.value)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 8px", borderRadius: 10, cursor: "pointer", border: selected ? `2px solid ${C.accent}` : "1px solid rgba(255,255,255,0.12)", background: selected ? "rgba(229,57,53,0.12)" : "rgba(255,255,255,0.04)", color: selected ? C.accent : C.muted, fontFamily: "'Barlow', sans-serif", fontWeight: selected ? 700 : 400, fontSize: "0.78rem", transition: "all 0.15s" }}>
                   <span style={{ fontSize: "1.3rem" }}>{m.icon}</span>
                   {m.label}
                 </button>
@@ -122,18 +95,9 @@ function MarquerPayeModal({ paiement, onClose, onConfirm }) {
             })}
           </div>
         </div>
-
-        {/* Boutons */}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", cursor: "pointer" }}>
-            Annuler
-          </button>
-          <button onClick={handleConfirm} disabled={loading} style={{
-            display: "flex", alignItems: "center", gap: 8,
-            background: loading ? "#555" : C.green, border: "none", borderRadius: 8,
-            padding: "10px 22px", color: "#fff", fontFamily: "'Barlow', sans-serif",
-            fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-          }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", cursor: "pointer" }}>Annuler</button>
+          <button onClick={handleConfirm} disabled={loading} style={{ display: "flex", alignItems: "center", gap: 8, background: loading ? "#555" : C.green, border: "none", borderRadius: 8, padding: "10px 22px", color: "#fff", fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer" }}>
             <Check size={14} /> {loading ? "Enregistrement..." : "Confirmer le paiement"}
           </button>
         </div>
@@ -142,6 +106,87 @@ function MarquerPayeModal({ paiement, onClose, onConfirm }) {
   );
 }
 
+// ── Modal : Séance libre ─────────────────────────────────────────────────────
+function SeanceLibreModal({ onClose, onSave }) {
+  const [form, setForm] = useState({
+    montant: "",
+    date: new Date().toISOString().split("T")[0],
+    modePaiement: "cash",
+    note: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.montant) return alert("Montant requis");
+    setLoading(true);
+    await onSave(form);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: "#1a1d24", border: "1px solid #252833", borderRadius: 14, width: 440, padding: "28px", fontFamily: "'Barlow', sans-serif" }}>
+
+        <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.5rem", fontWeight: 800, color: C.text, margin: "0 0 20px", textTransform: "uppercase" }}>
+          Séance libre
+        </h2>
+
+        {/* Montant */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: "0.72rem", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Montant (DA)</label>
+          <input type="number" value={form.montant} onChange={e => setForm({ ...form, montant: e.target.value })}
+            placeholder="500"
+            style={{ width: "100%", background: "#14161c", border: "1px solid #252833", borderRadius: 8, padding: "10px 14px", color: C.text, outline: "none", fontFamily: "'Barlow', sans-serif", boxSizing: "border-box" }} />
+        </div>
+
+        {/* Date */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: "0.72rem", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Date</label>
+          <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
+            style={{ width: "100%", background: "#14161c", border: "1px solid #252833", borderRadius: 8, padding: "10px 14px", color: C.text, outline: "none", fontFamily: "'Barlow', sans-serif", colorScheme: "dark", boxSizing: "border-box" }} />
+        </div>
+
+        {/* Mode paiement */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: "0.72rem", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 8 }}>Mode de paiement</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            {MODES.map(m => {
+              const selected = form.modePaiement === m.value;
+              return (
+                <button key={m.value} onClick={() => setForm({ ...form, modePaiement: m.value })}
+                  style={{ flex: 1, padding: "10px 8px", borderRadius: 10, cursor: "pointer", border: selected ? `2px solid ${C.accent}` : "1px solid rgba(255,255,255,0.12)", background: selected ? "rgba(229,57,53,0.12)" : "rgba(255,255,255,0.04)", color: selected ? C.accent : C.muted, fontFamily: "'Barlow', sans-serif", fontWeight: selected ? 700 : 400, fontSize: "0.75rem", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: "1.2rem" }}>{m.icon}</span>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Note */}
+        <div style={{ marginBottom: 22 }}>
+          <label style={{ fontSize: "0.72rem", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Note (optionnel)</label>
+          <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}
+            placeholder="Ex: musculation, cardio..."
+            style={{ width: "100%", background: "#14161c", border: "1px solid #252833", borderRadius: 8, padding: "10px 14px", color: C.text, outline: "none", fontFamily: "'Barlow', sans-serif", boxSizing: "border-box" }} />
+        </div>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "1px solid #252833", borderRadius: 8, padding: "10px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", cursor: "pointer" }}>
+            Annuler
+          </button>
+          <button onClick={handleSave} disabled={loading}
+            style={{ background: loading ? "#555" : C.purple, border: "none", borderRadius: 8, padding: "10px 22px", color: "#fff", fontFamily: "'Barlow', sans-serif", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer" }}>
+            {loading ? "Enregistrement..." : "Enregistrer"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Génération PDF facture ───────────────────────────────────────────────────
 const generateFacturePDF = async (paiement) => {
   try {
     const { jsPDF } = await import('jspdf');
@@ -217,14 +262,35 @@ const Paiement = () => {
   const [search, setSearch]                 = useState("");
   const [hoveredRow, setHoveredRow]         = useState(null);
   const [openModal, setOpenModal]           = useState(false);
-  const [marquerModal, setMarquerModal]     = useState(null); // paiement ciblé
+  const [marquerModal, setMarquerModal]     = useState(null);
+  const [seanceLibreModal, setSeanceLibreModal] = useState(false);
 
   const fetchPaiements = async () => {
-    if (window.api?.getPaiements) {
-      const data = await window.api.getPaiements();
-      setListePaiements(data || []);
-    }
-  };
+  const [paiements, seances] = await Promise.all([
+    window.api.getPaiements(),
+    window.api.getSeancesLibres(),
+  ]);
+
+  const lignesPaiements = (paiements || []).map(p => ({
+    ...p,
+    type: "paiement",
+  }));
+
+  const lignesSeances = (seances || []).map(s => ({
+    id: `SL-${s.id}`,
+    nom: s.note || "Séance libre",
+    montant: s.montant,
+    montantDu: s.montant,
+    datePaiementRaw: s.date,
+    mode: s.modePaiement,
+    statut: "Payé",
+    type: "seance_libre",
+  }));
+
+  setListePaiements([...lignesPaiements, ...lignesSeances].sort(
+    (a, b) => new Date(b.datePaiementRaw) - new Date(a.datePaiementRaw)
+  ));
+};
 
   useEffect(() => {
     fetchPaiements();
@@ -235,13 +301,11 @@ const Paiement = () => {
     }
   }, [location.search]);
 
-  // ── Confirmer le paiement : insère dans Paiement avec le montantDu ────────
   const handleConfirmerPaiement = async ({ paiement, mode }) => {
     try {
       const montant = getMontantAffiche(paiement);
-      // On insère un vrai paiement dans la table Paiement
       const res = await window.api.addPaiement({
-        abonnement_id: paiement.id, // id = idAbonnement pour les "En attente"
+        abonnement_id: paiement.id,
         montant,
         date: new Date().toISOString().split('T')[0],
         mode,
@@ -273,6 +337,21 @@ const Paiement = () => {
     }
   };
 
+const handleSaveSeanceLibre = async (data) => {
+  try {
+    const res = await window.api.addSeanceLibre(data);
+    if (res?.success) {
+      setSeanceLibreModal(false);
+      await fetchPaiements(); 
+    } else {
+      alert("Erreur lors de l'enregistrement.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erreur de communication.");
+  }
+};
+
   const filtered = listePaiements.filter(p =>
     p.nom?.toLowerCase().includes(search.toLowerCase()) ||
     p.id?.toString().includes(search)
@@ -294,10 +373,10 @@ const Paiement = () => {
         <div style={{ position: "relative", padding: "32px 36px 36px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-              <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>FitManager</span>
+              <span style={{ fontSize: "0.72rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
-              <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>Paiements</span>
-               <QuickActions navigate={navigate} />
+              <span style={{ fontSize: "0.72rem", color: C.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>Paiements</span>
+              <QuickActions navigate={navigate} />
             </div>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3rem", fontWeight: 800, letterSpacing: 1, lineHeight: 1, margin: 0, textTransform: "uppercase", color: C.text }}>
               Gestion financière
@@ -310,14 +389,29 @@ const Paiement = () => {
               ].map(({ count, label, color }) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
-                  <span style={{ fontSize: "0.82rem", color: C.muted }}><strong style={{ color }}>{count}</strong> {label}</span>
+                  <span style={{ fontSize: "0.82rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
+                    <strong style={{ color }}>{count}</strong> {label}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-          <button onClick={() => setOpenModal(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(229,57,53,0.4)" }}>
-            <Plus size={17} /> Nouveau Paiement
-          </button>
+
+          {/* Boutons */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setSeanceLibreModal(true)}
+              style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(139,92,246,0.15)", color: C.purple, border: "1px solid rgba(139,92,246,0.4)", borderRadius: 10, padding: "12px 22px", fontFamily: "'Barlow', sans-serif", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(139,92,246,0.28)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(139,92,246,0.15)"}>
+              <Plus size={17} /> Séance libre
+            </button>
+            <button onClick={() => setOpenModal(true)}
+              style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontFamily: "'Barlow', sans-serif", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(229,57,53,0.4)" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(229,57,53,0.5)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(229,57,53,0.4)"; }}>
+              <Plus size={17} /> Nouveau Paiement
+            </button>
+          </div>
         </div>
       </div>
 
@@ -355,7 +449,7 @@ const Paiement = () => {
             <thead>
               <tr style={{ background: "#14161c" }}>
                 {["ID", "Adhérent", "Montant", "Date", "Méthode", "Statut", "Actions"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "12px 22px", fontSize: "0.65rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
+                  <th key={h} style={{ textAlign: "left", padding: "12px 22px", fontSize: "0.65rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1, fontFamily: "'Barlow', sans-serif" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -366,40 +460,39 @@ const Paiement = () => {
                 const montantAffiche = getMontantAffiche(p);
                 return (
                   <tr key={`${p.id}-${i}`}
-                    style={{ borderTop: `1px solid ${C.border}`, background: hoveredRow === i ? C.cardHover : "transparent" }}
+                    style={{ borderTop: `1px solid ${C.border}`, background: hoveredRow === i ? C.cardHover : "transparent", transition: "background 0.15s" }}
                     onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}>
 
                     <td style={{ padding: "15px 22px", fontSize: "0.72rem", color: C.muted, fontFamily: "monospace" }}>#{p.id}</td>
 
                     <td style={{ padding: "15px 22px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", color: avatarColors[i % avatarColors.length], fontWeight: 800, fontSize: "0.7rem" }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: avatarColors[i % avatarColors.length] + "25", border: `1px solid ${avatarColors[i % avatarColors.length]}55`, display: "grid", placeItems: "center", color: avatarColors[i % avatarColors.length], fontWeight: 800, fontSize: "0.7rem", fontFamily: "'Barlow Condensed', sans-serif" }}>
                           {p.nom?.substring(0, 2).toUpperCase()}
                         </div>
-                        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: C.text }}>{p.nom}</span>
+                        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: C.text, fontFamily: "'Barlow', sans-serif" }}>{p.nom}</span>
                       </div>
                     </td>
 
-                    {/* Montant : montantDu si en attente, sinon montant */}
-                    <td style={{ padding: "15px 22px", fontWeight: 800, color: p.statut === "En attente" ? C.gold : C.text }}>
+                    <td style={{ padding: "15px 22px", fontWeight: 800, color: p.statut === "En attente" ? C.gold : C.text, fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1rem" }}>
                       {montantAffiche.toLocaleString("fr-DZ")} DA
                       {p.statut === "En attente" && (
-                        <span style={{ display: "block", fontSize: "0.65rem", color: C.muted, fontWeight: 400 }}>à collecter</span>
+                        <span style={{ display: "block", fontSize: "0.65rem", color: C.muted, fontWeight: 400, fontFamily: "'Barlow', sans-serif" }}>à collecter</span>
                       )}
                     </td>
 
-                    <td style={{ padding: "15px 22px", fontSize: "0.78rem", color: C.muted }}>
+                    <td style={{ padding: "15px 22px", fontSize: "0.78rem", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
                       {p.datePaiementRaw ? new Date(p.datePaiementRaw).toLocaleDateString("fr-FR") : "—"}
                     </td>
 
                     <td style={{ padding: "15px 22px" }}>
-                      <span style={{ fontSize: "0.7rem", background: mConfig.bg, color: mConfig.color, padding: "4px 10px", borderRadius: 6, fontWeight: 600 }}>
+                      <span style={{ fontSize: "0.7rem", background: mConfig.bg, color: mConfig.color, padding: "4px 10px", borderRadius: 6, fontWeight: 600, fontFamily: "'Barlow', sans-serif" }}>
                         {mConfig.label}
                       </span>
                     </td>
 
                     <td style={{ padding: "15px 22px" }}>
-                      <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: status.bg, color: status.color, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: status.bg, color: status.color, display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Barlow', sans-serif" }}>
                         <span style={{ width: 5, height: 5, borderRadius: "50%", background: status.dot }} />
                         {p.statut}
                       </span>
@@ -407,14 +500,16 @@ const Paiement = () => {
 
                     <td style={{ padding: "15px 22px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => generateFacturePDF(p)} style={{ background: C.accentDim, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, transition: "all 0.2s" }}
+                        <button onClick={() => generateFacturePDF(p)}
+                          style={{ background: C.accentDim, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, transition: "all 0.2s", fontFamily: "'Barlow', sans-serif" }}
                           onMouseEnter={e => { e.currentTarget.style.background = C.accent; e.currentTarget.style.color = "#fff"; }}
                           onMouseLeave={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.color = C.accent; }}>
                           <Receipt size={12} /> Facture
                         </button>
 
                         {p.statut === "En attente" && (
-                          <button onClick={() => setMarquerModal(p)} style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.4)", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, fontWeight: 600, transition: "all 0.2s" }}
+                          <button onClick={() => setMarquerModal(p)}
+                            style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.4)", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, fontWeight: 600, transition: "all 0.2s", fontFamily: "'Barlow', sans-serif" }}
                             onMouseEnter={e => e.currentTarget.style.background = "rgba(34,197,94,0.22)"}
                             onMouseLeave={e => e.currentTarget.style.background = "rgba(34,197,94,0.12)"}>
                             <Check size={12} /> Marquer payé
@@ -428,25 +523,24 @@ const Paiement = () => {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <div style={{ padding: "40px", textAlign: "center", color: C.muted }}>Aucun paiement trouvé.</div>
+            <div style={{ padding: "40px", textAlign: "center", color: C.muted, fontFamily: "'Barlow', sans-serif" }}>
+              Aucun paiement trouvé.
+            </div>
           )}
         </div>
       </div>
 
-      {/* Modal marquer payé */}
+      {/* Modals */}
       {marquerModal && (
-        <MarquerPayeModal
-          paiement={marquerModal}
-          onClose={() => setMarquerModal(null)}
-          onConfirm={handleConfirmerPaiement}
-        />
+        <MarquerPayeModal paiement={marquerModal} onClose={() => setMarquerModal(null)} onConfirm={handleConfirmerPaiement} />
       )}
 
       {openModal && (
-        <NouveauPaiementModal
-          onClose={() => setOpenModal(false)}
-          onSave={handleSaveNewPaiement}
-        />
+        <NouveauPaiementModal onClose={() => setOpenModal(false)} onSave={handleSaveNewPaiement} />
+      )}
+
+      {seanceLibreModal && (
+        <SeanceLibreModal onClose={() => setSeanceLibreModal(false)} onSave={handleSaveSeanceLibre} />
       )}
     </div>
   );
