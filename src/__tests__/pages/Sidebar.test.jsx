@@ -33,7 +33,7 @@ afterEach(() => {
   global.localStorage.clear();
 });
 
-import Sidebar from '../../../src/renderer/components/Sidebar';
+import Sidebar from '../../renderer/components/Sidebar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 describe('Sidebar — Affichage', () => {

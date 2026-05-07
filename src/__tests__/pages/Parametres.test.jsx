@@ -35,7 +35,7 @@ beforeEach(() => {
   global.window.alert   = jest.fn();
 });
 
-import Parametres from '../../../src/renderer/pages/Parametres';
+import Parametres from '../../renderer/pages/Parametres';
 
 // ═══════════════════════════════════════════════════════════════════════════
 describe('Page Paramètres — Affichage', () => {
