@@ -31,7 +31,7 @@ beforeEach(() => {
   global.window.confirm = jest.fn(() => true);
 });
 
-import Utilisateur from '../../../src/renderer/pages/Utilisateurs';
+import Utilisateur from '../../renderer/pages/Utilisateurs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 describe('Page Utilisateurs — Affichage', () => {

@@ -16,7 +16,7 @@ beforeEach(() => {
   };
 });
 
-import Login from '../../../src/renderer/pages/connexion';
+import Login from '../../renderer/pages/connexion';
 
 // ═══════════════════════════════════════════════════════════════════════════
 describe('Page Connexion — Affichage', () => {
