@@ -1,110 +1,192 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { MemoryRouter } from 'react-router-dom';
-import Magasin from '../../renderer/pages/Magasin';
 
-// ── Mock window.api ──
-const mockProduits = [
-  { idProduit: 1, nom: 'Haltères 10kg',   reference: 'ALG001', categorie: 'Musculation', stock: 15, prix: '6000'  },
-  { idProduit: 2, nom: 'Tapis de course',  reference: 'ALG002', categorie: 'Cardio',      stock: 3,  prix: '45000' },
-];
-
-global.window.api = {
-  getProduits:    jest.fn(() => Promise.resolve(mockProduits)),
-  addProduit:     jest.fn(() => Promise.resolve({ idProduit: 3 })),
-  updateProduit:  jest.fn(() => Promise.resolve({ success: true })),
-  deleteProduit:  jest.fn(() => Promise.resolve({ success: true })),
-  addTransaction: jest.fn(() => Promise.resolve({ success: true })),
-};
-
+// ── Mocks ──────────────────────────────────────────────────────
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
   useNavigate: () => jest.fn(),
-  useLocation: () => ({ pathname: '/magasin' }),
 }));
 
-jest.mock('../../renderer/components/QuickActions', () => () => null);
+jest.mock('../../renderer/components/QuickActions', () => () => (
+  <div data-testid="quick-actions" />
+));
 
-const renderMagasin = () =>
-  render(<MemoryRouter><Magasin /></MemoryRouter>);
+const mockProduits = [
+  { idProduit: 1, nom: 'Haltères 10kg',  reference: 'ALG001', categorie: 'Musculation', stock: 15, prix: 6000  },
+  { idProduit: 2, nom: 'Vélo cardio',    reference: 'ALG002', categorie: 'Cardio',      stock: 3,  prix: 45000 },
+  { idProduit: 3, nom: 'Corde à sauter', reference: 'ALG003', categorie: 'Accessoire',  stock: 20, prix: 500   },
+];
 
-describe('PAGE Magasin', () => {
+beforeEach(() => {
+  window.api = {
+    getProduits:       jest.fn().mockResolvedValue(mockProduits),
+    addProduit:        jest.fn().mockResolvedValue({ success: true }),
+    updateProduit:     jest.fn().mockResolvedValue({ success: true }),
+    deleteProduit:     jest.fn().mockResolvedValue({ success: true }),
+    addTransaction:    jest.fn().mockResolvedValue({ success: true }),
+    getAdherents:      jest.fn().mockResolvedValue([]),
+    getAdherentNiveau: jest.fn().mockResolvedValue({ remise: 0 }),
+  };
+  window.confirm = jest.fn().mockReturnValue(true);
+});
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    global.window.api.getProduits.mockResolvedValue(mockProduits);
-  });
+afterEach(() => jest.clearAllMocks());
 
-  // T01 — Afficher la liste des produits
-  test('T01 — affiche la liste des produits après chargement', async () => {
-    renderMagasin();
+import Magasin from '../../renderer/pages/Magasin';
+
+// ── Tests ──────────────────────────────────────────────────────
+describe('Page Magasin', () => {
+
+  test('affiche le titre Magasin', async () => {
+    render(<Magasin />);
     await waitFor(() => {
-      expect(screen.getByText(/Haltères 10kg/i)).toBeInTheDocument();
-      expect(screen.getByText(/Tapis de course/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/magasin/i).length).toBeGreaterThan(0);
     });
   });
 
-  // T02 — Champ de recherche visible
-  test('T02 — affiche le champ de recherche', async () => {
-    renderMagasin();
+  test('charge et affiche les produits depuis window.api', async () => {
+    render(<Magasin />);
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Rechercher nom/i)).toBeInTheDocument();
+      expect(window.api.getProduits).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Haltères 10kg')).toBeInTheDocument();
+      expect(screen.getByText('Vélo cardio')).toBeInTheDocument();
+      expect(screen.getByText('Corde à sauter')).toBeInTheDocument();
     });
   });
 
-  // T03 — Bouton Ajouter visible
-  test('T03 — affiche le bouton Ajouter un produit', async () => {
-    renderMagasin();
+  test('affiche le badge stock faible quand stock ≤ 5', async () => {
+    render(<Magasin />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /ajouter un produit/i })).toBeInTheDocument();
+      expect(screen.getAllByText(/faible/i).length).toBeGreaterThan(0);
     });
   });
 
-  // T04 — Ajouter un nouveau produit → ouvre la modal
-  test('T04 — ouvre la modal Nouveau Produit au clic sur Ajouter', async () => {
-    renderMagasin();
-    await waitFor(() => screen.getByRole('button', { name: /ajouter un produit/i }));
+  test('la barre de recherche filtre les produits', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText(/rechercher/i), {
+      target: { value: 'vélo' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Vélo cardio')).toBeInTheDocument();
+      expect(screen.queryByText('Haltères 10kg')).not.toBeInTheDocument();
+    });
+  });
+
+  test('le filtre Cardio affiche seulement les produits Cardio', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /^cardio$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Vélo cardio')).toBeInTheDocument();
+      expect(screen.queryByText('Haltères 10kg')).not.toBeInTheDocument();
+    });
+  });
+
+  test('le bouton Tous réaffiche tous les produits', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /^cardio$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^tous$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Haltères 10kg')).toBeInTheDocument();
+      expect(screen.getByText('Vélo cardio')).toBeInTheDocument();
+    });
+  });
+
+  test('ouvre le modal Nouveau Produit au clic sur Ajouter', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
     fireEvent.click(screen.getByRole('button', { name: /ajouter un produit/i }));
-    expect(screen.getByText(/Nouveau Produit/i)).toBeInTheDocument();
-  });
 
-  // T05 — Modifier un produit → ouvre la modal en mode édition
-  test('T05 — ouvre la modal en mode Modifier au clic sur Modifier', async () => {
-    renderMagasin();
-    await waitFor(() => screen.getAllByTitle('Modifier'));
-    fireEvent.click(screen.getAllByTitle('Modifier')[0]);
-    expect(screen.getByText(/Modifier le Produit/i)).toBeInTheDocument();
-  });
-
-  // T06 — Supprimer un produit avec confirmation
-  test('T06 — supprime le produit après confirmation', async () => {
-    global.confirm = jest.fn(() => true);
-    renderMagasin();
-    await waitFor(() => screen.getAllByTitle('Supprimer'));
-    fireEvent.click(screen.getAllByTitle('Supprimer')[0]);
     await waitFor(() => {
-      expect(window.api.deleteProduit).toHaveBeenCalledWith(1);
+      expect(screen.getByText(/nouveau produit/i)).toBeInTheDocument();
     });
   });
 
-  // T07 — Supprimer annulé → API pas appelée
-  test('T07 — ne supprime pas si l\'utilisateur annule', async () => {
-    global.confirm = jest.fn(() => false);
-    renderMagasin();
-    await waitFor(() => screen.getAllByTitle('Supprimer'));
-    fireEvent.click(screen.getAllByTitle('Supprimer')[0]);
+  test('ferme le modal Nouveau Produit au clic sur Annuler', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /ajouter un produit/i }));
+    await waitFor(() => expect(screen.getByText(/nouveau produit/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /annuler/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/nouveau produit/i)).not.toBeInTheDocument();
+    });
+  });
+
+  test('appelle window.api.deleteProduit après confirmation', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    const deleteButtons = screen.getAllByTitle(/supprimer/i);
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalled();
+      expect(window.api.deleteProduit).toHaveBeenCalled();
+    });
+  });
+
+  test('ne supprime pas si confirmation refusée', async () => {
+    window.confirm = jest.fn().mockReturnValue(false);
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.click(screen.getAllByTitle(/supprimer/i)[0]);
+
     expect(window.api.deleteProduit).not.toHaveBeenCalled();
   });
 
-  // T08 — La recherche filtre les produits
-  test('T08 — la recherche filtre la liste des produits', async () => {
-    renderMagasin();
-    await waitFor(() => screen.getByText(/Haltères 10kg/i));
-    fireEvent.change(screen.getByPlaceholderText(/Rechercher nom/i), {
-      target: { value: 'Tapis' },
+  test('ouvre le modal TransactionModal Vente au clic sur −', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.click(screen.getAllByTitle(/vendre/i)[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/vente produit/i)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/Haltères 10kg/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Tapis de course/i)).toBeInTheDocument();
   });
 
+  test('ouvre le modal TransactionModal Achat au clic sur +', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.click(screen.getAllByTitle(/achat/i)[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/achat stock/i)).toBeInTheDocument();
+    });
+  });
+
+  test('affiche le QuickActions', async () => {
+    render(<Magasin />);
+    await waitFor(() => {
+      expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
+    });
+  });
+
+  test('affiche un message si aucun produit trouvé lors de la recherche', async () => {
+    render(<Magasin />);
+    await waitFor(() => expect(screen.getByText('Haltères 10kg')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText(/rechercher/i), {
+      target: { value: 'produit inexistant xyz' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/aucun produit trouvé/i)).toBeInTheDocument();
+    });
+  });
 });

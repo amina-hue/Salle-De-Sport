@@ -1,209 +1,185 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import Recette from '../../renderer/pages/Recette';
 
-// Mock images
-jest.mock('../../renderer/images/gym1.png', () => 'gym1.png');
-jest.mock('../../renderer/images/gym2.png', () => 'gym2.png');
+// ── Mocks ──────────────────────────────────────────────────────
+jest.mock('react-router-dom', () => ({
+  useNavigate: () => jest.fn(),
+}));
 
-// Mock QuickActions
-jest.mock('../../renderer/components/QuickActions', () => () => <div data-testid="quick-actions" />);
+jest.mock('../../renderer/components/QuickActions', () => () => (
+  <div data-testid="quick-actions" />
+));
 
 const mockPaiements = [
-  { idPaiement: 1, adherentNom: 'Benali Youcef', montant: 3000, datePaiement: '2025-01-15' },
-  { idPaiement: 2, adherentNom: 'Mammeri Sara',  montant: 5000, datePaiement: '2025-02-20' },
+  { id: 1, nom: 'Benali Sara',  montant: 3000, statut: 'Payé',     datePaiementRaw: '2024-01-15' },
+  { id: 2, nom: 'Meziane Ali', montant: 1500, statut: 'En attente', datePaiementRaw: '2024-01-20' },
 ];
-const mockProduits = [
-  { idProduit: 1, nom: 'Protéines Whey', prix: 1500, stock: 10 },
-  { idProduit: 2, nom: 'Gants de sport',  prix: 800,  stock: 5  },
+const mockVentes = [
+  { id: 1, produit_nom: 'Haltères 10kg', prix_vente: 6000, date: '2024-01-10' },
+];
+const mockSeances = [
+  { id: 1, note: 'Séance libre matin', montant: 500, date: '2024-01-12' },
 ];
 
 beforeEach(() => {
   window.electron = {
     invoke: jest.fn((channel) => {
-      if (channel === 'getPaiements') return Promise.resolve(mockPaiements);
-      if (channel === 'getProduits')  return Promise.resolve(mockProduits);
+      if (channel === 'getPaiements')        return Promise.resolve(mockPaiements);
+      if (channel === 'getHistoriqueVentes') return Promise.resolve(mockVentes);
       return Promise.resolve([]);
     }),
   };
+  window.api = {
+    getSeancesLibres: jest.fn().mockResolvedValue(mockSeances),
+  };
 });
+
 afterEach(() => jest.clearAllMocks());
 
-const renderPage = async () => {
-  let result;
-  await act(async () => {
-    result = render(
-      <MemoryRouter initialEntries={['/recettes']}>
-        <Routes><Route path="/recettes" element={<Recette />} /></Routes>
-      </MemoryRouter>
-    );
-  });
-  return result;
-};
+import Recette from '../../renderer/pages/Recette';
 
-describe('PAGE : Recette.jsx', () => {
+// ── Tests ──────────────────────────────────────────────────────
+describe('Page Recette', () => {
 
-  // ── Afficher la page recettes ───────────────────────────────────────
-  describe('Afficher la page recettes', () => {
-    test('affiche le titre "Recettes"', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getAllByText(/Recettes/i).length).toBeGreaterThan(0);
-      });
-    });
-
-    test('affiche "Recette de la salle" et "Recette du magasin"', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Recette de la salle/i)).toBeInTheDocument();
-        expect(screen.getByText(/Recette du magasin/i)).toBeInTheDocument();
-      });
-    });
-
-    test('affiche le tableau des détails des recettes', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Détails des recettes/i)).toBeInTheDocument();
-      });
-    });
-
-    test('affiche les lignes des paiements dans le tableau', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Benali Youcef/i)).toBeInTheDocument();
-        expect(screen.getByText(/Mammeri Sara/i)).toBeInTheDocument();
-      });
-    });
-
-    test('charge les données au montage', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(window.electron.invoke).toHaveBeenCalledWith('getPaiements');
-        expect(window.electron.invoke).toHaveBeenCalledWith('getProduits');
-      });
-    });
-
-    test('affiche le message d\'erreur si le chargement échoue', async () => {
-      window.electron.invoke = jest.fn(() => Promise.reject(new Error('Erreur réseau')));
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Impossible de charger les recettes/i)).toBeInTheDocument();
-      });
-    });
-
-    test('affiche le bouton Réessayer après erreur', async () => {
-      window.electron.invoke = jest.fn(() => Promise.reject(new Error('Erreur réseau')));
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Réessayer/i)).toBeInTheDocument();
-      });
+  test('affiche le titre Recettes', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getAllByText(/recettes/i).length).toBeGreaterThan(0);
     });
   });
 
-  // ── Calcul total des recettes ───────────────────────────────────────
-  describe('Calcul total des recettes', () => {
-    test('calcule correctement le total des abonnements (3000 + 5000 = 8000)', async () => {
-      await renderPage();
-      await waitFor(() => {
-        // "8 000" apparaît plusieurs fois dans le DOM
-        expect(screen.getAllByText(/8 000/).length).toBeGreaterThan(0);
-      });
-    });
+  test('affiche le message de chargement initialement', () => {
+    render(<Recette />);
+    expect(screen.getByText(/chargement/i)).toBeInTheDocument();
+  });
 
-    test('affiche le total des recettes en bas de page', async () => {
-      await renderPage();
-      await waitFor(() => {
-        // "Total des recettes" apparaît plusieurs fois dans le DOM
-        expect(screen.getAllByText(/Total des recettes/i).length).toBeGreaterThan(0);
-      });
-    });
-
-    test('affiche les badges "Abonnement" dans la colonne Catégorie', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getAllByText('Abonnement').length).toBeGreaterThan(0);
-      });
-    });
-
-    test('affiche les badges "Vente" pour les produits du magasin', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getAllByText('Vente').length).toBeGreaterThan(0);
-      });
+  test('charge les données depuis les APIs', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(window.electron.invoke).toHaveBeenCalledWith('getPaiements');
+      expect(window.electron.invoke).toHaveBeenCalledWith('getHistoriqueVentes');
+      expect(window.api.getSeancesLibres).toHaveBeenCalled();
     });
   });
 
-  // ── Filtre par date ─────────────────────────────────────────────────
-  describe('Filtre par date', () => {
-    test('les champs "Date début" et "Date fin" sont présents', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Date début/i)).toBeInTheDocument();
-        expect(screen.getByText(/Date fin/i)).toBeInTheDocument();
-      });
-    });
-
-    test('le bouton "Filtrer" est présent', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('Filtrer')).toBeInTheDocument();
-      });
-    });
-
-    test('filtrer par date réduit les résultats affichés', async () => {
-      await renderPage();
-      await waitFor(() => screen.getByText(/Benali Youcef/i));
-      const dateInputs = screen.getAllByDisplayValue('');
-      fireEvent.change(dateInputs[0], { target: { value: '2025-02-01' } });
-      fireEvent.click(screen.getByText('Filtrer'));
-      await waitFor(() => {
-        expect(screen.queryByText(/Benali Youcef/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/Mammeri Sara/i)).toBeInTheDocument();
-      });
-    });
-
-    test('le bouton "Réinitialiser" remet tous les résultats', async () => {
-      await renderPage();
-      await waitFor(() => screen.getByText(/Benali Youcef/i));
-      const dateInputs = screen.getAllByDisplayValue('');
-      fireEvent.change(dateInputs[0], { target: { value: '2025-02-01' } });
-      fireEvent.click(screen.getByText('Filtrer'));
-      await waitFor(() => screen.getByText(/Réinitialiser/i));
-      fireEvent.click(screen.getByText(/Réinitialiser/i));
-      await waitFor(() => {
-        expect(screen.getByText(/Benali Youcef/i)).toBeInTheDocument();
-      });
-    });
-
-    test('affiche "Aucune recette pour cette période" si filtre vide', async () => {
-      await renderPage();
-      await waitFor(() => screen.getByText('Filtrer'));
-      const dateInputs = screen.getAllByDisplayValue('');
-      fireEvent.change(dateInputs[0], { target: { value: '2030-01-01' } });
-      fireEvent.click(screen.getByText('Filtrer'));
-      await waitFor(() => {
-        expect(screen.getByText(/Aucune recette pour cette période/i)).toBeInTheDocument();
-      });
+  test('affiche les totaux des recettes après chargement', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      // Total = abonnements(3000) + ventes(6000) + séances(500) = 9500
+      expect(screen.getAllByText(/9\s?500|9\.500/i).length).toBeGreaterThan(0);
     });
   });
 
-  // ── Pagination ──────────────────────────────────────────────────────
-  describe('Pagination', () => {
-    test('les boutons Précédente / Suivante sont présents', async () => {
-      await renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Précédente/i)).toBeInTheDocument();
-        expect(screen.getByText(/Suivante/i)).toBeInTheDocument();
-      });
+  test('affiche la section Recette de la salle (abonnements payés)', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByText(/recette de la salle/i)).toBeInTheDocument();
+    });
+  });
+
+  test('affiche la section Recette du magasin (ventes)', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByText(/recette du magasin/i)).toBeInTheDocument();
+    });
+  });
+
+  test('affiche la section Séances libres', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByText(/séances libres/i)).toBeInTheDocument();
+    });
+  });
+
+  test('le bouton Filtrer est présent', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /filtrer/i })).toBeInTheDocument();
+    });
+  });
+
+  test('affiche une erreur si les dates sont invalides', async () => {
+    render(<Recette />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /filtrer/i })).toBeInTheDocument());
+
+    // Renseigner une date de début après la date de fin
+    const inputs = screen.getAllByDisplayValue('');
+    fireEvent.change(inputs[0], { target: { value: '2024-12-01' } });
+    fireEvent.change(inputs[1], { target: { value: '2024-01-01' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /filtrer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/date de début doit être antérieure/i)).toBeInTheDocument();
+    });
+  });
+
+  test('affiche le bouton Réinitialiser après saisie de dates', async () => {
+    render(<Recette />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /filtrer/i })).toBeInTheDocument());
+
+    const inputs = screen.getAllByDisplayValue('');
+    fireEvent.change(inputs[0], { target: { value: '2024-01-01' } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /réinitialiser/i })).toBeInTheDocument();
+    });
+  });
+
+  test('le bouton Réinitialiser efface les dates', async () => {
+    render(<Recette />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /filtrer/i })).toBeInTheDocument());
+
+    const inputs = screen.getAllByDisplayValue('');
+    fireEvent.change(inputs[0], { target: { value: '2024-01-01' } });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /réinitialiser/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /réinitialiser/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /réinitialiser/i })).not.toBeInTheDocument();
+    });
+  });
+
+  test('affiche le footer avec les totaux ventilés', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByText(/abonnements/i)).toBeInTheDocument();
+      expect(screen.getByText(/magasin/i)).toBeInTheDocument();
+    });
+  });
+
+  test('affiche le QuickActions', async () => {
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
+    });
+  });
+
+  test('affiche un message d\'erreur si l\'API échoue', async () => {
+    window.electron.invoke = jest.fn().mockRejectedValue(new Error('Erreur réseau'));
+    render(<Recette />);
+    await waitFor(() => {
+      expect(screen.getByText(/impossible de charger/i)).toBeInTheDocument();
+    });
+  });
+
+  test('le bouton Réessayer recharge les données', async () => {
+    window.electron.invoke = jest.fn().mockRejectedValue(new Error('fail'));
+    render(<Recette />);
+    await waitFor(() => expect(screen.getByText(/impossible de charger/i)).toBeInTheDocument());
+
+    // Rétablir l'API
+    window.electron.invoke = jest.fn((channel) => {
+      if (channel === 'getPaiements')        return Promise.resolve(mockPaiements);
+      if (channel === 'getHistoriqueVentes') return Promise.resolve(mockVentes);
+      return Promise.resolve([]);
     });
 
-    test('le bouton Précédente est désactivé sur la page 1', async () => {
-      await renderPage();
-      await waitFor(() => {
-        const prevBtn = screen.getByText(/Précédente/i);
-        expect(prevBtn).toBeDisabled();
-      });
+    fireEvent.click(screen.getByRole('button', { name: /réessayer/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/recette de la salle/i)).toBeInTheDocument();
     });
   });
 });
