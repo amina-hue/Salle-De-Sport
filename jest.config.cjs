@@ -1,0 +1,1 @@
+module.exports = { testEnvironment: 'jsdom', setupFiles: ['<rootDir>/jest.setup.js'], transform: { '^.+\\.(js|jsx)$': 'babel-jest' }, moduleNameMapper: { '\\.(png|jpg|jpeg|svg|gif|css)$': '<rootDir>/__mocks__/fileMock.js' }, testMatch: ['**/src/tests/**/*.test.{js,jsx}', '**/src/__tests__/**/*.test.{js,jsx}'], testPathIgnorePatterns: ['/node_modules/'] };
