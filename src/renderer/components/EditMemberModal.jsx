@@ -67,10 +67,19 @@ function Row({ label, children }) {
 ══════════════════════════════════ */
 function RenewModal({ member, typesAbonnement = [], onRenew, onClose }) {
   const today = new Date().toISOString().split('T')[0];
+   const computeDateFin = (debut, tid) => {
+    const type = typesAbonnement.find(t => t.id === parseInt(tid));
+    if (!debut || !type?.duree) return '';
+    const d = new Date(debut);
+    d.setMonth(d.getMonth() + Number(type.duree));
+    return d.toISOString().split('T')[0];
+  };
   const [typeId, setTypeId] = useState(member.type_id || '');
   const [dateDebut, setDateDebut] = useState(today);
-  const [dateFin, setDateFin] = useState('');
-  const [payerMaintenant, setPayerMaintenant] = useState(undefined);
+const [dateFin, setDateFin] = useState(
+    () => computeDateFin(today, member.type_id || '')
+  );
+    const [payerMaintenant, setPayerMaintenant] = useState(undefined);
   const [modePaiement, setModePaiement] = useState('cash');
   const [saving, setSaving] = useState(false);
 
@@ -90,13 +99,13 @@ function RenewModal({ member, typesAbonnement = [], onRenew, onClose }) {
   const selectedType = typesAbonnement.find(t => t.id === parseInt(typeId));
   const prixBase = parseFloat(selectedType?.prix) || 0;
 
-  const computeDateFin = (debut, tid) => {
-    const type = typesAbonnement.find(t => t.id === parseInt(tid));
-    if (!debut || !type?.duree) return '';
-    const d = new Date(debut);
-    d.setMonth(d.getMonth() + Number(type.duree));
-    return d.toISOString().split('T')[0];
-  };
+  // const computeDateFin = (debut, tid) => {
+  //   const type = typesAbonnement.find(t => t.id === parseInt(tid));
+  //   if (!debut || !type?.duree) return '';
+  //   const d = new Date(debut);
+  //   d.setMonth(d.getMonth() + Number(type.duree));
+  //   return d.toISOString().split('T')[0];
+  // };
 
   const handleTypeChange = (val) => {
     setTypeId(val);

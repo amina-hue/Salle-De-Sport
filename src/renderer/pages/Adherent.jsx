@@ -225,6 +225,7 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
           {isExpire && (
             <button
               onClick={() => onRenew(member)}
+              aria-label="Renouveler"
               style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
@@ -236,7 +237,12 @@ function MemberCard({ member, onEdit, onDelete, onRenew }) {
             </button>
           )}
 
-          <button onClick={() => onDelete(member.idAdherent)} style={{ ...styleSupprimer }}>
+          {/* ✅ aria-label ajouté pour les tests et l'accessibilité */}
+          <button
+            onClick={() => onDelete(member.idAdherent)}
+            aria-label="Supprimer"
+            style={{ ...styleSupprimer }}
+          >
             <Trash2 size={13} />
           </button>
         </div>
@@ -769,7 +775,6 @@ export default function Adherent() {
   const handleClose = () => { setModal(null); setEditTarget(null); };
   const handleEdit  = (m) => { setEditTarget(m); setModal('edit'); };
 
-  // ── Renouveler ────────────────────────────────────────────────────────────
   const handleRenew = async (data) => {
     try {
       const { payerMaintenant, montant, montantDu, modePaiement, ...aboData } = data;
@@ -821,7 +826,6 @@ export default function Adherent() {
     }
   };
 
-  // ── Modifier ──────────────────────────────────────────────────────────────
   const handleSaveEdit = async (form) => {
     try {
       await window.api.updateAdherent({
@@ -871,18 +875,16 @@ export default function Adherent() {
     } catch (err) {
       console.error(err);
       showToast('Erreur lors de la modification', true);
-      throw err;
+
     }
   };
 
-  // ── Ajouter ───────────────────────────────────────────────────────────────
   const handleSaveAdd = async () => {
     showToast('Adhérent ajouté avec succès');
     handleClose();
     await loadData();
   };
 
-  // ── Supprimer ─────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     const ok = await askConfirm({
       title:        "Supprimer l'adhérent",
@@ -901,7 +903,6 @@ export default function Adherent() {
     }
   };
 
-  // ── Filtrage ──────────────────────────────────────────────────────────────
   const filtered = adherents.filter(a => {
     const q = search.toLowerCase();
     const matchSearch =
@@ -921,7 +922,6 @@ export default function Adherent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: C.bg }}>
 
-      {/* Hero Header */}
       <div style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${GYM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center 35%' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(14,15,17,0.93) 0%, rgba(14,15,17,0.75) 60%, rgba(229,57,53,0.06) 100%)' }} />
@@ -975,7 +975,6 @@ export default function Adherent() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div style={{ display: 'flex', gap: 12, padding: '14px 36px', background: C.bg, borderBottom: `1px solid ${C.border}`, flexShrink: 0, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: 440 }}>
           <Search size={15} color={C.muted} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -1009,7 +1008,6 @@ export default function Adherent() {
         </div>
       </div>
 
-      {/* Grille */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 36px 40px' }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 16, color: C.muted }}>
@@ -1036,7 +1034,6 @@ export default function Adherent() {
         )}
       </div>
 
-      {/* Modals */}
       {modal === 'edit' && editTarget && (
         <EditMemberModal member={editTarget} typesAbonnement={typesAbo} onSave={handleSaveEdit} onClose={handleClose} />
       )}
@@ -1047,9 +1044,7 @@ export default function Adherent() {
         <RenewModal member={renewTarget} typesAbonnement={typesAbo} onSave={handleRenew} onClose={handleClose} />
       )}
 
-      {/* ── Confirmation suppression ── */}
       <DeleteConfirm {...confirmProps} />
-
       <Toast message={toast.msg} error={toast.error} />
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
