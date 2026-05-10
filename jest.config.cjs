@@ -1,7 +1,8 @@
-<<<<<<< HEAD
+
 module.exports = { testEnvironment: 'jsdom', setupFiles: ['<rootDir>/jest.setup.js'], transform: { '^.+\\.(js|jsx)$': 'babel-jest' }, moduleNameMapper: { '\\.(png|jpg|jpeg|svg|gif|css)$': '<rootDir>/__mocks__/fileMock.js' }, testMatch: ['**/src/tests/**/*.test.{js,jsx}', '**/src/__tests__/**/*.test.{js,jsx}'], testPathIgnorePatterns: ['/node_modules/'] };
-=======
+
 module.exports = {
+
   testEnvironment: "jsdom",
    setupFilesAfterEnv: ["<rootDir>/src/setupTests.js"],
   transform: {
@@ -16,5 +17,14 @@ module.exports = {
     "**/?(*.)+(spec|test).[jt]s?(x)"
   ],
   moduleFileExtensions: ["js", "jsx", "ts", "tsx", "json"],
+
+
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  transform: { '^.+\\.(js|jsx)$': 'babel-jest' },
+  moduleNameMapper: {
+    '\\.(png|jpg|jpeg|svg|gif|css)$': '<rootDir>/__mocks__/fileMock.js',
+  },
+  testPathIgnorePatterns: ['/node_modules/'],
 };
->>>>>>> sonia
+

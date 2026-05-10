@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import NouvelTypeAbonnementModal from './NouvelTypeAbonnementModal';
+import NouvelTypeAbonnementModal from '../../renderer/components/NouvelTypeAbonnementModal';
 
 // Mock de l'image background
 jest.mock('../../images/background.png', () => 'mocked-background.png');
