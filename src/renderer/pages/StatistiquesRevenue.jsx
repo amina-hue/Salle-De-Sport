@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import gymBg from "../../images/Gymnastique.png";
 import QuickActions from "../components/QuickActions";
-
+import { useNavigate } from 'react-router-dom';
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
   border: "#252833", accent: "#e53935",
@@ -94,8 +94,13 @@ function MoyenneBox({ avgMonthly, trendPct }) {
 
 // ── Page principale ─────────────────────────────────────────────────────────
 export default function StatistiquesRevenue({ onPageChange }) {
-  const navigate = (page) => { if (onPageChange) onPageChange(page); };
-
+  const routerNavigate = useNavigate(); // ajoute useNavigate dans l'import
+  const navigate = (page) => {
+    if (page === 'abonnement') routerNavigate('/statistiques/abonnements');
+    else if (page === 'adherent') routerNavigate('/statistiques/adherents');
+    else if (page === 'revenue') routerNavigate('/statistiques/revenue');
+    else if (onPageChange) onPageChange(page);
+  };
   const [paiements, setPaiements] = useState([]);
   const [produits,  setProduits]  = useState([]);
   const [loading,   setLoading]   = useState(true);

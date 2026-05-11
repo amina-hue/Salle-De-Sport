@@ -40,8 +40,8 @@ function App() {
           <Route path="/magasin/transactions"        element={<HistoriqueTransactions />} /> <Route path="/magasin/fideliteadherents" element={<FideliteAdherents />} />{/* ← AJOUTÉ */}
           <Route path="/utilisateurs"                element={<Utilisateurs />} />
           <Route path="/parametres"                  element={<Parametres />} />
-          <Route path="/statistiques/adherents"      element={<StatistiquesAdherent />} />
-          <Route path="/statistiques/abonnements"    element={<StatistiquesAbonnement />} />
+<Route path="/statistiques"                element={<Navigate to="/statistiques/adherents" replace />} />
+<Route path="/statistiques/adherents"      element={<StatistiquesAdherent />} />          <Route path="/statistiques/abonnements"    element={<StatistiquesAbonnement />} />
           <Route path="/statistiques/revenue"        element={<StatistiquesRevenue />} />
         </Route>
       </Routes>

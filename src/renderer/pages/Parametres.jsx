@@ -45,10 +45,10 @@ const PERMISSIONS = [
   { key: "parametres",   label: "Paramètres",     icon: "⚙️" },
 ];
 
+// ✅ FIX 1 : "restreindre" supprimé — seulement Autorisé / Interdit
 const PERM_STATES = {
-  autorise:    { label: "Autorisé",    color: T.green,  soft: T.greenSoft,  border: T.greenBorder  },
-  restreindre: { label: "Restreindre", color: T.gold,   soft: T.goldSoft,   border: T.goldBorder   },
-  interdit:    { label: "Interdit",    color: T.accent, soft: T.accentSoft, border: T.accentBorder },
+  autorise: { label: "Autorisé", color: T.green,  soft: T.greenSoft,  border: T.greenBorder  },
+  interdit: { label: "Interdit", color: T.accent, soft: T.accentSoft, border: T.accentBorder },
 };
 
 const COULEURS = [
@@ -610,11 +610,20 @@ export default function Parametres({ onPageChange }) {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(10,11,13,0.95) 0%, rgba(10,11,13,0.80) 60%, rgba(229,57,53,0.04) 100%)" }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 48, background: `linear-gradient(transparent, ${T.bg})` }} />
         <div style={{ position: "relative", padding: "28px 36px 40px" }}>
+          {/*
+            ✅ FIX 2 : QuickActions wrappé dans position:relative + zIndex élevé
+            pour que son dropdown flotte PAR-DESSUS le contenu et non dans le flux.
+            Le composant QuickActions doit lui-même utiliser position:absolute
+            sur sa box dropdown (top: "100%", left: 0 ou right: 0).
+          */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
             <span style={{ fontSize: "0.68rem", color: T.muted, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}>FitManager</span>
             <ChevronRight size={11} color={T.muted} />
             <span style={{ fontSize: "0.68rem", color: T.accent, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}>Paramètres</span>
-            <QuickActions navigate={navigate} />
+            {/* Wrapper isolé pour le dropdown QuickActions */}
+            <div style={{ position: "relative", zIndex: 500 }}>
+              <QuickActions navigate={navigate} />
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: T.accentSoft, border: `1px solid ${T.accentBorder}`, display: "grid", placeItems: "center" }}>

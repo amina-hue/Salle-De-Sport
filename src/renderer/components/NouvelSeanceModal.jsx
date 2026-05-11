@@ -76,39 +76,71 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
   }, []);
 
   const handleSave = async () => {
-    // Validation
-    if (!form.date || !form.heureDebut || !form.heureFin) {
-      setError('La date, heure début et heure fin sont requises.');
+  if (!form.date || !form.heureDebut || !form.heureFin) {
+    setError('La date, heure début et heure fin sont requises.');
+    return;
+  }
+  if (!form.activite_id) { setError('Veuillez sélectionner une activité.'); return; }
+  if (!form.coach_id)    { setError('Veuillez sélectionner un coach.');    return; }
+  if (form.heureDebut >= form.heureFin) {
+    setError("L'heure de fin doit être après l'heure de début.");
+    return;
+  }
+
+  // ── Vérification conflit Homme / Femme sur le même créneau ──
+  try {
+    const seancesDuJour = await window.api.getSeancesSemaine({
+      dateDebut: form.date,
+      dateFin:   form.date,
+    });
+
+    const genreOppose = form.publicCible === 'Homme' ? 'Femme' : 'Homme';
+    const toMins = t => {
+      const [h, m] = String(t).split(':').map(Number);
+      return h * 60 + m;
+    };
+    const newStart = toMins(form.heureDebut);
+    const newEnd   = toMins(form.heureFin);
+
+    const conflit = seancesDuJour.find(s =>
+      s.publicCible === genreOppose &&
+      toMins(s.heureDebut) < newEnd &&
+      toMins(s.heureFin)   > newStart
+    );
+
+    if (conflit) {
+      setError(
+        `Conflit : une séance ${genreOppose} existe déjà sur ce créneau ` +
+        `(${String(conflit.heureDebut).slice(0, 5)} – ${String(conflit.heureFin).slice(0, 5)}). ` +
+        `Les séances Homme et Femme ne peuvent pas se chevaucher.`
+      );
       return;
     }
-    if (!form.activite_id) { setError('Veuillez sélectionner une activité.'); return; }
-    if (!form.coach_id)    { setError('Veuillez sélectionner un coach.');    return; }
-    if (form.heureDebut >= form.heureFin) {
-      setError("L'heure de fin doit être après l'heure de début.");
-      return;
-    }
+  } catch (err) {
+    setError('Impossible de vérifier les conflits.');
+    return;
+  }
 
-    setSaving(true);
-    setError('');
-    try {
-     const result = await window.api.addSeance({
-  date:            form.date,
-  heureDebut:      form.heureDebut,
-  heureFin:        form.heureFin,
-  participantsMax: parseInt(form.participantsMax),
-  coach_id:        parseInt(form.coach_id),
-  activite_id:     parseInt(form.activite_id),
-  publicCible:     form.publicCible,
-});
-      onSave?.(result);
-      onClose();
-    } catch (err) {
-      setError('Erreur lors de la création de la séance.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  setSaving(true);
+  setError('');
+  try {
+    const result = await window.api.addSeance({
+      date:            form.date,
+      heureDebut:      form.heureDebut,
+      heureFin:        form.heureFin,
+      participantsMax: parseInt(form.participantsMax),
+      coach_id:        parseInt(form.coach_id),
+      activite_id:     parseInt(form.activite_id),
+      publicCible:     form.publicCible,
+    });
+    onSave?.(form);
+    onClose();
+  } catch (err) {
+    setError('Erreur lors de la création de la séance.');
+  } finally {
+    setSaving(false);
+  }
+};
   return (
     <div
       style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, background: 'rgba(0,0,0,0.6)' }}
@@ -201,26 +233,28 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
               </div>
 
               {/* Heure Début + Fin */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
-                <div>
-                  <label style={lbl}>Heure Début *</label>
-                  <input
-                    type="time"
-                    value={form.heureDebut}
-                    onChange={e => set('heureDebut', e.target.value)}
-                    style={inp}
-                  />
-                </div>
-                <div>
-                  <label style={lbl}>Heure Fin *</label>
-                  <input
-                    type="time"
-                    value={form.heureFin}
-                    onChange={e => set('heureFin', e.target.value)}
-                    style={inp}
-                  />
-                </div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+  <div>
+    <label htmlFor="heureDebut" style={lbl}>Heure Début *</label>
+    <input
+      id="heureDebut"
+      type="time"
+      value={form.heureDebut}
+      onChange={e => set('heureDebut', e.target.value)}
+      style={inp}
+    />
+  </div>
+  <div>
+    <label htmlFor="heureFin" style={lbl}>Heure Fin *</label>
+    <input
+      id="heureFin"
+      type="time"
+      value={form.heureFin}
+      onChange={e => set('heureFin', e.target.value)}
+      style={inp}
+    />
+  </div>
+</div>
 
               {/* Participants max */}
               <div style={{ marginBottom: 14 }}>

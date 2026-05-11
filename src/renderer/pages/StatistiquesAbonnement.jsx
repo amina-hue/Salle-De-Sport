@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import gymBg from "../../images/Gymnastique.png";
 import QuickActions from "../components/QuickActions";
-
+import { useNavigate } from 'react-router-dom';
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
   border: "#252833", accent: "#e53935", accentDim: "rgba(229,57,53,0.12)",
@@ -24,8 +24,13 @@ const JOURS_FR = {
 };
 
 export default function StatistiquesAbonnement({ onPageChange }) {
-  const navigate = (page) => { if (onPageChange) onPageChange(page); };
-
+  const routerNavigate = useNavigate(); // ajoute useNavigate dans l'import
+  const navigate = (page) => {
+    if (page === 'abonnement') routerNavigate('/statistiques/abonnements');
+    else if (page === 'adherent') routerNavigate('/statistiques/adherents');
+    else if (page === 'revenue') routerNavigate('/statistiques/revenue');
+    else if (onPageChange) onPageChange(page);
+  };
   const [stats,        setStats]        = useState({ total: 0, actifs: 0, expires: 0, suspendus: 0 });
   const [parType,      setParType]      = useState([]);
   const [expirants,    setExpirants]    = useState([]);

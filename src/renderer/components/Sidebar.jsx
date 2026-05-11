@@ -12,15 +12,7 @@ const C = {
 };
 
 const MENU = [
-  {
-    name: 'Statistiques', icon: BarChart2, permKey: 'statistiques',
-    children: [
-      { name: 'Adhérents',   path: '/statistiques/adherents'   },
-      { name: 'Abonnements', path: '/statistiques/abonnements' },
-      { name: 'Revenue',     path: '/statistiques/revenue'     },
-    ]
-  },
-  { name: 'Adhérents',   icon: Users,      path: '/adherents',   permKey: 'adherents'   },
+{ name: 'Statistiques', icon: BarChart2, path: '/statistiques/adherents', permKey: 'statistiques', matchPrefix: '/statistiques' },  { name: 'Adhérents',   icon: Users,      path: '/adherents',   permKey: 'adherents'   },
   { name: 'Abonnements', icon: CreditCard, path: '/abonnements', permKey: 'abonnements' },
   { name: 'Paiements',   icon: DollarSign, path: '/paiements',   permKey: 'paiements'   },
   { name: 'Planning',    icon: Calendar,   path: '/planning',    permKey: 'planning'    },
@@ -113,8 +105,7 @@ export default function Sidebar() {
 
       {/* Menu */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-        {MENU.map(({ name, icon: Icon, path, children, permKey }) => {
-
+{MENU.map(({ name, icon: Icon, path, children, permKey, matchPrefix }) => {
           if (!canAccess(permKey)) return null;
 
           /* ── Item avec sous-menu ── */
@@ -161,8 +152,9 @@ export default function Sidebar() {
           }
 
           /* ── Item régulier ── */
-          const active = isActive(path);
-          return (
+const active = matchPrefix 
+  ? location.pathname.startsWith(matchPrefix) 
+  : isActive(path);          return (
             <button key={name} onClick={() => navigate(path)} style={btnStyle(active)}
               onMouseEnter={e => hoverOn(e,  active)}
               onMouseLeave={e => hoverOff(e, active)}

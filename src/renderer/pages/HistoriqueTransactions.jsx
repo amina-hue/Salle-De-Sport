@@ -50,7 +50,14 @@ const PAGE_SIZE = 12;
 function fmt(n)     { return Number(n || 0).toLocaleString('fr-DZ'); }
 function fmtDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('fr-DZ', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    timeZone: 'Africa/Algiers'
+  });
 }
 function getPages(current, total) {
   if (total <= 6) return Array.from({ length: total }, (_, i) => i + 1);
@@ -296,7 +303,7 @@ const HistoriqueTransactions = () => {
       doc.setFontSize(10);
       doc.setTextColor(...colors.muted);
       doc.text(
-        `Période: ${dateFrom || '*'} → ${dateTo || '*'} | Total: ${filtered.length} transactions | Achats: ${totalAchats} | Ventes: ${totalVentes}`,
+        `Période: ${dateFrom || '*'} - ${dateTo || '*'} | Total: ${filtered.length} transactions | Achats: ${totalAchats} | Ventes: ${totalVentes}`,
         20, 35
       );
 
@@ -326,7 +333,7 @@ const HistoriqueTransactions = () => {
       // Tableau avec autoTable
       autoTable(doc, {
         startY: 55,
-        head: [['Date', 'Type', 'Produit', 'Qté', 'Prix unitaire', 'Total', 'Utilisateur']],
+        head: [['Date', 'Type', 'Produit', 'Quantité', 'Prix unitaire', 'Total', 'Utilisateur']],
         body: tableData,
         theme: 'grid',
         headStyles: {
@@ -357,7 +364,7 @@ const HistoriqueTransactions = () => {
           0: { cellWidth: 22, halign: 'center' },
           1: { cellWidth: 18, halign: 'center' },
           2: { cellWidth: 45 },
-          3: { cellWidth: 12, halign: 'center' },
+          3: { cellWidth: 22, halign: 'center' },
           4: { cellWidth: 25, halign: 'right' },
           5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' },
           6: { cellWidth: 25 }

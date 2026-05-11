@@ -1,8 +1,3 @@
-
-
-
-
-
 /**
  * ============================================================
  *  PLAN DE TESTS — PAGE MAGASIN (FitManager)
@@ -1255,4 +1250,3 @@ describe('9. Gestion des erreurs API', () => {
   });
 
 });
-

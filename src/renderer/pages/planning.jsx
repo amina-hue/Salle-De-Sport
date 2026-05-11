@@ -425,8 +425,7 @@ const SeancePopup = ({ seance, pos, onClose, onDelete, onAddParticipant }) => {
       <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 9 }}>
         {[
           { label: "Coach",  value: `${seance.coachPrenom || ""} ${seance.coachNom || ""}`.trim() || "—" },
-          { label: "Salle",  value: seance.salle  || "—" },
-          { label: "Statut", value: seance.statut || "confirmée" },
+         
         ].map(({ label, value }) => (
           <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: C.muted }}>{label}</span>

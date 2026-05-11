@@ -186,65 +186,140 @@ function SeanceLibreModal({ onClose, onSave }) {
   );
 }
 
-// ── Génération PDF facture ───────────────────────────────────────────────────
 const generateFacturePDF = async (paiement) => {
   try {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const montant = getMontantAffiche(paiement);
 
-    doc.setFillColor(14, 15, 17);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.setTextColor(240, 240, 240);
-    doc.text('FACTURE FITMANAGER', 20, 25);
-    doc.setFontSize(10);
-    doc.setTextColor(107, 114, 128);
-    doc.text('Gestion des adhésions & paiements', 20, 32);
+    const dateAffichee = paiement.datePaiementRaw
+      ? new Date(paiement.datePaiementRaw).toLocaleDateString("fr-FR")
+      : "—";
 
-    doc.setFillColor(19, 21, 26);
-    doc.rect(18, 50, 174, 65, 'F');
-    doc.setDrawColor(60, 65, 70);
-    doc.setLineWidth(0.8);
-    doc.rect(18, 50, 174, 65, 'S');
+    const isPaye = paiement.statut === "Payé";
+    const statutColor = isPaye ? [22, 163, 74] : [217, 119, 6];
+    const statutBg    = isPaye ? [240, 253, 244] : [255, 251, 235];
+
+    // ── Header blanc avec ligne grise ─────────────────────────────────────
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 210, 297, 'F');
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 48, 'F');
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(0, 48, 210, 48);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(80, 85, 90);
-    doc.text(`FACTURE #${paiement.id}`, 22, 62);
-    doc.setFontSize(14);
-    doc.setTextColor(180, 185, 190);
-    doc.text('ADHÉRENT', 22, 75);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${paiement.nom || 'N/A'}`, 22, 83);
+    doc.setFontSize(20);
+    doc.setTextColor(15, 23, 42);
+    doc.text('FitManager', 16, 24);
+
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 145, 150);
-    doc.text(`Date: ${paiement.date || 'N/A'}`, 22, 94);
-    doc.text(`Méthode: ${methodeConfig[paiement.mode]?.label || paiement.mode || 'N/A'}`, 22, 102);
-    doc.text(`Statut: ${paiement.statut || 'N/A'}`, 22, 110);
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Gestion des adhésions & paiements', 16, 33);
 
-    doc.setFillColor(26, 29, 36);
-    doc.rect(20, 118, 170, 28, 'F');
-    doc.setDrawColor(229, 57, 53);
-    doc.setLineWidth(1);
-    doc.rect(20, 118, 170, 28, 'S');
+    // Badge statut
+    doc.setFillColor(...statutBg);
+    doc.roundedRect(148, 14, 46, 14, 3, 3, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(240, 240, 240);
-    doc.text('MONTANT', 25, 133);
-    const statusColor = paiement.statut === "Payé" ? [34, 197, 94] : [245, 158, 11];
-    doc.setTextColor(...statusColor);
-    doc.setFontSize(22);
-    doc.text(`${montant.toLocaleString()} DA`, 185, 135, { align: 'right' });
+    doc.setFontSize(8.5);
+    doc.setTextColor(...statutColor);
+    doc.text(paiement.statut || '—', 171, 23, { align: 'center' });
 
-    doc.setFillColor(14, 15, 17);
-    doc.rect(0, 250, 210, 40, 'F');
+    // ── Titre FACTURE + numéro ─────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(15, 23, 42);
+    doc.text('FACTURE', 16, 68);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`#${paiement.id}`, 16, 77);
+
+    // ── Grille infos (2 colonnes) ──────────────────────────────────────────
+    const col1x = 16;
+    const col2x = 110;
+    let y = 96;
+
+    const drawField = (label, value, x, posY) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(label.toUpperCase(), x, posY);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(value || '—', x, posY + 7);
+    };
+
+    drawField('Adhérent',          paiement.nom || 'N/A',                               col1x, y);
+    drawField('Date de paiement',  dateAffichee,                                         col2x, y);
+
+    y += 24;
+    drawField('Méthode',           methodeConfig[paiement.mode]?.label || paiement.mode || 'N/A', col1x, y);
+    drawField('Référence',         `FAC-${paiement.id}`,                                 col2x, y);
+
+    // ── Séparateur ────────────────────────────────────────────────────────
+    y += 22;
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(16, y, 194, y);
+
+    // ── Ligne de facturation ──────────────────────────────────────────────
+    y += 14;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(16, y, 178, 10, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('DESCRIPTION', 22, y + 7);
+    doc.text('MONTANT', 181, y + 7, { align: 'right' });
+
+    y += 18;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Abonnement — ${paiement.nom || 'Adhérent'}`, 22, y);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${montant.toLocaleString('fr-DZ')} DA`, 181, y, { align: 'right' });
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(16, y + 6, 194, y + 6);
+
+    // ── Total ─────────────────────────────────────────────────────────────
+    y += 22;
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(107, 114, 128);
-    doc.text('FitManager © 2026 - Tous droits réservés', 20, 265);
-    doc.text(`Généré le ${new Date().toLocaleString('fr-DZ')}`, 20, 272);
+    doc.setTextColor(100, 116, 139);
+    doc.text('TOTAL', 22, y);
+
+    doc.setFontSize(18);
+    doc.setTextColor(...statutColor);
+    doc.text(`${montant.toLocaleString('fr-DZ')} DA`, 181, y + 1, { align: 'right' });
+
+    // ── Footer ────────────────────────────────────────────────────────────
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 272, 210, 25, 'F');
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(0, 272, 210, 272);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('FitManager © 2026 — Tous droits réservés', 16, 282);
+    doc.text(`Généré le ${new Date().toLocaleString('fr-FR')}`, 16, 289);
 
     doc.save(`facture_${paiement.id}_${(paiement.nom || 'client').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
   } catch (error) {
@@ -252,7 +327,6 @@ const generateFacturePDF = async (paiement) => {
     alert('Erreur génération facture');
   }
 };
-
 // ── Page principale ──────────────────────────────────────────────────────────
 const Paiement = () => {
   const location = useLocation();
