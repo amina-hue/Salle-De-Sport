@@ -4,6 +4,7 @@ import gym2 from "../../images/gym2.png";
 import { useNavigate } from "react-router-dom";
 import QuickActions from "../components/QuickActions";
 import gym from "../../images/gym.png";
+import DeleteConfirm, { useDeleteConfirm } from "../components/DeleteConfirm";
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS
@@ -30,9 +31,6 @@ const C = {
   blueDim:      'rgba(59,130,246,0.12)',
 };
 
-/* ─────────────────────────────────────────────
-   CONSTANTES
-───────────────────────────────────────────── */
 const CATEGORIES = ['Musculation', 'Cardio', 'Accessoire', 'Cardio / Accessoire'];
 
 const CAT_STYLE = {
@@ -44,9 +42,6 @@ const CAT_STYLE = {
 
 const PAGE_SIZE = 8;
 
-/* ─────────────────────────────────────────────
-   HELPERS
-───────────────────────────────────────────── */
 const IconX = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -240,19 +235,6 @@ function NouveauProduitModal({ onSave, onClose, initialData }) {
 
 /* ─────────────────────────────────────────────
    MODAL — TRANSACTION
-   ─ Vente  : sélection adhérent optionnelle,
-              prix_vente = prix catalogue du produit,
-              points = floor(total / 100)
-   ─ Achat  : prix_achat saisi manuellement,
-              aucun adhérent (réappro stock)
-   ─ Backend attendu :
-       window.api.addTransaction({
-         produit_id, quantite, prix, type, adherent_id
-       })
-       → type 'vente' → INSERT HistoriqueVente
-                         UPDATE Produit stock - quantite
-       → type 'achat' → INSERT HistoriqueAchat
-                         UPDATE Produit stock + quantite
 ───────────────────────────────────────────── */
 function TransactionModal({ type, produit, onClose, onConfirm }) {
   const [quantite,       setQuantite]      = useState('');
@@ -281,9 +263,7 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
   }, [isVente]);
 
   const qte             = Number(quantite) || 0;
-  const prixApresRemise = isVente
-    ? (produit.prix || 0) * (1 - remiseAdherent / 100)
-    : 0;
+  const prixApresRemise = isVente ? (produit.prix || 0) * (1 - remiseAdherent / 100) : 0;
   const prixUnitaire    = isVente ? prixApresRemise : (Number(prixAchat) || 0);
   const totalTx         = qte * prixUnitaire;
   const pointsGagnes    = isVente && adherentId && totalTx > 0 ? Math.floor(totalTx / 100) : 0;
@@ -294,7 +274,6 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
     if (!quantite || qte <= 0)                              { alert('Quantité invalide'); return; }
     if (!isVente && (!prixAchat || Number(prixAchat) <= 0)) { alert("Prix d'achat invalide"); return; }
     if (stockInsuff)                                        { alert('Stock insuffisant !'); return; }
-
     onConfirm({
       produit_id:  produit.idProduit,
       quantite:    qte,
@@ -325,7 +304,6 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
     >
       <div style={{ width: 460, borderRadius: 18, overflow: 'hidden', background: '#161012', border: `1px solid ${C.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.9)', fontFamily: "'Barlow', sans-serif" }}>
 
-        {/* Header */}
         <div style={{ padding: '22px 24px 18px', background: hDim, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <h2 style={{ margin: 0, color: hColor, fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -342,10 +320,7 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
           </button>
         </div>
 
-        {/* Body */}
         <div style={{ padding: '22px 24px 26px' }}>
-
-          {/* Sélection adhérent */}
           {isVente && (
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>
@@ -353,47 +328,30 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
                 Adhérent
                 <span style={{ color: C.muted, fontWeight: 400, marginLeft: 4 }}>(optionnel)</span>
               </label>
-              <select
-                value={adherentId}
-                onChange={e => setAdherentId(e.target.value)}
-                disabled={loadingAdh}
+              <select value={adherentId} onChange={e => setAdherentId(e.target.value)} disabled={loadingAdh}
                 style={{ ...inputSt, appearance: 'none', cursor: loadingAdh ? 'wait' : 'pointer', color: adherentId ? C.text : C.muted }}
                 onFocus={e => e.target.style.borderColor = C.accentBorder}
                 onBlur={e  => e.target.style.borderColor = C.border}
               >
                 <option value="">— Vente anonyme —</option>
-                {adherents.map(a => (
-                  <option key={a.idAdherent} value={a.idAdherent}>
-                    {a.nom} {a.prenom}
-                  </option>
-                ))}
+                {adherents.map(a => <option key={a.idAdherent} value={a.idAdherent}>{a.nom} {a.prenom}</option>)}
               </select>
-
-              {/* Badge remise */}
               {adherentId && remiseAdherent > 0 && (
                 <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, background: C.greenDim, border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, padding: '4px 12px' }}>
-                  <span style={{ fontSize: '0.72rem', color: C.green, fontWeight: 700 }}>
-                    -{remiseAdherent}% remise fidélité appliquée
-                  </span>
+                  <span style={{ fontSize: '0.72rem', color: C.green, fontWeight: 700 }}>-{remiseAdherent}% remise fidélité appliquée</span>
                 </div>
               )}
-
-              {/* Badge points gagnés */}
               {adherentId && pointsGagnes > 0 && (
                 <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6, background: C.goldDim, border: '1px solid rgba(245,158,11,0.3)', borderRadius: 20, padding: '4px 12px' }}>
-                  <span style={{ fontSize: '0.72rem', color: C.gold, fontWeight: 700 }}>
-                    ★ +{pointsGagnes} point{pointsGagnes > 1 ? 's' : ''} de fidélité
-                  </span>
+                  <span style={{ fontSize: '0.72rem', color: C.gold, fontWeight: 700 }}>★ +{pointsGagnes} point{pointsGagnes > 1 ? 's' : ''} de fidélité</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Quantité */}
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Quantité <span style={{ color: C.accent }}>*</span></label>
-            <input
-              type="number" value={quantite} min="1" placeholder="ex: 5"
+            <input type="number" value={quantite} min="1" placeholder="ex: 5"
               onChange={e => setQuantite(e.target.value)}
               style={inputSt}
               onFocus={e => e.target.style.borderColor = isVente ? C.accentBorder : 'rgba(59,130,246,0.4)'}
@@ -401,12 +359,10 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
             />
           </div>
 
-          {/* Prix d'achat */}
           {!isVente && (
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Prix d'achat unitaire (DZD) <span style={{ color: C.accent }}>*</span></label>
-              <input
-                type="number" value={prixAchat} min="0" placeholder="ex: 3 000"
+              <input type="number" value={prixAchat} min="0" placeholder="ex: 3 000"
                 onChange={e => setPrixAchat(e.target.value)}
                 style={inputSt}
                 onFocus={e => e.target.style.borderColor = 'rgba(59,130,246,0.4)'}
@@ -415,7 +371,6 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
             </div>
           )}
 
-          {/* Preview */}
           <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -436,16 +391,13 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
                 </div>
               )}
             </div>
-
             {qte > 0 && (
               <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                 <div>
                   <div style={{ fontSize: '0.62rem', color: C.muted, marginBottom: 3 }}>Stock après</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.3rem', fontWeight: 800, color: stockInsuff ? C.accent : stockApres <= 5 ? C.gold : C.green }}>
                     {stockApres}
-                    {!stockInsuff && stockApres <= 5 && (
-                      <span style={{ fontSize: '0.65rem', color: C.gold, fontWeight: 700, marginLeft: 8 }}>⚠ Stock faible</span>
-                    )}
+                    {!stockInsuff && stockApres <= 5 && <span style={{ fontSize: '0.65rem', color: C.gold, fontWeight: 700, marginLeft: 8 }}>⚠ Stock faible</span>}
                   </div>
                 </div>
                 {totalTx > 0 && (
@@ -458,7 +410,6 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
                 )}
               </div>
             )}
-
             {stockInsuff && (
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, color: C.accent, fontSize: '0.75rem', fontWeight: 700 }}>
                 <AlertTriangle size={13} /> Stock insuffisant — {produit.stock} disponible{produit.stock > 1 ? 's' : ''}
@@ -466,7 +417,6 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
             )}
           </div>
 
-          {/* Boutons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <button onClick={onClose}
               style={{ background: 'transparent', border: `1px solid ${C.border}`, padding: '10px 18px', borderRadius: 9, color: C.muted, cursor: 'pointer', fontFamily: "'Barlow', sans-serif", fontSize: '0.875rem', transition: 'border-color 0.15s' }}
@@ -529,6 +479,9 @@ const Magasin = () => {
 
   const navigate = useNavigate();
 
+  // ── Hook DeleteConfirm ──
+  const { confirmProps, askConfirm } = useDeleteConfirm();
+
   const loadProducts = async () => {
     setLoading(true);
     try {
@@ -551,10 +504,24 @@ const Magasin = () => {
 
   const handleAdd    = async (p) => { try { await window.api.addProduit(p);    await loadProducts(); } catch (e) { alert("Erreur ajout : " + e.message); } };
   const handleUpdate = async (p) => { try { await window.api.updateProduit(p); await loadProducts(); setEditingProduct(null); } catch (e) { alert("Erreur modification : " + e.message); } };
-  const handleDelete = async (id, idProduit) => {
-    if (!window.confirm('Supprimer ce produit ?')) return;
-    try { await window.api.deleteProduit(idProduit || id); await loadProducts(); } catch (e) { alert("Erreur suppression : " + e.message); }
+
+  // ── Suppression avec confirmation ──
+  const handleDelete = async (id, idProduit, nom) => {
+    const ok = await askConfirm({
+      title: "Supprimer le produit",
+      message: `Le produit "${nom}" sera supprimé définitivement de l'inventaire. Cette action est irréversible.`,
+      confirmLabel: "Supprimer",
+      variant: "danger",
+    });
+    if (!ok) return;
+    try {
+      await window.api.deleteProduit(idProduit || id);
+      await loadProducts();
+    } catch (e) {
+      alert("Erreur suppression : " + e.message);
+    }
   };
+
   const handleTransaction = async (data) => {
     try { await window.api.addTransaction(data); await loadProducts(); } catch (e) { alert("Erreur transaction : " + e.message); }
   };
@@ -744,7 +711,7 @@ const Magasin = () => {
                             <Edit2 size={12} />
                           </button>
                           {/* Supprimer */}
-                          <button title="Supprimer" onClick={() => handleDelete(p.id, p.idProduit)}
+                          <button title="Supprimer" onClick={() => handleDelete(p.id, p.idProduit, p.nom)}
                             style={{ width: 30, height: 30, borderRadius: 7, background: 'transparent', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.muted, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = C.accentBorder; e.currentTarget.style.color = C.accent; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}>
@@ -812,6 +779,9 @@ const Magasin = () => {
           initialData={editingProduct}
         />
       )}
+
+      {/* Modal confirmation suppression */}
+      <DeleteConfirm {...confirmProps} />
     </div>
   );
 };

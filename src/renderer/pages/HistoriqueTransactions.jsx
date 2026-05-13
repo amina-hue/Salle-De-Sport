@@ -165,10 +165,10 @@ const HistoriqueTransactions = () => {
     produits.find(p => p.idProduit === id)?.nom || `Produit #${id}`;
 
   const getAdherentNom = (id) => {
-    if (!id) return null;
-    const a = adherents.find(a => a.idAdherent === id);
-    return a ? `${a.nom} ${a.prenom}` : null;
-  };
+  if (!id) return null;
+  const a = adherents.find(a => Number(a.idAdherent) === Number(id));
+  return a ? `${a.nom} ${a.prenom}` : null;
+};
 
   /* ── Merge : on récupère le prix unitaire selon le type
        • vente → prix_vente (colonne ajoutée) ou fallback prix catalogue

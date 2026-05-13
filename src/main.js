@@ -1045,8 +1045,10 @@ ipcMain.handle('get-historique-adherent', async (_, adherentId) => {
 ipcMain.handle('getUtilisateurs', async () => {
   return new Promise((resolve, reject) => {
     db.query(
-      `SELECT u.*, r.nom AS roleNom FROM Utilisateur u
-       LEFT JOIN Role r ON u.role_id = r.id ORDER BY u.idUtilisateur DESC`,
+      `SELECT u.*, r.nom AS roleNom
+       FROM Utilisateur u
+       LEFT JOIN Role r ON u.role_id = r.id
+       WHERE u.deleted_at IS NULL`,
       (err, result) => { if (err) reject(err); else resolve(result); }
     );
   });
@@ -1064,8 +1066,11 @@ ipcMain.handle('addUtilisateur', async (event, data) => {
 
 ipcMain.handle('deleteUtilisateur', async (event, id) => {
   return new Promise((resolve, reject) => {
-    db.query('DELETE FROM Utilisateur WHERE idUtilisateur=?', [id],
-      (err, result) => { if (err) reject(err); else resolve(result); });
+    db.query(
+      'UPDATE Utilisateur SET deleted_at = NOW() WHERE idUtilisateur = ?',
+      [id],
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
   });
 });
 
@@ -1613,7 +1618,8 @@ ipcMain.handle('getHistoriqueVentes', async () => {
         hv.produit_id,
         hv.quantite,
         hv.utilisateur_id,
-        p.prix AS prix_vente,
+        hv.adherent_id,
+        hv.prix_vente,
         p.nom AS produit_nom,
         CONCAT(u.prenom, ' ', u.nom) AS utilisateur_nom
       FROM HistoriqueVente hv

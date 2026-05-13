@@ -66,7 +66,8 @@ const Recette = () => {
       const [paiements, ventes, seancesLibres] = await Promise.all([
         window.electron.invoke("getPaiements"),
         window.electron.invoke("getHistoriqueVentes"),
-window.api.getSeancesLibres(),      ]);
+        window.api.getSeancesLibres(),
+      ]);
 
       const lignesPaiements = paiements
         .filter(p => p.statut === "Payé")
@@ -172,7 +173,7 @@ window.api.getSeancesLibres(),      ]);
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", position: "relative" }}>
 
       {/* Fond */}
       <div style={{ position: "fixed", inset: 0, backgroundImage: `url(${gym2})`, backgroundSize: "cover", backgroundPosition: "center 35%", zIndex: -1, pointerEvents: "none" }} />
@@ -218,7 +219,7 @@ window.api.getSeancesLibres(),      ]);
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ padding: "24px 36px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
 
         {/* Filtre + Stats */}
         <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
@@ -317,7 +318,7 @@ window.api.getSeancesLibres(),      ]);
         </div>
 
         {/* Table */}
-        {/* <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", minHeight: 0 }}>
           <div style={{ padding: "16px 24px 12px", borderBottom: `1px solid ${C.border}` }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1rem", fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
               Détails des recettes
@@ -369,7 +370,7 @@ window.api.getSeancesLibres(),      ]);
           </table>
 
           {/* Pagination */}
-          {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderTop: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderTop: `1px solid ${C.border}` }}>
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
               style={{ display: "flex", alignItems: "center", gap: 6, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: safePage === 1 ? C.border : C.muted, fontSize: "0.82rem", fontWeight: 600, padding: "7px 14px", cursor: safePage === 1 ? "default" : "pointer", fontFamily: "'Barlow', sans-serif", opacity: safePage === 1 ? 0.4 : 1 }}>
               <ChevronLeft size={14} /> Précédente
@@ -390,22 +391,6 @@ window.api.getSeancesLibres(),      ]);
               Suivante <ChevronRight size={14} />
             </button>
           </div>
-        </div>  */}
-
-        {/* Footer total */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, background: C.accentDim, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: "14px 28px" }}>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Total : <span style={{ color: C.accent }}>{totalRecettes.toLocaleString("fr-FR")} DA</span>
-          </span>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Abonnements : <span style={{ color: C.blue }}>{totalAbonnements.toLocaleString("fr-FR")} DA</span>
-          </span>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Magasin : <span style={{ color: C.green }}>{totalVentes.toLocaleString("fr-FR")} DA</span>
-          </span>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", color: C.text, fontSize: "1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Séances libres : <span style={{ color: C.purple }}>{totalSeances.toLocaleString("fr-FR")} DA</span>
-          </span>
         </div>
 
       </div>

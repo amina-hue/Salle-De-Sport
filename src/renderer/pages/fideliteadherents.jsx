@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronRight, Search, Star, TrendingUp, Users,
-  Package, Calendar, Award, RefreshCw, ChevronDown
+  Package, Calendar, Award, RefreshCw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuickActions from '../components/QuickActions';
@@ -38,10 +38,10 @@ const C = {
 
 /* ─── Système de fidélité ─── */
 const NIVEAUX = [
-  { nom: 'Bronze',  min: 0,    max: 499,  color: '#cd7f32', dim: 'rgba(205,127,50,0.12)',  border: 'rgba(205,127,50,0.3)',  remise: 0,  achatsMois: 0, depenseMois: 0    },
-  { nom: 'Silver',  min: 500,  max: 1499, color: '#9ca3af', dim: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.3)', remise: 5,  achatsMois: 2, depenseMois: 1500 },
-  { nom: 'Gold',    min: 1500, max: 2999, color: '#f59e0b', dim: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)',  remise: 10, achatsMois: 3, depenseMois: 3000 },
-  { nom: 'Platine', min: 3000, max: Infinity, color: '#8b5cf6', dim: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)', remise: 15, achatsMois: 3, depenseMois: 5000 },
+  { nom: 'Bronze',  min: 0,    max: 499,       color: '#cd7f32', dim: 'rgba(205,127,50,0.12)',  border: 'rgba(205,127,50,0.3)',  remise: 0,  achatsMois: 0, depenseMois: 0    },
+  { nom: 'Silver',  min: 500,  max: 1499,      color: '#9ca3af', dim: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.3)', remise: 5,  achatsMois: 2, depenseMois: 1500 },
+  { nom: 'Gold',    min: 1500, max: 2999,      color: '#f59e0b', dim: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)',  remise: 10, achatsMois: 3, depenseMois: 3000 },
+  { nom: 'Platine', min: 3000, max: Infinity,  color: '#8b5cf6', dim: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)', remise: 15, achatsMois: 3, depenseMois: 5000 },
 ];
 
 function getNiveau(points) {
@@ -50,7 +50,7 @@ function getNiveau(points) {
 
 function getPointsVersProchain(points) {
   const idx = NIVEAUX.findIndex(n => points >= n.min && points <= n.max);
-  if (idx === NIVEAUX.length - 1) return null; // Platine = max
+  if (idx === NIVEAUX.length - 1) return null;
   return { prochain: NIVEAUX[idx + 1], manquants: NIVEAUX[idx + 1].min - points };
 }
 
@@ -85,11 +85,11 @@ function NiveauBadge({ points, size = 'sm' }) {
 }
 
 /* ─── Barre de progression points ─── */
-function ProgressBar({ points, niveau_expire, niveau }) {
+function ProgressBar({ points, niveau_expire }) {
   const n    = getNiveau(points);
   const info = getPointsVersProchain(points);
 
-  const joursRestants = niveau_expire 
+  const joursRestants = niveau_expire
     ? Math.ceil((new Date(niveau_expire) - new Date()) / 86400000)
     : null;
 
@@ -101,7 +101,6 @@ function ProgressBar({ points, niveau_expire, niveau }) {
 
   return (
     <div>
-      {/* Barre progression vers prochain niveau */}
       {info ? (
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -126,9 +125,8 @@ function ProgressBar({ points, niveau_expire, niveau }) {
         </div>
       )}
 
-      {/* Expiration du niveau */}
       {joursRestants !== null && (
-        <div style={{ 
+        <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '6px 10px', borderRadius: 6,
           background: `${expireColor}15`,
@@ -200,7 +198,6 @@ function HistoriqueModal({ adherent, onClose }) {
   }, [adherent.idAdherent]);
 
   const niveau = getNiveau(adherent.points);
-  const totalDepense = historique.reduce((s, h) => s + (h.quantite * (h.prix || 0)), 0);
 
   return (
     <div
@@ -226,10 +223,10 @@ function HistoriqueModal({ adherent, onClose }) {
               </div>
               <div style={{ display: 'flex', gap: 20, marginTop: 12 }}>
                 {[
-                  { label: 'Points',    value: `${adherent.points} pts`,     color: niveau.color },
-                  { label: 'Remise',    value: `${niveau.remise}%`,           color: C.green   },
-                  { label: 'Achats',    value: `${adherent.nb_achats}`,        color: C.blue    },
-                  { label: 'Total dépensé', value: `${fmt(adherent.total_depense)} DZD`, color: C.muted },
+                  { label: 'Points',        value: `${adherent.points} pts`,              color: niveau.color },
+                  { label: 'Remise',        value: `${niveau.remise}%`,                   color: C.green      },
+                  { label: 'Achats',        value: `${adherent.nb_achats}`,               color: C.blue       },
+                  { label: 'Total dépensé', value: `${fmt(adherent.total_depense)} DZD`,  color: C.muted      },
                 ].map(({ label, value, color }) => (
                   <div key={label}>
                     <div style={{ fontSize: '0.62rem', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
@@ -245,15 +242,13 @@ function HistoriqueModal({ adherent, onClose }) {
               ✕
             </button>
           </div>
-
-          {/* Barre progression */}
           <div style={{ marginTop: 16 }}>
-            <ProgressBar points={adherent.points} />
+            <ProgressBar points={adherent.points} niveau_expire={adherent.niveau_expire} />
           </div>
         </div>
 
         {/* Historique liste */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 28px 24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 28px 24px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           <div style={{ fontSize: '0.72rem', color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 14 }}>
             Historique des achats
           </div>
@@ -265,8 +260,8 @@ function HistoriqueModal({ adherent, onClose }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {historique.map((h, i) => {
-                const total  = h.quantite * (h.prix || 0);
-                const pts    = Math.floor(total / 100);
+                const total = h.quantite * (h.prix || 0);
+                const pts   = Math.floor(total / 100);
                 return (
                   <div
                     key={i}
@@ -314,14 +309,13 @@ function HistoriqueModal({ adherent, onClose }) {
 /* ─── Page principale ─── */
 const FideliteAdherents = () => {
   const navigate = useNavigate();
-  const [clients, setClients]         = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState('');
+  const [clients, setClients]           = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
   const [niveauFilter, setNiveauFilter] = useState('');
-  const [selected, setSelected]       = useState(null); // pour modal historique
-  const [sortKey, setSortKey]         = useState('points');
-  const [sortDir, setSortDir]         = useState(-1); // desc par défaut
-  
+  const [selected, setSelected]         = useState(null);
+  const [sortKey, setSortKey]           = useState('points');
+  const [sortDir, setSortDir]           = useState(-1);
 
   const loadData = async () => {
     setLoading(true);
@@ -340,27 +334,27 @@ const FideliteAdherents = () => {
   /* ─── Filtres & tri ─── */
   const filtered = clients
     .filter(c => {
-      const q = search.toLowerCase();
+      const q   = search.toLowerCase();
       const nom = `${c.nom} ${c.prenom}`.toLowerCase();
       const matchQ = !q || nom.includes(q);
       const matchN = !niveauFilter || getNiveau(c.points).nom === niveauFilter;
-      return matchQ && matchN;
+      return c.points > 0 && matchQ && matchN;
     })
-.sort((a, b) => {
-  if (sortKey === 'points' || sortKey === 'nb_achats' || sortKey === 'total_depense') {
-    const va = Number(a[sortKey]) || 0;
-    const vb = Number(b[sortKey]) || 0;
-    return sortDir === -1 ? vb - va : va - vb;
-  }
-  if (sortKey === 'dernier_achat' || sortKey === 'niveau_expire') {
-    const va = a[sortKey] ? new Date(a[sortKey]).getTime() : 0;
-    const vb = b[sortKey] ? new Date(b[sortKey]).getTime() : 0;
-    return sortDir === -1 ? vb - va : va - vb;
-  }
-  const va = String(a[sortKey] ?? '');
-  const vb = String(b[sortKey] ?? '');
-  return va.localeCompare(vb) * sortDir;
-});
+    .sort((a, b) => {
+      if (['points', 'nb_achats', 'total_depense'].includes(sortKey)) {
+        const va = Number(a[sortKey]) || 0;
+        const vb = Number(b[sortKey]) || 0;
+        return sortDir === -1 ? vb - va : va - vb;
+      }
+      if (['dernier_achat', 'niveau_expire'].includes(sortKey)) {
+        const va = a[sortKey] ? new Date(a[sortKey]).getTime() : 0;
+        const vb = b[sortKey] ? new Date(b[sortKey]).getTime() : 0;
+        return sortDir === -1 ? vb - va : va - vb;
+      }
+      const va = String(a[sortKey] ?? '');
+      const vb = String(b[sortKey] ?? '');
+      return va.localeCompare(vb) * sortDir;
+    });
 
   const handleSort = key => {
     if (sortKey === key) setSortDir(d => -d);
@@ -368,16 +362,10 @@ const FideliteAdherents = () => {
   };
 
   /* ─── Stats globales ─── */
-  const totalClients   = clients.filter(c => c.nb_achats > 0).length;
-  const topClient      = clients[0];
-  const clientsActifs  = clients.filter(c => {
-    const j = daysSince(c.dernier_achat);
-    return j !== null && j <= 30;
-  }).length;
-  const clientsInactifs = clients.filter(c => {
-    const j = daysSince(c.dernier_achat);
-    return j !== null && j > 60;
-  }).length;
+  const totalClients    = clients.filter(c => c.nb_achats > 0).length;
+  const topClient       = clients[0];
+  const clientsActifs   = clients.filter(c => { const j = daysSince(c.dernier_achat); return j !== null && j <= 30; }).length;
+  const clientsInactifs = clients.filter(c => { const j = daysSince(c.dernier_achat); return j !== null && j > 60;  }).length;
 
   /* ─── Comptage par niveau ─── */
   const countByNiveau = NIVEAUX.reduce((acc, n) => {
@@ -389,6 +377,20 @@ const FideliteAdherents = () => {
     if (sortKey !== col) return <span style={{ color: C.muted, fontSize: 10, marginLeft: 4 }}>↕</span>;
     return <span style={{ color: C.accent, fontSize: 10, marginLeft: 4 }}>{sortDir === -1 ? '↓' : '↑'}</span>;
   };
+
+  /* ─── Colonnes ─── */
+  const COLS = [
+    { key: 'rang',          label: '#',             sortable: false },
+    { key: 'nom',           label: 'Adhérent',      sortable: true  },
+    { key: 'points',        label: 'Points',        sortable: true  },
+    { key: 'niveau',        label: 'Niveau',        sortable: false },
+    { key: 'nb_achats',     label: 'Achats',        sortable: true  },
+    { key: 'total_depense', label: 'Total dépensé', sortable: true  },
+    { key: 'dernier_achat', label: 'Dernier achat', sortable: true  },
+    { key: 'remise',        label: 'Remise',        sortable: false },
+    { key: 'niveau_expire', label: 'Expire le',     sortable: true  },
+    { key: 'actions',       label: '',              sortable: false },
+  ];
 
   return (
     <div style={{
@@ -411,7 +413,7 @@ const FideliteAdherents = () => {
               <span style={{ fontSize: '0.68rem', color: C.muted, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>FitManager</span>
               <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: '0.68rem', color: C.accent, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>Magasin</span>
-                            <ChevronRight size={12} color={C.muted} />
+              <ChevronRight size={12} color={C.muted} />
               <span style={{ fontSize: '0.68rem', color: C.gold, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>Fidélité</span>
               <QuickActions navigate={navigate} />
             </div>
@@ -420,10 +422,10 @@ const FideliteAdherents = () => {
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: 22, marginTop: 14, flexWrap: 'wrap' }}>
               {[
-                { count: totalClients,    label: 'clients actifs',   color: C.green  },
-                { count: clientsActifs,   label: 'actifs ce mois',   color: C.blue   },
+                { count: totalClients,    label: 'clients actifs',  color: C.green  },
+                { count: clientsActifs,   label: 'actifs ce mois',  color: C.blue   },
                 ...(clientsInactifs > 0 ? [{ count: clientsInactifs, label: 'inactifs 60j+', color: C.accent }] : []),
-              ].map(({ count, label, color }, i, arr) => (
+              ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -449,15 +451,15 @@ const FideliteAdherents = () => {
       </div>
 
       {/* ── Scrollable Content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 40px 48px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 40px 48px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
         {/* Stat Cards */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 28 }}>
-          <StatCard icon={Users}    label="Clients fidèles"  value={totalClients}    sub="avec au moins 1 achat"        accent={C.green}  />
-          <StatCard icon={Star}     label="Top client"       value={topClient ? `${topClient.points} pts` : '—'} sub={topClient ? `${topClient.nom} ${topClient.prenom}` : 'Aucun'} accent={C.gold} />
-          <StatCard icon={TrendingUp} label="Actifs ce mois" value={clientsActifs}   sub="dernier achat ≤ 30 jours"     accent={C.blue}   />
+          <StatCard icon={Users}      label="Clients fidèles"  value={totalClients}  sub="avec au moins 1 achat"    accent={C.green}  />
+          <StatCard icon={Star}       label="Top client"       value={topClient ? `${topClient.points} pts` : '—'} sub={topClient ? `${topClient.nom} ${topClient.prenom}` : 'Aucun'} accent={C.gold} />
+          <StatCard icon={TrendingUp} label="Actifs ce mois"   value={clientsActifs} sub="dernier achat ≤ 30 jours" accent={C.blue}   />
           {clientsInactifs > 0 && (
-            <StatCard icon={Calendar} label="Inactifs"       value={clientsInactifs} sub="aucun achat depuis 60j+"      accent={C.accent} />
+            <StatCard icon={Calendar} label="Inactifs" value={clientsInactifs} sub="aucun achat depuis 60j+" accent={C.accent} />
           )}
         </div>
 
@@ -507,7 +509,6 @@ const FideliteAdherents = () => {
             <span style={{ fontSize: '0.68rem', fontWeight: 700, background: C.goldDim, color: C.gold, padding: '3px 9px', borderRadius: 20, border: `1px solid ${C.goldBorder}` }}>
               {filtered.length} clients
             </span>
-
             <div style={{ marginLeft: 'auto', position: 'relative', minWidth: 220 }}>
               <Search size={13} color={C.muted} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <input
@@ -523,27 +524,16 @@ const FideliteAdherents = () => {
           </div>
 
           {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'rgba(0,0,0,0.25)' }}>
-                  {[
-                    { key: 'rang',          label: '#',              sortable: false },
-                    { key: 'nom',           label: 'Adhérent',       sortable: true  },
-                    { key: 'points',        label: 'Points',         sortable: true  },
-                    { key: 'niveau',        label: 'Niveau',         sortable: false },
-                    { key: 'nb_achats',     label: 'Achats',         sortable: true  },
-                    { key: 'total_depense', label: 'Total dépensé',  sortable: true  },
-                    { key: 'dernier_achat', label: 'Dernier achat',  sortable: true  },
-                    { key: 'remise',        label: 'Remise',         sortable: false },
-                    { key: 'niveau_expire', label: 'Expire le', sortable: true },
-                    { key: 'actions',       label: '',               sortable: false },
-                  ].map(col => (
+                  {COLS.map(col => (
                     <th
                       key={col.key}
                       onClick={col.sortable ? () => handleSort(col.key) : undefined}
                       style={{
-                        textAlign: 'left', padding: '11px 18px',
+                        textAlign: 'left', padding: '11px 8px',
                         fontSize: '0.65rem', color: sortKey === col.key ? C.gold : C.muted,
                         letterSpacing: 1.2, fontWeight: 700, textTransform: 'uppercase',
                         cursor: col.sortable ? 'pointer' : 'default',
@@ -558,13 +548,13 @@ const FideliteAdherents = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '56px 0', color: C.muted, fontSize: '0.875rem' }}>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '56px 0', color: C.muted, fontSize: '0.875rem' }}>
                       Chargement...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '56px 0' }}>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '56px 0' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 48, height: 48, borderRadius: 12, background: C.goldDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Star size={22} color={C.gold} />
@@ -574,11 +564,11 @@ const FideliteAdherents = () => {
                     </td>
                   </tr>
                 ) : filtered.map((c, i) => {
-                  const niveau   = getNiveau(c.points);
-                  const jours    = daysSince(c.dernier_achat);
-                  const inactif  = jours !== null && jours > 60;
-                  const recents  = jours !== null && jours <= 7;
-                  const isLast   = i === filtered.length - 1;
+                  const niveau  = getNiveau(c.points);
+                  const jours   = daysSince(c.dernier_achat);
+                  const inactif = jours !== null && jours > 60;
+                  const recents = jours !== null && jours <= 7;
+                  const isLast  = i === filtered.length - 1;
 
                   return (
                     <tr
@@ -588,20 +578,17 @@ const FideliteAdherents = () => {
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {/* Rang */}
-                      <td style={{ padding: '14px 18px' }}>
-                        <span style={{
-                          fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem',
-                          fontWeight: 800, color: i < 3 ? [C.gold, C.muted, '#cd7f32'][i] : C.muted,
-                        }}>
+                      <td style={{ padding: '12px 8px' }}>
+                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem', fontWeight: 800, color: i < 3 ? [C.gold, C.muted, '#cd7f32'][i] : C.muted }}>
                           #{i + 1}
                         </span>
                       </td>
 
                       {/* Adhérent */}
-                      <td style={{ padding: '14px 18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <td style={{ padding: '12px 8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{
-                            width: 36, height: 36, borderRadius: 10,
+                            width: 34, height: 34, borderRadius: 10,
                             background: niveau.dim, border: `1px solid ${niveau.border}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.9rem',
@@ -609,44 +596,36 @@ const FideliteAdherents = () => {
                           }}>
                             {(c.nom?.[0] || '?').toUpperCase()}
                           </div>
-                          <div>
-                            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text }}>
-                              {c.nom} {c.prenom}
-                            </div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text, whiteSpace: 'nowrap' }}>
+                            {c.nom} {c.prenom}
                           </div>
                         </div>
                       </td>
 
                       {/* Points */}
-                      <td style={{ padding: '14px 18px' }}>
-                        <div>
-                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.2rem', fontWeight: 800, color: niveau.color }}>
-                            {c.points}
-                          </div>
-                          <div style={{ width: 60, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.07)', marginTop: 4, overflow: 'hidden' }}>
-                            <div style={{
-                              height: '100%',
-                              width: `${Math.min(100, (c.points / 3000) * 100)}%`,
-                              background: niveau.color, borderRadius: 2,
-                            }} />
-                          </div>
+                      <td style={{ padding: '12px 8px' }}>
+                        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.2rem', fontWeight: 800, color: niveau.color }}>
+                          {c.points}
+                        </div>
+                        <div style={{ width: 50, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.07)', marginTop: 4, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${Math.min(100, (c.points / 3000) * 100)}%`, background: niveau.color, borderRadius: 2 }} />
                         </div>
                       </td>
 
                       {/* Niveau */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '12px 8px' }}>
                         <NiveauBadge points={c.points} />
                       </td>
 
                       {/* Nb achats */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '12px 8px' }}>
                         <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem', fontWeight: 700, color: C.text }}>
                           {c.nb_achats}
                         </span>
                       </td>
 
                       {/* Total dépensé */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '12px 8px' }}>
                         <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1rem', fontWeight: 800, color: C.text }}>
                           {fmt(c.total_depense)}
                           <span style={{ color: C.accent, fontWeight: 700, fontSize: '0.72rem', marginLeft: 4 }}>DZD</span>
@@ -654,63 +633,59 @@ const FideliteAdherents = () => {
                       </td>
 
                       {/* Dernier achat */}
-                      <td style={{ padding: '14px 18px' }}>
-                        <div>
-                          <div style={{ fontSize: '0.82rem', color: inactif ? C.accent : recents ? C.green : C.subtle, fontFamily: 'monospace' }}>
-                            {fmtDate(c.dernier_achat)}
-                          </div>
-                          {jours !== null && (
-                            <div style={{ fontSize: '0.65rem', marginTop: 2, color: inactif ? C.accent : C.muted }}>
-                              {inactif ? '⚠ ' : ''}{jours}j
-                            </div>
-                          )}
+                      <td style={{ padding: '12px 8px' }}>
+                        <div style={{ fontSize: '0.82rem', color: inactif ? C.accent : recents ? C.green : C.subtle, fontFamily: 'monospace' }}>
+                          {fmtDate(c.dernier_achat)}
                         </div>
+                        {jours !== null && (
+                          <div style={{ fontSize: '0.65rem', marginTop: 2, color: inactif ? C.accent : C.muted }}>
+                            {inactif ? '⚠ ' : ''}{jours}j
+                          </div>
+                        )}
                       </td>
 
                       {/* Remise */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '12px 8px' }}>
                         {niveau.remise > 0 ? (
-                          <span style={{
-                            fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: 20,
-                            background: C.greenDim, color: C.green, border: `1px solid ${C.greenBorder}`,
-                          }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: 20, background: C.greenDim, color: C.green, border: `1px solid ${C.greenBorder}` }}>
                             -{niveau.remise}%
                           </span>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: C.muted }}>—</span>
                         )}
                       </td>
-{/* Expiration niveau */}
-<td style={{ padding: '14px 18px' }}>
-  {c.niveau_expire ? (() => {
-    const jours = Math.ceil((new Date(c.niveau_expire) - new Date()) / 86400000);
-    const color = jours <= 15 ? C.accent : jours <= 30 ? C.gold : C.green;
-    return (
-      <div>
-        <div style={{ fontSize: '0.75rem', color, fontWeight: 700 }}>
-          {jours <= 0 ? 'Expiré' : `${jours}j`}
-        </div>
-        <div style={{ fontSize: '0.65rem', color: C.muted, marginTop: 2 }}>
-          {fmtDate(c.niveau_expire)}
-        </div>
-      </div>
-    );
-  })() : (
-    <span style={{ fontSize: '0.75rem', color: C.muted }}>—</span>
-  )}
-</td>
+
+                      {/* Expiration niveau */}
+                      <td style={{ padding: '12px 8px' }}>
+                        {c.niveau_expire ? (() => {
+                          const j     = Math.ceil((new Date(c.niveau_expire) - new Date()) / 86400000);
+                          const color = j <= 15 ? C.accent : j <= 30 ? C.gold : C.green;
+                          return (
+                            <div>
+                              <div style={{ fontSize: '0.75rem', color, fontWeight: 700 }}>
+                                {j <= 0 ? 'Expiré' : `${j}j`}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: C.muted, marginTop: 2 }}>
+                                {fmtDate(c.niveau_expire)}
+                              </div>
+                            </div>
+                          );
+                        })() : (
+                          <span style={{ fontSize: '0.75rem', color: C.muted }}>—</span>
+                        )}
+                      </td>
+
                       {/* Action */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '12px 8px' }}>
                         <button
-                          title="Voir l'historique"
                           onClick={() => setSelected(c)}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '7px 14px', borderRadius: 8,
+                            padding: '7px 12px', borderRadius: 8,
                             background: 'transparent', border: `1px solid ${C.border}`,
                             color: C.muted, fontSize: '0.75rem', fontWeight: 700,
                             cursor: 'pointer', fontFamily: "'Barlow', sans-serif",
-                            transition: 'all 0.15s',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
                           }}
                           onMouseEnter={e => { e.currentTarget.style.background = C.goldDim; e.currentTarget.style.borderColor = C.goldBorder; e.currentTarget.style.color = C.gold; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}

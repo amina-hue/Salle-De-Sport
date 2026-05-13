@@ -16,7 +16,7 @@ import StatistiquesAdherent    from './renderer/pages/StatistiquesAdherent';
 import StatistiquesAbonnement  from './renderer/pages/StatistiquesAbonnement';
 import StatistiquesRevenue     from './renderer/pages/StatistiquesRevenue';
 import HistoriqueTransactions  from './renderer/pages/HistoriqueTransactions'; 
-import FideliteAdherents  from './renderer/pages/fideliteadherents'; // ← AJOUTÉ
+import FideliteAdherents  from './renderer/pages/fideliteadherents';
 
 function App() {
   return (

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { ChevronRight, Plus, Pencil, Trash2, Check, Clock, AlertCircle, Calendar, X, Users } from "lucide-react";
+import { ChevronRight, Plus, Trash2, X, Users } from "lucide-react";
 import gym from "../../images/gym.png";
 import gym2 from "../../images/gym2.png";
 import QuickActions from "../components/QuickActions";
-import { useLocation, useNavigate } from "react-router-dom"; 
+import { useLocation, useNavigate } from "react-router-dom";
+import DeleteConfirm, { useDeleteConfirm } from "../components/DeleteConfirm";
 
 const C = {
   bg: "#0e0f11", card: "#1a1d24", cardHover: "#1f2330",
@@ -14,7 +15,6 @@ const C = {
   green: "#22c55e", gold: "#f59e0b", blue: "#3b82f6",
 };
 
-// Couleur par rôle (dynamique)
 const ROLE_BG = ["#1d4ed8", "#ea580c", "#7c3aed", "#0f766e", "#15803d", "#b45309"];
 const getRoleColor = (idx) => ROLE_BG[idx % ROLE_BG.length];
 
@@ -23,7 +23,7 @@ const FORMAT_DATE = (iso) => {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 };
 
-// ── Avatar ──────────────────────────────────────────────────────────────────
+// ── Avatar ───────────────────────────────────────────────────────────────────
 const Avatar = ({ nom, prenom, colorIdx = 0 }) => {
   const initials = `${nom?.charAt(0) ?? "?"}${prenom?.charAt(0) ?? ""}`.toUpperCase();
   const bg = getRoleColor(colorIdx);
@@ -34,7 +34,7 @@ const Avatar = ({ nom, prenom, colorIdx = 0 }) => {
   );
 };
 
-// ── Action Button ────────────────────────────────────────────────────────────
+// ── Action Button ─────────────────────────────────────────────────────────────
 const ActionBtn = ({ icon, danger, onClick }) => {
   const [hov, setHov] = useState(false);
   return (
@@ -45,7 +45,7 @@ const ActionBtn = ({ icon, danger, onClick }) => {
   );
 };
 
-// ── Input style ──────────────────────────────────────────────────────────────
+// ── Input style ───────────────────────────────────────────────────────────────
 const inp = {
   width: "100%", background: "rgba(255,255,255,0.06)",
   border: "1px solid rgba(229,57,53,0.45)", borderRadius: 7,
@@ -59,25 +59,25 @@ const lbl = {
   marginBottom: 5, display: "block", fontFamily: "'Barlow', sans-serif",
 };
 
-// ── Modal Ajouter Utilisateur ────────────────────────────────────────────────
+// ── Modal Ajouter Utilisateur ─────────────────────────────────────────────────
 function AddUserModal({ roles, onClose, onSaved }) {
   const [form, setForm] = useState({
     nom: "", prenom: "", email: "", motDePasse: "", role_id: roles[0]?.id ?? "",
   });
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState("");
+  const [error, setError] = useState("");
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.nom.trim() || !form.prenom.trim())   { setError("Nom et prénom sont requis.");      return; }
-    if (!form.email.trim())                          { setError("L'email est requis.");             return; }
-    if (!form.motDePasse.trim())                     { setError("Le mot de passe est requis.");     return; }
-    if (!form.role_id)                               { setError("Veuillez sélectionner un rôle."); return; }
+    if (!form.nom.trim() || !form.prenom.trim()) { setError("Nom et prénom sont requis."); return; }
+    if (!form.email.trim())                        { setError("L'email est requis.");         return; }
+    if (!form.motDePasse.trim())                   { setError("Le mot de passe est requis."); return; }
+    if (!form.role_id)                             { setError("Veuillez sélectionner un rôle."); return; }
 
     setSaving(true); setError("");
     try {
-      await window.electron.invoke("addUtilisateur", {
+      await window.api.addUtilisateur({
         nom:        form.nom.trim(),
         prenom:     form.prenom.trim(),
         email:      form.email.trim(),
@@ -98,7 +98,6 @@ function AddUserModal({ roles, onClose, onSaved }) {
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ background: "#1a1d24", border: "1px solid rgba(229,57,53,0.3)", borderRadius: 16, width: "100%", maxWidth: 480, margin: "0 20px", boxShadow: "0 24px 60px rgba(0,0,0,0.8)", fontFamily: "'Barlow', sans-serif" }}>
 
-        {/* Header */}
         <div style={{ padding: "22px 26px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.5rem", fontWeight: 800, textTransform: "uppercase", margin: 0, color: C.text }}>
@@ -113,7 +112,6 @@ function AddUserModal({ roles, onClose, onSaved }) {
           </button>
         </div>
 
-        {/* Body */}
         <div style={{ padding: "20px 26px 24px" }}>
           {error && (
             <div style={{ background: "rgba(229,57,53,0.12)", border: "1px solid rgba(229,57,53,0.3)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: "0.82rem", color: "#f87171" }}>
@@ -121,7 +119,6 @@ function AddUserModal({ roles, onClose, onSaved }) {
             </div>
           )}
 
-          {/* Nom + Prénom */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
               <label style={lbl}>Nom *</label>
@@ -133,19 +130,16 @@ function AddUserModal({ roles, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* Email */}
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Email *</label>
             <input style={inp} type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="jean@fitmanager.com" />
           </div>
 
-          {/* Mot de passe */}
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Mot de passe *</label>
             <input style={inp} type="password" value={form.motDePasse} onChange={e => set("motDePasse", e.target.value)} placeholder="••••••••" />
           </div>
 
-          {/* Rôle */}
           <div style={{ marginBottom: 20 }}>
             <label style={lbl}>Rôle *</label>
             <select style={{ ...inp, cursor: "pointer" }} value={form.role_id} onChange={e => set("role_id", e.target.value)}>
@@ -156,7 +150,6 @@ function AddUserModal({ roles, onClose, onSaved }) {
             </select>
           </div>
 
-          {/* Footer */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
             <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "9px 20px", color: C.muted, fontFamily: "'Barlow', sans-serif", fontSize: "0.875rem", cursor: "pointer" }}>
               Annuler
@@ -172,28 +165,31 @@ function AddUserModal({ roles, onClose, onSaved }) {
   );
 }
 
-// ── PAGE PRINCIPALE ──────────────────────────────────────────────────────────
+// ── PAGE PRINCIPALE ───────────────────────────────────────────────────────────
 const Utilisateur = () => {
-  const [users,       setUsers]       = useState([]);
-  const [roles,       setRoles]       = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState("");
-  const [showModal,   setShowModal]   = useState(false);
+  const [users,     setUsers]     = useState([]);
+  const [roles,     setRoles]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [search,    setSearch]    = useState("");
+  const [filterRole, setFilterRole] = useState("");
 
-  const [search,       setSearch]       = useState("");
-  const [filterRole,   setFilterRole]   = useState("");
-   const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hook DeleteConfirm
+  const { confirmProps, askConfirm } = useDeleteConfirm();
 
   // ── Charger données ──
-const location = useLocation(); // déjà importé !
+  useEffect(() => { loadData(); }, [location.pathname]);
 
-useEffect(() => { loadData(); }, [location.pathname]);
   const loadData = async () => {
     setLoading(true); setError("");
     try {
       const [u, r] = await Promise.all([
-        window.electron.invoke("getUtilisateurs"),
-        window.electron.invoke("getRoles"),
+        window.api.getUtilisateurs(),
+        window.api.getRoles(),
       ]);
       setUsers(u);
       setRoles(r);
@@ -204,14 +200,21 @@ useEffect(() => { loadData(); }, [location.pathname]);
     }
   };
 
-  // ── Supprimer ──
-  const handleDelete = async (id, nom) => {
-    if (!window.confirm(`Supprimer ${nom} ?`)) return;
+  // ── Soft Delete avec confirmation ──
+  const handleDelete = async (id, nom, prenom) => {
+    const ok = await askConfirm({
+      title: "Désactiver le compte",
+      message: `Le compte de ${prenom} ${nom} sera désactivé. Il n'apparaîtra plus dans la liste, mais ses séances resteront intactes.`,
+      confirmLabel: "Désactiver",
+      variant: "warn",
+    });
+    if (!ok) return;
+
     try {
-      await window.electron.invoke("deleteUtilisateur", id);
+      await window.api.deleteUtilisateur(id);
       await loadData();
     } catch (err) {
-      alert("Erreur lors de la suppression.");
+      alert("Erreur lors de la désactivation.");
     }
   };
 
@@ -230,20 +233,20 @@ useEffect(() => { loadData(); }, [location.pathname]);
   };
 
   return (
-       <div style={{
-         display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
-         backgroundImage: `url(${gym2})`,
-         backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
-         position: "relative"
-       }}>
-   
-         {/* ── Overlay sombre — sous tout le contenu ── */}
-         <div style={{
-           position: "fixed", inset: 0,
-           background: "rgba(14,15,17,0.62)",
-           pointerEvents: "none",
-           zIndex: -1
-         }} />
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+      backgroundImage: `url(${gym2})`,
+      backgroundSize: "cover", backgroundPosition: "center 35%", backgroundAttachment: "fixed",
+      position: "relative"
+    }}>
+
+      {/* Overlay sombre */}
+      <div style={{
+        position: "fixed", inset: 0,
+        background: "rgba(14,15,17,0.62)",
+        pointerEvents: "none",
+        zIndex: -1
+      }} />
 
       {/* ── Hero Header ── */}
       <div style={{ position: "relative", overflow: "hidden", flexShrink: 0 }}>
@@ -264,9 +267,9 @@ useEffect(() => { loadData(); }, [location.pathname]);
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 12 }}>
               {[
-                { count: users.length, label: "au total", color: C.muted },
-                { count: users.filter(u => u.roleNom === "coach").length,   label: "coachs",         color: "#ea580c" },
-                { count: users.filter(u => u.roleNom === "admin").length,   label: "admins",         color: "#7c3aed" },
+                { count: users.length,                                          label: "au total", color: C.muted   },
+                { count: users.filter(u => u.roleNom === "coach").length,       label: "coachs",   color: "#ea580c" },
+                { count: users.filter(u => u.roleNom === "admin").length,       label: "admins",   color: "#7c3aed" },
               ].map(({ count, label, color }, i) => (
                 <React.Fragment key={label}>
                   {i > 0 && <div style={{ width: 1, height: 14, background: C.border }} />}
@@ -299,7 +302,6 @@ useEffect(() => { loadData(); }, [location.pathname]);
             onBlur={e => e.target.style.borderColor = C.border} />
         </div>
 
-        {/* Filtre rôle dynamique */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: C.muted, fontSize: "0.78rem", fontFamily: "'Barlow', sans-serif" }}>Rôle :</span>
           <select style={selectStyle} value={filterRole} onChange={e => setFilterRole(e.target.value)}>
@@ -335,7 +337,6 @@ useEffect(() => { loadData(); }, [location.pathname]);
             </div>
           </div>
 
-          {/* Légende rôles dynamique */}
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {roles.map((r, i) => (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -366,7 +367,7 @@ useEffect(() => { loadData(); }, [location.pathname]);
             <tbody>
               {loading ? (
                 <tr><td colSpan={5} style={{ textAlign: "center", color: C.muted, padding: "40px 0", fontFamily: "'Barlow', sans-serif" }}>Chargement...</td></tr>
-              ) : filtered.length > 0 ? filtered.map((user, idx) => (
+              ) : filtered.length > 0 ? filtered.map((user) => (
                 <tr key={user.idUtilisateur} style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.15s" }}
                   onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -396,7 +397,11 @@ useEffect(() => { loadData(); }, [location.pathname]);
                   </td>
                   <td style={{ padding: "14px 22px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <ActionBtn icon={<Trash2 size={15} />} danger onClick={() => handleDelete(user.idUtilisateur, `${user.nom} ${user.prenom}`)} />
+                      <ActionBtn
+                        icon={<Trash2 size={15} />}
+                        danger
+                        onClick={() => handleDelete(user.idUtilisateur, user.nom, user.prenom)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -412,7 +417,7 @@ useEffect(() => { loadData(); }, [location.pathname]);
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal Ajouter */}
       {showModal && (
         <AddUserModal
           roles={roles}
@@ -420,6 +425,9 @@ useEffect(() => { loadData(); }, [location.pathname]);
           onSaved={loadData}
         />
       )}
+
+      {/* Modal Confirmation Soft Delete */}
+      <DeleteConfirm {...confirmProps} />
     </div>
   );
 };
