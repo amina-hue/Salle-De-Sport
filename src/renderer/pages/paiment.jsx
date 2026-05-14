@@ -186,6 +186,8 @@ function SeanceLibreModal({ onClose, onSave }) {
   );
 }
 
+const formatMontant = (n) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
 const generateFacturePDF = async (paiement) => {
   try {
     const { jsPDF } = await import('jspdf');
@@ -290,7 +292,8 @@ const generateFacturePDF = async (paiement) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text(`${montant.toLocaleString('fr-DZ')} DA`, 181, y, { align: 'right' });
+    // doc.text(`${montant.toLocaleString('fr-DZ')} DA`, 181, y, { align: 'right' });
+    doc.text(`${formatMontant(montant)} DA`, 181, y, { align: 'right' });
 
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.4);
@@ -305,7 +308,9 @@ const generateFacturePDF = async (paiement) => {
 
     doc.setFontSize(18);
     doc.setTextColor(...statutColor);
-    doc.text(`${montant.toLocaleString('fr-DZ')} DA`, 181, y + 1, { align: 'right' });
+    // doc.text(`${montant.toLocaleString('fr-DZ')} DA`, 181, y + 1, { align: 'right' });
+
+    doc.text(`${formatMontant(montant)} DA`, 181, y + 1, { align: 'right' });
 
     // ── Footer ────────────────────────────────────────────────────────────
     doc.setFillColor(248, 250, 252);
