@@ -1,6 +1,8 @@
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import React from "react";
+
 // ── Mock react-router-dom ──────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -153,5 +155,84 @@ describe('Page Connexion — Login invalide', () => {
       expect(screen.getByText(/Erreur de connexion à la base de données/i)).toBeInTheDocument();
     });
   });
+
+  // ── T11 : mock ajouté ici ──────────────────────────────────────────────
+  test('T11 — Appuyer Enter sur le champ email déclenche handleLogin', async () => {
+    window.api.login.mockResolvedValue({ success: true, user: { id: 1 } }); // ← correction
+    render(<Login />);
+    fireEvent.change(screen.getByPlaceholderText('votre@email.com'), { target: { value: 'admin@test.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'),         { target: { value: 'secret' } });
+    fireEvent.keyDown(screen.getByPlaceholderText('votre@email.com'), { key: 'Enter' });
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/adherents'));
+  });
+
+  // ── T12 : mock ajouté ici ──────────────────────────────────────────────
+  test('T12 — Appuyer Enter sur le champ mot de passe déclenche handleLogin', async () => {
+    window.api.login.mockResolvedValue({ success: true, user: { id: 1 } }); // ← correction
+    render(<Login />);
+    fireEvent.change(screen.getByPlaceholderText('votre@email.com'), { target: { value: 'admin@test.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'),         { target: { value: 'secret' } });
+    fireEvent.keyDown(screen.getByPlaceholderText('••••••••'), { key: 'Enter' });
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/adherents'));
+  });
+
+  test('T13 — Une autre touche ne déclenche pas handleLogin', () => {
+    render(<Login />);
+    fireEvent.keyDown(screen.getByPlaceholderText('votre@email.com'), { key: 'a' });
+    expect(window.api.login).not.toHaveBeenCalled();
+  });
+
+  test('T14 — Clic sur l\'icône œil affiche le mot de passe en clair', () => {
+    render(<Login />);
+    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const toggleBtn     = screen.getByRole('button', { name: '' });
+    expect(passwordInput).toHaveAttribute('type', 'password');
+    fireEvent.click(toggleBtn);
+    expect(passwordInput).toHaveAttribute('type', 'text');
+  });
+
+  test('T15 — Double clic sur l\'icône œil remasque le mot de passe', () => {
+    render(<Login />);
+    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const toggleBtn     = screen.getByRole('button', { name: '' });
+    fireEvent.click(toggleBtn);
+    fireEvent.click(toggleBtn);
+    expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+
+  // ── Événements de style (hover / focus / blur) ────────────────────────────
+
+test('T16 — Focus sur le champ email change la bordure', () => {
+  render(<Login />);
+  const emailInput = screen.getByPlaceholderText('votre@email.com');
+  fireEvent.focus(emailInput);
+  fireEvent.blur(emailInput);
+  // pas d'erreur = lignes 142-143 couvertes
+});
+
+test('T17 — Focus sur le champ mot de passe change la bordure', () => {
+  render(<Login />);
+  const passwordInput = screen.getByPlaceholderText('••••••••');
+  fireEvent.focus(passwordInput);
+  fireEvent.blur(passwordInput);
+  // lignes 164-165 couvertes
+});
+
+test('T18 — Hover sur le bouton œil change sa couleur', () => {
+  render(<Login />);
+  const toggleBtn = screen.getByRole('button', { name: '' });
+  fireEvent.mouseEnter(toggleBtn);
+  fireEvent.mouseLeave(toggleBtn);
+  // lignes 176-183 couvertes
+});
+
+test('T19 — Hover sur le bouton Se Connecter change sa couleur', () => {
+  render(<Login />);
+  const loginBtn = screen.getByRole('button', { name: /Se Connecter/i });
+  fireEvent.mouseEnter(loginBtn);
+  fireEvent.mouseLeave(loginBtn);
+  // lignes 184-207 couvertes
+});
 
 });

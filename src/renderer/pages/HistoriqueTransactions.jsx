@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronRight, Search, Download, TrendingUp, TrendingDown,
@@ -270,8 +268,13 @@ const HistoriqueTransactions = () => {
   const exportPDF = async () => {
     try {
       setExportingPDF(true);
-      const { jsPDF } = await import('jspdf');
-      const { autoTable } = await import('jspdf-autotable');
+      // const { jsPDF } = await import('jspdf');
+      // const { autoTable } = await import('jspdf-autotable');
+      // ✅ Après
+const jsPDFModule = await import('jspdf');
+const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+const autoTableModule = await import('jspdf-autotable');
+const autoTable = autoTableModule.default || autoTableModule.autoTable;
 
       const doc = new jsPDF({
         orientation: 'landscape',

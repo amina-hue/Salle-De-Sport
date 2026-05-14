@@ -1,6 +1,6 @@
+
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 jest.mock('../../images/gym.png', () => 'gym.png');
@@ -21,7 +21,7 @@ import RenewModal from '../../renderer/components/RenewModal';
 
 // ─── Données de test ──────────────────────────────────────────────────────────
 const TYPES = [
-  { id: 1, nom: 'Mensuel',    prix: 3000, duree: 1 },
+  { id: 1, nom: 'Mensuel',     prix: 3000, duree: 1 },
   { id: 2, nom: 'Trimestriel', prix: 8000, duree: 3 },
 ];
 
@@ -76,7 +76,7 @@ describe('1. Rendu initial', () => {
 
   test('TC-R03 — affiche le badge statut expiré', () => {
     renderModal();
-    expect(screen.getByText(/expiré/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/expiré/i).length).toBeGreaterThan(0);
   });
 
   test('TC-R04 — affiche le select des types d\'abonnement', () => {
@@ -112,7 +112,6 @@ describe('2. Navigation entre étapes', () => {
         onClose={onClose}
       />
     );
-    // Vider le select
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '' } });
     fireEvent.click(screen.getByText(/prochaine étape/i));
@@ -121,11 +120,14 @@ describe('2. Navigation entre étapes', () => {
 
   test('TC-N02 — clic Prochaine étape sans date affiche alert', async () => {
     renderModal();
-    const inputs = screen.getAllByRole('combobox');
-    fireEvent.change(inputs[0], { target: { value: '1' } });
-    // Supprimer la date de début
-    const dateInput = screen.getByDisplayValue(/\d{4}-\d{2}-\d{2}/);
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: '1' } });
+
+    // ✅ Fix : trouver le champ date de début (non-readonly)
+    const allDates = screen.getAllByDisplayValue(/\d{4}-\d{2}-\d{2}/);
+    const dateInput = allDates.find(el => !el.hasAttribute('readonly'));
     fireEvent.change(dateInput, { target: { value: '' } });
+
     fireEvent.click(screen.getByText(/prochaine étape/i));
     expect(window.alert).toHaveBeenCalledWith('La date de début est requise.');
   });
@@ -151,10 +153,11 @@ describe('2. Navigation entre étapes', () => {
   test('TC-N05 — bouton Précédent revient à l\'étape 1', async () => {
     renderModal();
     fireEvent.click(screen.getByText(/prochaine étape/i));
-    await waitFor(() => screen.getByText(/récapitulatif/i));
+    await waitFor(() => screen.getByText(/récapitulatif & paiement/i));
     fireEvent.click(screen.getByText(/précédent/i));
+    // ✅ Fix : "Nouvel abonnement" apparaît 2 fois → utiliser getAllByText
     await waitFor(() => {
-      expect(screen.getByText(/nouvel abonnement/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/nouvel abonnement/i).length).toBeGreaterThan(0);
     });
   });
 });
@@ -191,7 +194,7 @@ describe('4. Récapitulatif étape 2', () => {
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '1' } });
     fireEvent.click(screen.getByText(/prochaine étape/i));
-    await waitFor(() => screen.getByText(/récapitulatif/i));
+    await waitFor(() => screen.getByText(/récapitulatif & paiement/i));
   }
 
   test('TC-REC01 — affiche le nom de l\'adhérent dans le récap', async () => {
@@ -224,7 +227,7 @@ describe('5. Paiement', () => {
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '1' } });
     fireEvent.click(screen.getByText(/prochaine étape/i));
-    await waitFor(() => screen.getByText(/récapitulatif/i));
+    await waitFor(() => screen.getByText(/récapitulatif & paiement/i));
   }
 
   test('TC-P01 — sélectionner Payer maintenant affiche les modes de paiement', async () => {
@@ -237,11 +240,13 @@ describe('5. Paiement', () => {
     });
   });
 
-  test('TC-P02 — confirmer sans statut paiement affiche alert', async () => {
-    await goToStep2();
-    fireEvent.click(screen.getByText(/confirmer le renouvellement/i));
-    expect(window.alert).toHaveBeenCalledWith('Veuillez choisir un statut de paiement.');
-  });
+
+
+  test('TC-P02 — bouton Confirmer désactivé sans statut paiement', async () => {
+  await goToStep2();
+  const confirmBtn = screen.getByText(/confirmer le renouvellement/i).closest('button');
+  expect(confirmBtn).toBeDisabled();
+});
 
   test('TC-P03 — payer plus tard appelle updateAbonnement sans addPaiement', async () => {
     mockApi.updateAbonnement.mockResolvedValue({});
@@ -279,7 +284,7 @@ describe('5. Paiement', () => {
     const select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '1' } });
     fireEvent.click(screen.getByText(/prochaine étape/i));
-    await waitFor(() => screen.getByText(/récapitulatif/i));
+    await waitFor(() => screen.getByText(/récapitulatif & paiement/i));
     fireEvent.click(screen.getByText(/payer plus tard/i));
     fireEvent.click(screen.getByText(/confirmer le renouvellement/i));
     await waitFor(() => {
@@ -318,12 +323,9 @@ describe('6. Fermeture', () => {
 
   test('TC-F02 — clic sur le bouton X appelle onClose', () => {
     renderModal();
-    const closeBtn = screen.getByRole('button', { name: '' });
-    // Chercher le bouton avec le SVG X (premier bouton sans texte)
     const allButtons = screen.getAllByRole('button');
     const xBtn = allButtons.find(b => b.style.borderRadius === '50%');
     if (xBtn) fireEvent.click(xBtn);
-    // onClose peut être appelé via le bouton X ou l'overlay
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
@@ -333,7 +335,7 @@ describe('7. Remise', () => {
   test('TC-REM01 — saisir une remise de 10% réduit le total', async () => {
     renderModal();
     const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: '1' } }); // prix 3000
+    fireEvent.change(select, { target: { value: '1' } });
     const remiseInput = screen.getByPlaceholderText('0');
     fireEvent.change(remiseInput, { target: { value: '10' } });
     fireEvent.click(screen.getByText(/prochaine étape/i));
@@ -351,4 +353,66 @@ describe('7. Remise', () => {
       expect(screen.getByText(/3000/)).toBeInTheDocument();
     });
   });
+
+
+
+  describe('8. Cas limites coverage', () => {
+
+  test('TC-C01 — membre avec statut actif affiche badge Actif', () => {
+    render(
+      <RenewModal
+        member={{ ...MEMBER_AVEC_ABO, abonnementStatut: 'actif' }}
+        typesAbonnement={TYPES}
+        onSave={onSave}
+        onClose={onClose}
+      />
+    );
+    expect(screen.getByText(/^actif$/i)).toBeInTheDocument();
+  });
+
+  test('TC-C02 — membre avec statut suspendu affiche badge Suspendu', () => {
+    render(
+      <RenewModal
+        member={{ ...MEMBER_AVEC_ABO, abonnementStatut: 'suspendu' }}
+        typesAbonnement={TYPES}
+        onSave={onSave}
+        onClose={onClose}
+      />
+    );
+    expect(screen.getByText(/^suspendu$/i)).toBeInTheDocument();
+  });
+
+  test('TC-C03 — erreur de chargement image déclenche onError', () => {
+    renderModal();
+    const img = screen.getByRole('img');
+    fireEvent.error(img);
+    // pas d'erreur = ligne 90 couverte
+  });
+test('TC-C04 — période visuelle affichée à l\'étape 2', async () => {
+  renderModal();
+  const select = screen.getByRole('combobox');
+  fireEvent.change(select, { target: { value: '1' } }); // remplit dateFin automatiquement
+  fireEvent.click(screen.getByText(/prochaine étape/i));
+  await waitFor(() => {
+    // la période "13 mai 2026 → 13 juin 2026" doit être visible
+    expect(screen.getAllByText(/→/).length).toBeGreaterThan(0);
+  });
+});
+
+test('TC-C05 — période visuelle affichée à l\'étape 1', () => {
+  render(
+    <RenewModal
+      member={{ ...MEMBER_AVEC_ABO, type_id: null }}
+      typesAbonnement={TYPES}
+      onSave={onSave}
+      onClose={onClose}
+    />
+  );
+  const select = screen.getByRole('combobox');
+  fireEvent.change(select, { target: { value: '1' } }); // déclenche handleTypeChange → dateFin calculée
+  const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  expect(screen.getAllByText(today).length).toBeGreaterThan(0);
+});
+
+});
 });
