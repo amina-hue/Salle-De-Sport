@@ -417,15 +417,21 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
     }
   };
 
-  const handlePhoneChange = (val) => {
-    const clean = val.replace(/[^0-9\s\+\-\(\)]/g, '');
-    set('numTelephone', clean);
-    if (/[^0-9\s\+\-\(\)]/.test(val)) {
-      setPhoneError('Chiffres uniquement');
-    } else {
-      setPhoneError('');
-    }
-  };
+// APRÈS
+const handlePhoneChange = (val) => {
+  const nums = val.replace(/\D/g, '').slice(0, 10);
+  set('numTelephone', nums);
+
+  if (nums.length === 0) {
+    setPhoneError('');
+  } else if (nums.length < 10) {
+    setPhoneError(`${nums.length}/10 chiffres — numéro incomplet`);
+  } else if (!/^(05|06|07)/.test(nums)) {
+    setPhoneError('Doit commencer par 05 (Ooredoo), 06 (Mobilis) ou 07 (Djezzy)');
+  } else {
+    setPhoneError('');
+  }
+};
 
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef(null);
@@ -587,8 +593,8 @@ function EditMemberModal({ member, typesAbonnement, onSave, onClose }) {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ fontSize: '0.78rem', color: C.muted, minWidth: 160, fontWeight: 600, paddingTop: 7 }}>Téléphone :</span>
                 <div style={{ flex: 1 }}>
-                  <input style={phoneError ? inpError : inp} type="tel" inputMode="numeric" placeholder="0612345678"
-                    value={form.numTelephone} onChange={e => handlePhoneChange(e.target.value)} />
+                <input style={phoneError ? inpError : inp} type="tel" inputMode="numeric" placeholder="0612345678"
+  maxLength={10} value={form.numTelephone} onChange={e => handlePhoneChange(e.target.value)} />
                   {phoneError && <div style={{ fontSize: '0.7rem', color: C.accent, marginTop: 3 }}>{phoneError}</div>}
                 </div>
               </div>

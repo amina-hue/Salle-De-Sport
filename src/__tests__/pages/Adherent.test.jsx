@@ -1,3 +1,4 @@
+
 // src/__tests__/pages/Adherent.test.jsx
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
@@ -594,24 +595,63 @@ describe('Modifier un adhérent', () => {
     );
   });
 
-  test('T52 — téléphone avec lettres affiche "Chiffres uniquement"', async () => {
+  // ── T52 : lettres → stripées, affiche "X/10 chiffres" ──
+  test('T52 — téléphone avec lettres : les lettres sont supprimées et affiche erreur incomplet', async () => {
     render(<Adherent />);
     await openEditModal();
+    // "abc" → stripé → "" → pas d'erreur (vide)
+    // "abc123" → stripé → "123" → 3/10 chiffres
     fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: 'abc123' } });
     await waitFor(() =>
-      expect(screen.getByText(/Chiffres uniquement/i)).toBeInTheDocument()
+      expect(screen.getByText(/3\/10 chiffres/i)).toBeInTheDocument()
     );
   });
 
+  // ── T53 : corriger → erreur disparaît ──
   test('T53 — corriger un téléphone invalide fait disparaître l\'erreur', async () => {
     render(<Adherent />);
     await openEditModal();
     const tel = screen.getByDisplayValue('0661111111');
-    fireEvent.change(tel, { target: { value: 'abc' } });
-    await waitFor(() => screen.getByText(/Chiffres uniquement/i));
+    // Numéro trop court → erreur
+    fireEvent.change(tel, { target: { value: '066' } });
+    await waitFor(() => screen.getByText(/3\/10 chiffres/i));
+    // Numéro complet et valide → plus d'erreur
     fireEvent.change(tel, { target: { value: '0661111111' } });
     await waitFor(() =>
-      expect(screen.queryByText(/Chiffres uniquement/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/chiffres/i)).not.toBeInTheDocument()
+    );
+  });
+
+  // ── T52b : mauvais préfixe (10 chiffres mais 08...) ──
+  test('T52b — téléphone avec mauvais préfixe (08) affiche erreur préfixe', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: '0812345678' } });
+    await waitFor(() =>
+      expect(screen.getByText(/05.*06.*07/i)).toBeInTheDocument()
+    );
+  });
+
+  // ── T52c : numéro trop court ──
+  test('T52c — téléphone de 5 chiffres affiche "5/10 chiffres — numéro incomplet"', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: '06123' } });
+    await waitFor(() =>
+      expect(screen.getByText(/5\/10 chiffres/i)).toBeInTheDocument()
+    );
+  });
+
+  // ── T52d : champ vide → pas d'erreur ──
+  test('T52d — vider le téléphone efface l\'erreur', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    const tel = screen.getByDisplayValue('0661111111');
+    fireEvent.change(tel, { target: { value: '066' } });
+    await waitFor(() => screen.getByText(/3\/10 chiffres/i));
+    fireEvent.change(tel, { target: { value: '' } });
+    await waitFor(() =>
+      expect(screen.queryByText(/chiffres/i)).not.toBeInTheDocument()
     );
   });
 
@@ -696,6 +736,58 @@ describe('handleSave — validations bloquantes', () => {
       expect(window.alert).toHaveBeenCalledWith("L'adresse e-mail n'est pas valide.")
     );
     expect(window.api.updateAdherent).not.toHaveBeenCalled();
+  });
+
+  // ── T61b : téléphone mauvais préfixe bloque la sauvegarde ──
+  test('T61b — téléphone 10 chiffres préfixe invalide (08) → alerte et updateAdherent non appelé', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: '0812345678' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer/i }));
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/05XXXXXXXX|06XXXXXXXX|07XXXXXXXX/i)
+      )
+    );
+    expect(window.api.updateAdherent).not.toHaveBeenCalled();
+  });
+
+  // ── T61c : téléphone incomplet bloque la sauvegarde ──
+  test('T61c — téléphone incomplet (5 chiffres) → alerte et updateAdherent non appelé', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: '06123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer/i }));
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/Numéro invalide/i)
+      )
+    );
+    expect(window.api.updateAdherent).not.toHaveBeenCalled();
+  });
+
+  // ── T61d : téléphone vide → sauvegarde autorisée ──
+  test('T61d — téléphone vide → sauvegarde autorisée (champ optionnel)', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer/i }));
+    await waitFor(() =>
+      expect(window.api.updateAdherent).toHaveBeenCalledTimes(1)
+    );
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  // ── T61e : téléphone valide 07 → sauvegarde OK ──
+  test('T61e — téléphone valide 07XXXXXXXX → sauvegarde OK', async () => {
+    render(<Adherent />);
+    await openEditModal();
+    fireEvent.change(screen.getByDisplayValue('0661111111'), { target: { value: '0712345678' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer/i }));
+    await waitFor(() =>
+      expect(window.api.updateAdherent).toHaveBeenCalledTimes(1)
+    );
+    expect(window.alert).not.toHaveBeenCalled();
   });
 
   test('T62 — suspension sans durée → alerte bloquante', async () => {

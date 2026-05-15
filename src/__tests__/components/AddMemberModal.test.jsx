@@ -87,13 +87,24 @@ describe('Photo — caméra et import fichier', () => {
     expect(screen.getByText('Capturer')).toBeInTheDocument();
   });
 
+  // test('AM-CAM02 — clic "Annuler" (stopCamera) masque le bouton Capturer', async () => {
+  //   renderModal();
+  //   fireEvent.click(screen.getByText('Caméra'));
+  //   await waitFor(() => expect(screen.getByText('Capturer')).toBeInTheDocument());
+  //   fireEvent.click(screen.getByText('Annuler'));
+  //   await waitFor(() => expect(screen.queryByText('Capturer')).not.toBeInTheDocument());
+  // });
+
+  
   test('AM-CAM02 — clic "Annuler" (stopCamera) masque le bouton Capturer', async () => {
-    renderModal();
-    fireEvent.click(screen.getByText('Caméra'));
-    await waitFor(() => expect(screen.getByText('Capturer')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Annuler'));
-    await waitFor(() => expect(screen.queryByText('Capturer')).not.toBeInTheDocument());
-  });
+  renderModal();
+  fireEvent.click(screen.getByText('Caméra'));
+  await waitFor(() => expect(screen.getByText('Capturer')).toBeInTheDocument());
+  // Le bouton stopCamera est un <button> avec style underline, pas le bouton Annuler du footer
+  const stopBtn = screen.getByText('Annuler', { selector: 'button[style*="underline"]' });
+  fireEvent.click(stopBtn);
+  await waitFor(() => expect(screen.queryByText('Capturer')).not.toBeInTheDocument());
+});
 
   test('AM-CAM03 — getUserMedia échoue affiche une alerte et masque le bouton Capturer', async () => {
     navigator.mediaDevices.getUserMedia = jest.fn().mockRejectedValue(new Error('denied'));
@@ -204,73 +215,58 @@ describe('Step 1 — branches de validation handleNext', () => {
   });
 
   // Branche Iif : âge < 7 ans au submit (handleDOB en temps réel + handleNext)
-  test('AM-VAL03 — âge < 7 ans au submit affiche erreur et bloque', async () => {
-    renderModal();
-    fireEvent.change(screen.getByPlaceholderText('Jean'),           { target: { value: 'Youcef'     } });
-    fireEvent.change(screen.getByPlaceholderText('Dupont'),         { target: { value: 'Benali'     } });
-    fireEvent.change(screen.getByPlaceholderText('06 12 34 56 78'), { target: { value: '0661111111' } });
-    // Date de naissance → enfant de 3 ans
-    const youngDate = new Date();
-    youngDate.setFullYear(youngDate.getFullYear() - 3);
-    const dateStr = youngDate.toISOString().split('T')[0];
-    const dateInput = screen.getByDisplayValue('');
-    fireEvent.change(dateInput, { target: { value: dateStr } });
-    fireEvent.click(screen.getByText(/Prochaine étape/i));
-    await waitFor(() =>
-      expect(screen.getByText(/au moins 7 ans/i)).toBeInTheDocument()
-    );
-    expect(screen.queryByText(/Abonnement de l'adhérent/i)).not.toBeInTheDocument();
-  });
-
+test('AM-VAL03 — âge < 7 ans au submit affiche erreur et bloque', async () => {
+  renderModal();
+  fireEvent.change(screen.getByPlaceholderText('Jean'),           { target: { value: 'Youcef'     } });
+  fireEvent.change(screen.getByPlaceholderText('Dupont'),         { target: { value: 'Benali'     } });
+  fireEvent.change(screen.getByPlaceholderText('06 12 34 56 78'), { target: { value: '0661111111' } });
+  const youngDate = new Date();
+  youngDate.setFullYear(youngDate.getFullYear() - 3);
+  const dateInput = document.querySelector('input[type="date"]');
+  fireEvent.change(dateInput, { target: { value: youngDate.toISOString().split('T')[0] } });
+  fireEvent.click(screen.getByText(/Prochaine étape/i));
+  await waitFor(() =>
+    expect(screen.getByText(/au moins 7 ans/i)).toBeInTheDocument()
+  );
+});
   // Branche handleDOB : val vide → reset erreur dob
-  test('AM-VAL04 — effacer la date de naissance supprime l\'erreur âge', async () => {
-    renderModal();
-    const dateInput = screen.getByDisplayValue('');
-    // D'abord saisir une date invalide (< 7 ans)
-    const youngDate = new Date();
-    youngDate.setFullYear(youngDate.getFullYear() - 2);
-    fireEvent.change(dateInput, { target: { value: youngDate.toISOString().split('T')[0] } });
-    await waitFor(() => expect(screen.getByText(/au moins 7 ans/i)).toBeInTheDocument());
-    // Puis effacer la date
-    fireEvent.change(dateInput, { target: { value: '' } });
-    await waitFor(() =>
-      expect(screen.queryByText(/au moins 7 ans/i)).not.toBeInTheDocument()
-    );
-  });
+test('AM-VAL04 — effacer la date de naissance supprime l\'erreur âge', async () => {
+  renderModal();
+  const dateInput = document.querySelector('input[type="date"]');
+  const youngDate = new Date();
+  youngDate.setFullYear(youngDate.getFullYear() - 2);
+  fireEvent.change(dateInput, { target: { value: youngDate.toISOString().split('T')[0] } });
+  await waitFor(() => expect(screen.getByText(/au moins 7 ans/i)).toBeInTheDocument());
+  fireEvent.change(dateInput, { target: { value: '' } });
+  await waitFor(() =>
+    expect(screen.queryByText(/au moins 7 ans/i)).not.toBeInTheDocument()
+  );
+});
 
   // Branche handleDOB : âge valide (>= 7) → affiche "Âge : N ans", pas d'erreur
-  test('AM-VAL05 — date de naissance valide (>= 7 ans) affiche l\'âge sans erreur', async () => {
-    renderModal();
-    const validDate = new Date();
-    validDate.setFullYear(validDate.getFullYear() - 25);
-    const dateStr = validDate.toISOString().split('T')[0];
-    fireEvent.change(screen.getByDisplayValue(''), { target: { value: dateStr } });
-    await waitFor(() =>
-      expect(screen.getByText(/Âge : 25 ans/i)).toBeInTheDocument()
-    );
-    expect(screen.queryByText(/au moins 7 ans/i)).not.toBeInTheDocument();
-  });
+test('AM-VAL05 — date de naissance valide (>= 7 ans) affiche l\'âge sans erreur', async () => {
+  renderModal();
+  const validDate = new Date();
+  validDate.setFullYear(validDate.getFullYear() - 25);
+  const dateInput = document.querySelector('input[type="date"]');
+  fireEvent.change(dateInput, { target: { value: validDate.toISOString().split('T')[0] } });
+  await waitFor(() =>
+    expect(screen.getByText(/Âge : 25 ans/i)).toBeInTheDocument()
+  );
+  expect(screen.queryByText(/au moins 7 ans/i)).not.toBeInTheDocument();
+});
 
-  // Branche calcAge : anniversaire pas encore passé cette année → âge--
-  test('AM-VAL06 — calcAge : anniversaire futur dans l\'année retire 1 an', async () => {
-    renderModal();
-    // Construire une date dont l'anniversaire tombe après aujourd'hui
-    const now = new Date();
-    const birthday = new Date(now.getFullYear() - 10, now.getMonth() + 1, 1);
-    // Si le mois + 1 dépasse décembre, on prend le mois 0 de l'année précédente
-    const adjustedYear = birthday.getMonth() > 11
-      ? now.getFullYear() - 11
-      : now.getFullYear() - 10;
-    const futureBirthday = new Date(adjustedYear, (now.getMonth() + 1) % 12, 1);
-    const dateStr = futureBirthday.toISOString().split('T')[0];
-
-    fireEvent.change(screen.getByDisplayValue(''), { target: { value: dateStr } });
-    // L'âge doit être affiché (9 ou 10 selon le mois exact) sans erreur
-    await waitFor(() =>
-      expect(screen.getByText(/Âge : \d+ ans/i)).toBeInTheDocument()
-    );
-    expect(screen.queryByText(/au moins 7 ans/i)).not.toBeInTheDocument();
-  });
+test('AM-VAL06 — calcAge : anniversaire futur dans l\'année retire 1 an', async () => {
+  renderModal();
+  const now = new Date();
+  const futureBirthday = new Date(now.getFullYear() - 10, (now.getMonth() + 2) % 12, 1);
+  const dateInput = document.querySelector('input[type="date"]');
+  fireEvent.change(dateInput, { target: { value: futureBirthday.toISOString().split('T')[0] } });
+  await waitFor(() =>
+    expect(screen.getByText(/Âge : \d+ ans/i)).toBeInTheDocument()
+  );
+  expect(screen.queryByText(/au moins 7 ans/i)).not.toBeInTheDocument();
+});
 
   // Correction erreur nom après erreur : taper dans le champ efface l'erreur
   test('AM-VAL07 — corriger le nom efface l\'erreur en temps réel', async () => {

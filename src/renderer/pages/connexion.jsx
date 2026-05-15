@@ -146,7 +146,7 @@ export default function Login() {
           </div>
 
           {/* Mot de passe */}
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 24 }}>
             <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', display: 'block', marginBottom: 7, fontWeight: 600 }}>
               Mot de passe
             </label>
@@ -164,7 +164,6 @@ export default function Login() {
                 onFocus={e => e.target.style.borderColor = 'rgba(229,57,53,0.65)'}
                 onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
               />
-              {/* Bouton voir/masquer mot de passe */}
               <button
                 type="button"
                 onClick={() => setShowPass(v => !v)}
@@ -179,14 +178,6 @@ export default function Login() {
                 <EyeIcon open={showPass} />
               </button>
             </div>
-          </div>
-
-          {/* Se souvenir / Mot de passe oublié */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, fontSize: '0.75rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.55)', cursor: 'pointer' }}>
-              <input type="checkbox" style={{ accentColor: '#e53935' }} /> Se souvenir de moi
-            </label>
-            <span style={{ color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>Mot de passe oublié ?</span>
           </div>
 
           {/* Bouton connexion */}
@@ -210,7 +201,15 @@ export default function Login() {
           </button>
 
           <p style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center', margin: 0 }}>
-            Besoin d'aide ? <span style={{ color: '#e57373', cursor: 'pointer' }}>Contactez le support.</span>
+            Besoin d'aide ?{' '}
+            <span
+              style={{ color: '#e57373', cursor: 'pointer' }}
+              onClick={() => window.open('mailto:amina.albane@se.univ-bejaia.dz?subject=Support FitManager&body=Bonjour,%0A%0AJ\'ai besoin d\'aide concernant :')}
+              onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+            >
+              Contactez le support.
+            </span>
           </p>
         </div>
 

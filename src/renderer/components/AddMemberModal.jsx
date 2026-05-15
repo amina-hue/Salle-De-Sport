@@ -155,16 +155,30 @@ function StepPersonnel({ form, set, onNext, onClose }) {
   };
 
   /* 1. Téléphone : chiffres + séparateurs seulement */
-  const handlePhone = (e) => {
-    const raw    = e.target.value;
-    const clean  = raw.replace(/[^0-9\s\+\-\(\)]/g, '');
-    set('numTelephone', clean);
-    if (/[^0-9\s\+\-\(\)]/.test(raw)) {
-      setErrors(prev => ({ ...prev, phone: 'Chiffres uniquement.' }));
-    } else {
-      setErrors(prev => ({ ...prev, phone: '' }));
-    }
-  };
+  // const handlePhone = (e) => {
+  //   const raw    = e.target.value;
+  //   const clean  = raw.replace(/[^0-9\s\+\-\(\)]/g, '');
+  //   set('numTelephone', clean);
+  //   if (/[^0-9\s\+\-\(\)]/.test(raw)) {
+  //     setErrors(prev => ({ ...prev, phone: 'Chiffres uniquement.' }));
+  //   } else {
+  //     setErrors(prev => ({ ...prev, phone: '' }));
+  //   }
+  // };
+
+
+  // Remplace handlePhone
+const handlePhone = (e) => {
+  const raw   = e.target.value;
+  const clean = raw.replace(/[^0-9\s\+\-\(\)]/g, '');
+  set('numTelephone', clean);
+  const digits = clean.replace(/\D/g, '');
+  if (digits.length > 0 && !/^(05|06|07)\d{8}$/.test(digits)) {
+    setErrors(prev => ({ ...prev, phone: 'Numéro invalide (ex: 0555 123 456 — Djezzy/Mobilis/Ooredoo)' }));
+  } else {
+    setErrors(prev => ({ ...prev, phone: '' }));
+  }
+};
 
   /* 2. Email : validation format */
   const handleEmail = (e) => {
@@ -206,9 +220,12 @@ function StepPersonnel({ form, set, onNext, onClose }) {
     }
 
     // Validation téléphone chiffres
-    if (form.numTelephone && /[^0-9\s\+\-\(\)]/.test(form.numTelephone)) {
-      newErrors.phone = 'Chiffres uniquement.';
-    }
+if (form.numTelephone) {
+  const digits = form.numTelephone.replace(/\D/g, '');
+  if (!/^(05|06|07)\d{8}$/.test(digits)) {
+    newErrors.phone = 'Numéro invalide (ex: 0555 123 456 — Djezzy/Mobilis/Ooredoo)';
+  }
+}
 
     // Validation âge >= 7 ans
     if (form.dateNaissance) {
