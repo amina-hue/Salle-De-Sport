@@ -50,3 +50,31 @@ jobs:
         with:
           name: ${{ matrix.platform }}-build
           path: out/make/**/*
+  create-release:
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: FitManager ${{ github.ref_name }}
+          body: |
+            ## 🏋️ FitManager ${{ github.ref_name }}
+            
+            ### Téléchargements
+            - **Windows** : extraire le ZIP et lancer `salle-de-sport.exe`
+            - **Linux** : installer le `.deb` avec `sudo dpkg -i *.deb`
+            - **macOS** : extraire le ZIP et lancer l'app
+            
+            ### Prérequis
+            MySQL doit être installé sur la machine.
+            Mot de passe root : `Fitmanager@2026`
+          files: |
+            darwin-build/**/*
+            linux-build/**/*
+            win32-build/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

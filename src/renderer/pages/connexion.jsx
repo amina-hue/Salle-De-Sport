@@ -24,7 +24,7 @@ export default function Login() {
       });
       if (result.success) {
         localStorage.setItem("user", JSON.stringify(result.user));
-        navigate("/adherents");
+        navigate("/statistiques");
       } else {
         setError(result.message);
       }

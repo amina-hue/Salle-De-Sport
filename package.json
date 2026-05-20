@@ -61,6 +61,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.9",
     "axios": "^1.14.0",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.1",
     "jspdf": "^4.2.1",
