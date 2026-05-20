@@ -469,9 +469,9 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
           <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex', zIndex: 1 }}><IconCard /></span>
             <select value={form.type_id || ''} onChange={e => handleTypeChange(e.target.value)} style={{ ...inpIcon, width: '100%', appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Sélectionner...</option>
+              <option value="" style={{ background: '#1a1516', color: '#7a7f8e' }}>Sélectionner...</option>
               {typesAbonnement.map(t => (
-                <option key={t.id} value={t.id}>{t.nom} — {t.prix} DA</option>
+                <option key={t.id} value={t.id} style={{ background: '#1a1516', color: '#f0f0f0' }}>{t.nom} — {t.prix} DA</option>
               ))}
             </select>
           </div>
@@ -491,8 +491,8 @@ function StepAbonnement({ form, set, typesAbonnement, onPrev, onNext, onClose })
           <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted, display: 'flex', zIndex: 1 }}><IconCard /></span>
             <select value={form.discipline || ''} onChange={e => set('discipline', e.target.value)} style={{ ...inpIcon, width: '100%', appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Sélectionner...</option>
-              {DISCIPLINES.map(d => <option key={d}>{d}</option>)}
+              <option value="" style={{ background: '#1a1516', color: '#7a7f8e' }}>Sélectionner...</option>
+              {DISCIPLINES.map(d => <option key={d} style={{ background: '#1a1516', color: '#f0f0f0' }}>{d}</option>)}
             </select>
           </div>
         </div>

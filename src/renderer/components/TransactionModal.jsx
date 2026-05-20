@@ -105,13 +105,13 @@ useEffect(() => {
                 value={adherentId}
                 onChange={e => setAdherentId(e.target.value)}
                 disabled={loadingAdh}
-                style={{ ...inputSt, appearance: 'none', cursor: loadingAdh ? 'wait' : 'pointer', color: adherentId ? C.text : C.muted }}
+                style={{ ...inputSt, appearance: 'none', cursor: loadingAdh ? 'wait' : 'pointer', color: adherentId ? C.text : C.muted , background: '#161012' }}
                 onFocus={e => e.target.style.borderColor = C.accentBorder}
                 onBlur={e  => e.target.style.borderColor = C.border}
               >
-                <option value="">— Vente anonyme —</option>
+                <option value="" style={{ background: '#161012', color: '#6b7280' }}>— Vente anonyme —</option>
                 {adherents.map(a => (
-                  <option key={a.idAdherent} value={a.idAdherent}>
+                  <option key={a.idAdherent} value={a.idAdherent} style={{ background: '#161012', color: '#f0f0f0' }}>
                     {a.nom} {a.prenom}
                   </option>
                 ))}

@@ -192,11 +192,11 @@ const handleSave = async () => {
                 <select
                   value={form.duree}
                   onChange={e => set('duree', e.target.value)}
-                  style={{ ...inp, appearance: 'none', cursor: 'pointer', border: errors.duree ? '1px solid #e53935' : inp.border }}
+                  style={{ ...inp, appearance: 'none', cursor: 'pointer',  background: '#1a1516',border: errors.duree ? '1px solid #e53935' : inp.border }}
                 >
-                  <option value="">Sélectionner...</option>
+                  <option value="" style={{ background: '#1a1516', color: '#7a7f8e' }}>Sélectionner...</option>
                   {DUREES.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
+                    <option key={d.value} value={d.value} style={{ background: '#1a1516', color: '#f0f0f0' }}>{d.label}</option>
                   ))}
                 </select>
                 {errors.duree && <span style={{ fontSize: '0.72rem', color: C.accent, marginTop: 4, display: 'block' }}>{errors.duree}</span>}

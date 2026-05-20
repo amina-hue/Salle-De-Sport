@@ -21,7 +21,7 @@ function NouveauProduitModal({ onSave, onClose }) {
         position: 'fixed',
         inset: 0,
         zIndex: 999,
-        background: 'rgba(0,0,0,0.7)',
+        background: '#161012',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -85,8 +85,8 @@ function NouveauProduitModal({ onSave, onClose }) {
             <div>
               <label style={lbl}>Catégorie *</label>
               <FocusInput tag="select" value={form.categorie} onChange={e => set('categorie', e.target.value)}>
-                <option value="">Sélectionner...</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="" style={{ background: '#1a1516', color: '#7a7f8e' }}>Sélectionner...</option>
+                {CATEGORIES.map(c => <option key={c} value={c}style={{ background: '#1a1516', color: '#f0f0f0' }}>{c}</option>)}
               </FocusInput>
             </div>
             <div>

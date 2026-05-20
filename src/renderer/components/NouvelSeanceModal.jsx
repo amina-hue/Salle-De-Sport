@@ -195,9 +195,9 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
                   onChange={e => set('activite_id', e.target.value)}
                   style={{ ...inp, cursor: 'pointer' }}
                 >
-                  <option value="">-- Sélectionner une activité --</option>
+                  <option value="" style={{ background: '#1a1516', color: '#7a7f8e' }}>-- Sélectionner une activité --</option>
                   {activites.map(a => (
-                    <option key={a.idActivite} value={a.idActivite}>
+                    <option key={a.idActivite} value={a.idActivite} style={{ background: '#1a1516', color: '#f0f0f0' }}>
                       {a.nom}
                     </option>
                   ))}
@@ -212,9 +212,9 @@ export default function NouvelSeanceModal({ onSave, onClose }) {
                   onChange={e => set('coach_id', e.target.value)}
                   style={{ ...inp, cursor: 'pointer' }}
                 >
-                  <option value="">-- Sélectionner un coach --</option>
+                  <option value="" style={{ background: '#1a1516', color: '#7a7f8e' }}>-- Sélectionner un coach --</option>
                   {coachs.map(c => (
-                    <option key={c.idUtilisateur} value={c.idUtilisateur}>
+                    <option key={c.idUtilisateur} value={c.idUtilisateur}  style={{ background: '#1a1516', color: '#f0f0f0' }}>
                       {c.nom} {c.prenom}
                     </option>
                   ))}

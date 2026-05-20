@@ -170,9 +170,9 @@ function NouveauProduitModal({ onSave, onClose, initialData }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={lbl}>Catégorie <span style={{ color: C.accent }}>*</span></label>
-              <FocusInput tag="select" value={form.categorie} onChange={e => set('categorie', e.target.value)} style={{ appearance: 'none', cursor: 'pointer' }}>
-                <option value="">Sélectionner...</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              <FocusInput tag="select" value={form.categorie} onChange={e => set('categorie', e.target.value)} style={{ appearance: 'none', cursor: 'pointer', background: '#161012' }}>
+                <option value="" style={{ background: '#161012', color: '#6b7280' }}>Sélectionner...</option>
+                {CATEGORIES.map(c => <option key={c} value={c} style={{ background: '#161012', color: '#f0f0f0' }}>{c}</option>)}
               </FocusInput>
             </div>
             <div>
@@ -290,7 +290,7 @@ function TransactionModal({ type, produit, onClose, onConfirm }) {
   const btnShadow = isVente ? 'rgba(229,57,53,0.4)' : 'rgba(59,130,246,0.4)';
 
   const inputSt = {
-    width: '100%', background: C.bgInput,
+      width: '100%', background: '#161012',
     border: `1px solid ${C.border}`, borderRadius: 8,
     padding: '10px 13px', color: C.text,
     fontFamily: "'Barlow', sans-serif", fontSize: '0.875rem',

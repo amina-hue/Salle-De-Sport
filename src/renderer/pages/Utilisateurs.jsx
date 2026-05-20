@@ -248,9 +248,9 @@ function AddUserModal({ roles, onClose, onSaved }) {
               value={form.role_id}
               onChange={e => set("role_id", e.target.value)}
             >
-              <option value="">-- Sélectionner un rôle --</option>
+              <option value="" style={{ background: "#1a1d24", color: "#7a7f8e" }}>-- Sélectionner un rôle --</option>
               {roles.map(r => (
-                <option key={r.id} value={r.id}>{r.nom}</option>
+                <option key={r.id} value={r.id} style={{ background: "#1a1d24", color: "#f0f0f0" }}>{r.nom}</option>
               ))}
             </select>
           </div>
