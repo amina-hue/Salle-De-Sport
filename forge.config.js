@@ -3,21 +3,27 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 module.exports = {
   packagerConfig: {
-    asar: true,
+    asar: {
+    unpack: '**/*.node', // décompresse les fichiers natifs (mysql2)
+  },
     name: 'salle-de-sport',
     executableName: 'salle-de-sport',
     icon: './assets/icon', // Forge ajoute .ico / .icns / .png automatiquement
+    extraResource: [
+  './src/fitmanager_structure.sql'
+],
   },
   rebuildConfig: {},
   makers: [
-    {
-      name: '@electron-forge/maker-squirrel', // Windows .exe
-      config: {
-        name: 'salle_de_sport', // pas de tirets pour Squirrel
-        iconUrl: 'https://raw.githubusercontent.com/amina-hue/Salle-De-Sport/main/assets/icon.ico', // ✅ /main/ ajouté
-        setupIcon: './assets/icon.ico',
-      },
-    },
+   {
+  name: '@electron-forge/maker-squirrel',
+  config: {
+    name: 'salle_de_sport',
+    iconUrl: 'https://raw.githubusercontent.com/amina-hue/Salle-De-Sport/main/assets/icon.ico',
+    setupIcon: './assets/icon.ico',
+    noMsi: true,
+  },
+},
     {
       name: '@electron-forge/maker-zip',      // macOS .zip
       platforms: ['darwin'],

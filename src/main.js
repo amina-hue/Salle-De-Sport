@@ -1,23 +1,139 @@
+// require('dotenv').config();
+
+
+// const { app, BrowserWindow, session, ipcMain, dialog } = require('electron');
+// const path = require('node:path');
+// const fs   = require('fs');
+// const os   = require('os');
+// const db = require('./db');
+// if (require('electron-squirrel-startup')) app.quit();
+
+// // ══════════════════════════════════════════════
+// //  FENÊTRE PRINCIPALE
+// // ══════════════════════════════════════════════
+
+// const createWindow = () => {
+//   const mainWindow = new BrowserWindow({
+//     width: 1280, height: 800, minWidth: 1024, minHeight: 650, show: false,
+//     webPreferences: { preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY },
+//   });
+//  const { shell } = require('electron');
+//   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+//     if (url.startsWith('https://wa.me')) {
+//       shell.openExternal(url);
+//       return { action: 'deny' };
+//     }
+//     return { action: 'allow' };
+//   });
+//   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+//     callback({
+//       responseHeaders: {
+//         ...details.responseHeaders,
+//         'Content-Security-Policy': [
+//           "default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; " +
+//           "img-src 'self' data: https: http:; " +
+//           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+//           "font-src 'self' https://fonts.gstatic.com data:; " +
+//           "connect-src 'self' https: http:;"
+//         ]
+//       }
+//     });
+//   });
+
+//   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+//   mainWindow.webContents.on('did-finish-load', () => { mainWindow.show(); });
+// };
+
+// app.whenReady().then(() => {
+//   createWindow();
+//   app.on('activate', () => {
+//     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+//   });
+// });
+
+// app.on('window-all-closed', () => {
+//   if (process.platform !== 'darwin') app.quit();
+// });
+
+// // ── Helper : transforme un db.query callback en Promise ──────────────────────
+// const query = (sql, params = []) =>
+//   new Promise((resolve, reject) =>
+//     db.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)))
+//   );
+
+// // ══════════════════════════════════════════════
+// //  AUTO-EXPIRE HELPER
+// //  Gère 2 cas :
+// //   1. Abonnement suspendu dont dateFinSuspension < CURDATE()
+// //      → la dateFin a DÉJÀ été décalée lors de la suspension
+// //      → on remet juste le statut à 'actif' (ou 'expiré' si dateFin aussi dépassée)
+// //        et on efface les champs suspension
+// //   2. Abonnement actif dont dateFin < CURDATE() → expiré
+// // ══════════════════════════════════════════════
+// const autoExpire = (cb) => {
+//   // Étape 1 : reprendre automatiquement les suspensions dont la période est terminée.
+//   //           dateFin a déjà été décalée lors de la suspension → on ne retouche pas dateFin.
+//   //           On remet juste actif/expiré selon si dateFin est encore dans le futur ou non.
+//   db.query(
+//     `UPDATE Abonnement
+//      SET
+//        statut            = CASE
+//                              WHEN dateFin < CURDATE() THEN 'expiré'
+//                              ELSE 'actif'
+//                            END,
+//        dureeSuspension   = NULL,
+//        causeSuspension   = NULL,
+//        dateFinSuspension = NULL
+//      WHERE statut = 'suspendu'
+//        AND dateFinSuspension IS NOT NULL
+//        AND dateFinSuspension < CURDATE()`,
+//     (errSuspend) => {
+//       if (errSuspend) console.error('Auto-reprise suspension error:', errSuspend);
+
+//       // Étape 2 : expirer les abonnements actifs dont la dateFin est dépassée
+//       db.query(
+//         `UPDATE Abonnement
+//          SET statut = 'expiré'
+//          WHERE statut = 'actif'
+//            AND dateFin < CURDATE()`,
+//         (errExpire) => {
+//           if (errExpire) console.error('Auto-expire error:', errExpire);
+//           if (cb) cb();
+//         }
+//       );
+//     }
+//   );
+// };
 require('dotenv').config();
-
-
-const { app, BrowserWindow, session, ipcMain, dialog } = require('electron');
+ 
+const { app, BrowserWindow, session, ipcMain, dialog, shell } = require('electron');
 const path = require('node:path');
 const fs   = require('fs');
 const os   = require('os');
-const db = require('./db');
+const { initDatabase, getDb } = require('./db');
+ 
 if (require('electron-squirrel-startup')) app.quit();
-
+ 
+// ── Raccourci db.query utilisable partout dans le fichier ────────────────────
+const db = {
+  query: (...args) => getDb().query(...args),
+};
+ 
+// ── Helper : transforme un db.query callback en Promise ──────────────────────
+const query = (sql, params = []) =>
+  new Promise((resolve, reject) =>
+    db.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)))
+  );
+ 
 // ══════════════════════════════════════════════
 //  FENÊTRE PRINCIPALE
 // ══════════════════════════════════════════════
-
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1280, height: 800, minWidth: 1024, minHeight: 650, show: false,
     webPreferences: { preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY },
   });
- const { shell } = require('electron');
+ 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://wa.me')) {
       shell.openExternal(url);
@@ -25,6 +141,7 @@ const createWindow = () => {
     }
     return { action: 'allow' };
   });
+ 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -39,63 +156,233 @@ const createWindow = () => {
       }
     });
   });
-
+ 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
   mainWindow.webContents.on('did-finish-load', () => { mainWindow.show(); });
 };
+ 
+// ══════════════════════════════════════════════
+//  FENÊTRE D'ERREUR MySQL (si MySQL non détecté)
+// ══════════════════════════════════════════════
+const createMysqlErrorWindow = () => {
+  const platform = process.platform; // 'win32', 'darwin', 'linux'
+ 
+  const instructions = {
+    win32: {
+      title: 'MySQL requis — Windows',
+      steps: `
+        <ol>
+          <li>Télécharge MySQL : <a href="https://dev.mysql.com/downloads/installer/" target="_blank">dev.mysql.com/downloads/installer</a></li>
+          <li>Lance l'installeur et choisis <b>MySQL Server</b></li>
+          <li>Lors de la config, définis le mot de passe root : <code>Fitmanager@2026</code></li>
+          <li>Assure-toi que MySQL démarre automatiquement avec Windows</li>
+          <li>Relance FitManager ✅</li>
+        </ol>
+      `,
+    },
+    darwin: {
+      title: 'MySQL requis — macOS',
+      steps: `
+        <ol>
+          <li>Installe Homebrew si besoin : <a href="https://brew.sh" target="_blank">brew.sh</a></li>
+          <li>Dans le Terminal : <code>brew install mysql</code></li>
+          <li>Démarre MySQL : <code>brew services start mysql</code></li>
+          <li>Définis le mot de passe root : <code>mysql_secure_installation</code></li>
+          <li>Mot de passe à utiliser : <code>Fitmanager@2026</code></li>
+          <li>Relance FitManager ✅</li>
+        </ol>
+      `,
+    },
+    linux: {
+      title: 'MySQL requis — Linux',
+      steps: `
+        <ol>
+          <li>Dans le Terminal : <code>sudo apt install mysql-server</code></li>
+          <li>Démarre MySQL : <code>sudo systemctl start mysql</code></li>
+          <li>Configure le mot de passe root :<br><code>sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Fitmanager@2026'; FLUSH PRIVILEGES;"</code></li>
+          <li>Relance FitManager ✅</li>
+        </ol>
+      `,
+    },
+  };
+ 
+  const info = instructions[platform] || instructions.linux;
+ 
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>FitManager — Configuration requise</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          background: #0f172a;
+          color: #e2e8f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          padding: 32px;
+        }
+        .card {
+          background: #1e293b;
+          border: 1px solid #334155;
+          border-radius: 16px;
+          padding: 40px;
+          max-width: 560px;
+          width: 100%;
+          box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .icon { font-size: 48px; margin-bottom: 16px; }
+        h1 { font-size: 22px; color: #f8fafc; margin-bottom: 8px; }
+        .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 28px; }
+        .steps-title { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+        ol { padding-left: 20px; }
+        li { margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #cbd5e1; }
+        code {
+          background: #0f172a;
+          border: 1px solid #334155;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 13px;
+          color: #38bdf8;
+        }
+        a { color: #38bdf8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .btn {
+          margin-top: 32px;
+          width: 100%;
+          padding: 12px;
+          background: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .btn:hover { background: #2563eb; }
+        .error-box {
+          background: #450a0a;
+          border: 1px solid #991b1b;
+          border-radius: 8px;
+          padding: 12px 16px;
+          margin-bottom: 24px;
+          font-size: 13px;
+          color: #fca5a5;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="icon">⚙️</div>
+        <h1>${info.title}</h1>
+        <p class="subtitle">FitManager nécessite MySQL pour fonctionner. Suis ces étapes pour l'installer :</p>
+        <div class="error-box">
+          ❌ Impossible de se connecter à MySQL sur localhost
+        </div>
+        <p class="steps-title">Étapes d'installation</p>
+        ${info.steps}
+        <button class="btn" onclick="window.close()">J'ai installé MySQL — Relancer FitManager</button>
+      </div>
+      <script>
+        document.querySelector('.btn').addEventListener('click', () => {
+          require('electron').ipcRenderer.send('retry-mysql');
+        });
+        // Ouvrir les liens dans le navigateur
+        document.querySelectorAll('a').forEach(a => {
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            require('electron').shell.openExternal(a.href);
+          });
+        });
+      </script>
+    </body>
+    </html>
+  `;
+ 
+  const tmpPath = path.join(os.tmpdir(), 'fitmanager-mysql-error.html');
+  fs.writeFileSync(tmpPath, html);
+ 
+  const errorWindow = new BrowserWindow({
+    width: 640,
+    height: 580,
+    resizable: false,
+    title: 'FitManager — Configuration requise',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+ 
+  errorWindow.setMenuBarVisibility(false);
+  errorWindow.loadFile(tmpPath);
+  return errorWindow;
+};
+ 
+// ══════════════════════════════════════════════
+//  DÉMARRAGE DE L'APP
+// ══════════════════════════════════════════════
+app.whenReady().then(async () => {
+  // Si lancé par Squirrel pendant l'installation, on quitte proprement
+  if (process.argv.some(arg =>
+    arg.includes('--squirrel-install') ||
+    arg.includes('--squirrel-updated') ||
+    arg.includes('--squirrel-uninstall') ||
+    arg.includes('--squirrel-obsolete')
+  )) {
+    app.quit();
+    return;
+  }
 
-app.whenReady().then(() => {
-  createWindow();
+  try {
+    await initDatabase();
+    createWindow();
+  } catch (err) {
+    console.error('❌ MySQL non disponible:', err.message);
+    const errWin = createMysqlErrorWindow();
+ 
+    // Si l'utilisateur clique "Relancer", on réessaie
+    ipcMain.on('retry-mysql', async () => {
+      try {
+        await initDatabase();
+        errWin.close();
+        createWindow();
+      } catch (e) {
+        // La fenêtre d'erreur reste ouverte
+        console.error('MySQL toujours indisponible:', e.message);
+      }
+    });
+  }
+ 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
-
+ 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
-// ── Helper : transforme un db.query callback en Promise ──────────────────────
-const query = (sql, params = []) =>
-  new Promise((resolve, reject) =>
-    db.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)))
-  );
-
+ 
 // ══════════════════════════════════════════════
 //  AUTO-EXPIRE HELPER
-//  Gère 2 cas :
-//   1. Abonnement suspendu dont dateFinSuspension < CURDATE()
-//      → la dateFin a DÉJÀ été décalée lors de la suspension
-//      → on remet juste le statut à 'actif' (ou 'expiré' si dateFin aussi dépassée)
-//        et on efface les champs suspension
-//   2. Abonnement actif dont dateFin < CURDATE() → expiré
 // ══════════════════════════════════════════════
 const autoExpire = (cb) => {
-  // Étape 1 : reprendre automatiquement les suspensions dont la période est terminée.
-  //           dateFin a déjà été décalée lors de la suspension → on ne retouche pas dateFin.
-  //           On remet juste actif/expiré selon si dateFin est encore dans le futur ou non.
   db.query(
     `UPDATE Abonnement
-     SET
-       statut            = CASE
-                             WHEN dateFin < CURDATE() THEN 'expiré'
-                             ELSE 'actif'
-                           END,
-       dureeSuspension   = NULL,
-       causeSuspension   = NULL,
-       dateFinSuspension = NULL
+     SET statut = CASE WHEN dateFin < CURDATE() THEN 'expiré' ELSE 'actif' END,
+         dureeSuspension = NULL, causeSuspension = NULL, dateFinSuspension = NULL
      WHERE statut = 'suspendu'
-       AND dateFinSuspension IS NOT NULL
-       AND dateFinSuspension < CURDATE()`,
+       AND dateFinSuspension IS NOT NULL AND dateFinSuspension < CURDATE()`,
     (errSuspend) => {
       if (errSuspend) console.error('Auto-reprise suspension error:', errSuspend);
-
-      // Étape 2 : expirer les abonnements actifs dont la dateFin est dépassée
       db.query(
-        `UPDATE Abonnement
-         SET statut = 'expiré'
-         WHERE statut = 'actif'
-           AND dateFin < CURDATE()`,
+        `UPDATE Abonnement SET statut = 'expiré'
+         WHERE statut = 'actif' AND dateFin < CURDATE()`,
         (errExpire) => {
           if (errExpire) console.error('Auto-expire error:', errExpire);
           if (cb) cb();
