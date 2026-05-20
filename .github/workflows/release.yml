@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
           cache: 'npm'
 
       - name: Install dependencies
@@ -39,8 +39,42 @@ jobs:
           npm_config_runtime: electron
           npm_config_target: 41.0.2
 
-      - name: Publish to GitHub Releases
-        run: npm run publish -- --platform=${{ matrix.platform }}
+      - name: Make distributables
+        run: npm run make -- --platform=${{ matrix.platform }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: out/make/**/*
+  create-release:
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: FitManager ${{ github.ref_name }}
+          body: |
+            ## 🏋️ FitManager ${{ github.ref_name }}
+            
+            ### Téléchargements
+            - **Windows** : extraire le ZIP et lancer `salle-de-sport.exe`
+            - **Linux** : installer le `.deb` avec `sudo dpkg -i *.deb`
+            - **macOS** : extraire le ZIP et lancer l'app
+            
+            ### Prérequis
+            MySQL doit être installé sur la machine.
+            Mot de passe root : `Fitmanager@2026`
+          files: |
+            darwin-build/**/*
+            linux-build/**/*
+            win32-build/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

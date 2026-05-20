@@ -15,38 +15,29 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
-   {
-  name: '@electron-forge/maker-squirrel',
-  config: {
-    name: 'salle_de_sport',
-    iconUrl: 'https://raw.githubusercontent.com/amina-hue/Salle-De-Sport/main/assets/icon.ico',
-    setupIcon: './assets/icon.ico',
-    noMsi: true,
+  {
+    name: '@electron-forge/maker-zip',
+    platforms: ['win32', 'darwin'],
   },
-},
-    {
-      name: '@electron-forge/maker-zip',      // macOS .zip
-      platforms: ['darwin'],
-    },
-    {
-      name: '@electron-forge/maker-deb',      // Linux .deb
-      config: {
-        options: {
-          icon: './assets/icon.png',
-          maintainer: 'Amina',
-          homepage: 'https://github.com/amina-hue/Salle-De-Sport', 
-        },
+  {
+    name: '@electron-forge/maker-deb',
+    config: {
+      options: {
+        icon: './assets/icon.png',
+        maintainer: 'Amina',
+        homepage: 'https://github.com/amina-hue/Salle-De-Sport',
       },
     },
-    {
-      name: '@electron-forge/maker-rpm',      // Linux .rpm
-      config: {
-        options: {
-          icon: './assets/icon.png',
-        },
+  },
+  {
+    name: '@electron-forge/maker-rpm',
+    config: {
+      options: {
+        icon: './assets/icon.png',
       },
     },
-  ],
+  },
+],
   publishers: [
     {
       name: '@electron-forge/publisher-github',
